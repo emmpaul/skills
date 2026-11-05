@@ -115,6 +115,10 @@ git branch -r --contains <first-branch-commit>        # any remote holding them
   remote_tip=$(git rev-parse origin/<branch>)
   ```
 
+  Keep the literal sha (write it down), not only a shell variable: shell state may not
+  persist until the push in step 8. If the pull added commits, record the audit inputs
+  from step 2 again, so the audit covers them.
+
 Adaptations after a rebase are committed on top of the rebased commits, never squashed into
 them.
 
@@ -176,10 +180,6 @@ Run the repository's tests (find the command in CI workflows, `package.json`, `M
 the interactions and the base tests from check 4, and say which subset ran. Running tests
 must not modify tracked files.
 
-In caller mode, do not run code from a PR opened from a fork (`isCrossRepository: true`) or
-by an author without write access, unless the caller says the user allowed it: its tests can
-read local credentials. Report `tests: not_run` and why.
-
 - Tests pass: outcome `synced` (unless something is unresolved or needs a decision).
 - Tests fail: report the failures. Outcome is `needs_attention`, never `synced`.
 - No test command found, or the runner is not installed: `tests: not_run`, and say so.
@@ -191,7 +191,7 @@ read local credentials. Report `tests: not_run` and why.
 - **Direct use:** after a successful sync, show the report and ask before pushing. Push
   with plain `git push` (merge, or rebase of an unpushed branch with no upstream:
   `git push -u origin HEAD`). After a confirmed rebase of a pushed branch:
-  `git push --force-with-lease=<branch>:$remote_tip` (the tip recorded in step 3, never a
+  `git push --force-with-lease=<branch>:<remote-tip-sha>` (the literal sha recorded in step 3, never a
   bare `--force-with-lease`, whose lease follows the last fetch). Never `--force`.
 - **Caller mode:** do not push; the caller pushes. `pushed: false`.
 - Never push on `needs_decision` or `needs_attention` without the user's explicit go-ahead.
