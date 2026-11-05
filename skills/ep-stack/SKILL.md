@@ -175,7 +175,10 @@ layer 2 with layer 1, and so on.
 1. Run `status`. Show the layers that are behind and the branches that will be pushed;
    confirm when more than one branch will be pushed.
 2. For each layer in order:
-   - `git checkout <layer>` and `git pull --ff-only`.
+   - `git checkout <layer>` and `git pull --ff-only`. If the layer has local commits the
+     remote lacks (`git rev-list --count origin/<layer>..<layer>` above 0, for example a
+     merge an earlier run left unpushed after `needs_attention`), list them and stop: do
+     not sync or push that layer until the user pushes or discards them.
    - **If `ep-sync` is available to you**, invoke it for this layer with the parent as the
      base, in caller mode (`ep-sync <parent> --caller ep-stack`), so its merge audit
      applies to each layer. Read its `ep-sync-summary`. On `needs_decision` or
