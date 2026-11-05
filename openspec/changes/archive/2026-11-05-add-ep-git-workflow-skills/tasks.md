@@ -37,7 +37,7 @@
 ## 7. Integration
 
 - [x] 7.1 Run `scripts/check-shared.sh` and verify it passes for all four skills
-- [ ] 7.2 Install from the local path with `npx skills add ./` (or the CLI's local-source form) and verify all four `ep-*` skills appear in `~/.agents/skills/` and are listed by the agent
+- [x] 7.2 Install from the local path with `npx skills add ./` (or the CLI's local-source form) and verify all four `ep-*` skills appear in `~/.agents/skills/` and are listed by the agent
 - [x] 7.3 Run `openspec validate add-ep-git-workflow-skills --strict` and verify it passes
 
 ## Workflow follow-up
