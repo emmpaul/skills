@@ -31,9 +31,11 @@ For one failing check:
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.
-   - `flaky-infra`: `gh run rerun <run-id> --failed` once; if it fails again, report. Do
-     not re-run when the failed job, or any job that `needs:` it (`--failed` re-runs those
-     too), publishes, releases, or deploys; report it instead.
+   - `flaky-infra`: re-run only the debugged job, once: `gh run rerun <run-id> --job
+     <job-id>`, with the job's `databaseId` from `gh run view <run-id> --json jobs`, never
+     `--failed`); if it fails again, report. Do not re-run when that job
+     or any job downstream of it (GitHub re-runs those too) publishes, releases, or
+     deploys; report it instead.
    - `config`, `secret`: report what is needed; no code change.
 5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
@@ -48,8 +50,9 @@ For one failing check:
   locally.
 - Five classes: code, test, flaky-infra, config, secret; only code and test change code;
   a config fix is applied only in direct use, after the user agrees.
-- Re-run failed jobs at most once per check; a second failure is reported; never re-run a
-  publish, release, or deploy job without the user.
+- Re-run only the debugged job (`--job`, never `--failed`), at most once per check; a
+  second failure is reported; never re-run without the user when that job or any job
+  downstream of it publishes, releases, or deploys.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
 - Update a test only when the new behaviour is documented in the PR, commits, or the
   active OpenSpec change.
@@ -124,7 +127,8 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
    and the options.
 5. **Test** (full suite, or the subset covering the interactions, including the base tests
    from check 4). Failures: outcome
-   `needs_attention`, never `synced`.
+   `needs_attention`, never `synced`. A needs-update interaction that could not be fixed
+   (and is not ambiguous) stays `unresolved: <why>`, and the outcome is `needs_attention`.
 6. **Report** the audit table (`# | Class | Check | Base commit | Branch location | Reason |
    Resolution`; every interaction, no-impact rows last; `No interactions found.` when
    empty), then the

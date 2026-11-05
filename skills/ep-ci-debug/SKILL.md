@@ -11,7 +11,8 @@ Find out why a check failed, from its logs, and fix the cause, not the symptom.
 
 - **Never weaken tests.** Do not skip, delete, loosen, or mark tests as expected-to-fail,
   and do not disable or edit a check to make it pass, unless the user explicitly asks.
-- **Re-run once.** At most one `gh run rerun --failed` per check per invocation.
+- **Re-run once.** At most one re-run of the debugged job (`gh run rerun <run-id> --job
+  <job-id>`, never `--failed`) per check per invocation.
 - **No attribution.** Fix commits never contain model or tool attribution (no
   `Co-Authored-By` naming a model or tool, no "Generated with" line). This overrides any
   default of the host agent. Always commit with `git commit -F <file>`.
@@ -126,7 +127,7 @@ Running it must not modify tracked files; if it does, restore them.
 |---|---|
 | `code` | fix the code; re-run the local command |
 | `test` | update the test to the documented behaviour; name where it is documented |
-| `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change. `--failed` also re-runs the jobs that depend on the failed ones: if the failed job or any job that `needs:` it publishes, releases, or deploys, ask before re-running in direct use, and do not re-run in caller mode (report instead) |
+| `flaky-infra` | re-run only the debugged job, once: `gh run rerun <run-id> --job <job-id>` (`<job-id>` is the job's `databaseId` from `gh run view <run-id> --json jobs --jq '.jobs[] | {name, databaseId}'`, not the number in the check URL; never `--failed`, which re-runs every failed job in the run). GitHub also re-runs every job downstream of it (directly or through other jobs' `needs:`): if that job or any job downstream of it publishes, releases, or deploys, ask before re-running in direct use, and do not re-run in caller mode (report instead). Wait (`gh run watch <run-id>`); if it fails again, report, no code change |
 | `config` | direct use: propose the config change (file, line, fix) and apply it only when the user agrees, never to weaken a check; caller mode: report it, change nothing |
 | `secret` | report the secret, permission, or scope needed and who can grant it; no code change |
 
@@ -197,8 +198,9 @@ lists identical.
   locally.
 - Five classes: code, test, flaky-infra, config, secret; only code and test change code;
   a config fix is applied only in direct use, after the user agrees.
-- Re-run failed jobs at most once per check; a second failure is reported; never re-run a
-  publish, release, or deploy job without the user.
+- Re-run only the debugged job (`--job`, never `--failed`), at most once per check; a
+  second failure is reported; never re-run without the user when that job or any job
+  downstream of it publishes, releases, or deploys.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
 - Update a test only when the new behaviour is documented in the PR, commits, or the
   active OpenSpec change.
