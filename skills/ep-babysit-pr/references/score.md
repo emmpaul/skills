@@ -91,8 +91,8 @@ From `gh pr view <n> --json mergeStateStatus`:
 | `CLEAN`, `HAS_HOOKS` | merge if score >= 85 and gates pass |
 | `UNSTABLE` | non-required checks are failing: treat them as a fix round; merge allowed if score >= 85 and gates pass |
 | `BLOCKED` | wait (protection, e.g. required approval); notify the user once; re-check each tick |
-| `BEHIND` | `gh pr update-branch <n>`, then wait for checks and re-evaluate |
-| `DIRTY` | resolve conflicts as a fix round: merge the base into the branch locally, fix conflicts, commit, push (never rebase a pushed branch, never force-push) |
+| `BEHIND` | sync with the base through `ep-sync --caller ep-babysit-pr` (or `side-paths.md#sync`): merge and merge audit; on `synced`, push with a plain push, wait for checks, and re-evaluate; needs-update adaptations are a fix round; `needs_decision` stops and notifies the user without pushing; review-class items go in the next status report and review round |
+| `DIRTY` | same sync as `BEHIND`, as a fix round: the merge resolves conflicts that keep both sides' intent and stops with `needs_decision` on incompatible ones (never rebase a pushed branch, never force-push) |
 | `UNKNOWN` | GitHub is still computing: retry for 3 ticks, then stop and report |
 | `DRAFT` | do not merge; tell the user the PR is a draft and stop unless they ask to mark it ready |
 
