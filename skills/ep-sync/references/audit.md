@@ -115,8 +115,9 @@ stop (`needs_decision`).
 
 ## Report table
 
-Print every needs-update and review interaction as a row. Report no-impact interactions as
-a count only, unless the user asks for them.
+Print every interaction as a row: needs-update and review rows first, then no-impact rows,
+each with its evidence (base commit, branch location, reason). Large audits may group
+no-impact rows that share a base commit and reason into one row listing the locations.
 
 ```
 ## Merge audit: <branch> <- <base>@<short-sha> (<n> incoming commits)
@@ -125,13 +126,14 @@ a count only, unless the user asks for them.
 |---|---|---|---|---|---|---|
 | 1 | needs-update | symbol renamed | a1b2c3d refactor(users): rename get_user | src/api/profile.py:42 | calls `get_user`, removed in base | updated in 9f8e7d6 |
 | 2 | review | behaviour | e4f5a6b fix(dates): normalise to UTC | src/report.py:18 | formats `parse_date` result for display | listed for review |
+| 3 | no-impact | symbol changed | 7c8d9e0 style(utils): reformat | src/api/profile.py:3 | imports `slugify`; definition unchanged, only reformatted | none needed |
 
-no-impact: 4 interactions checked (2 symbols, 1 contract, 1 test)
+Totals: needs-update 1, review 1, no-impact 1
 Checks run: symbols, contracts, new callers, tests[, spec overlap]
 ```
 
 Resolution is one of: `updated in <sha>`, `options presented` (ambiguous), `listed for
-review`, `unresolved: <why>`. When the audit finds nothing, say so explicitly:
+review`, `none needed` (no-impact), `unresolved: <why>`. When the audit finds nothing, say so explicitly:
 `No interactions found.` and still list the checks run.
 
 ## Summary keys
