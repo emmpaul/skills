@@ -202,7 +202,8 @@ Compute the merge confidence score exactly as in
 [`references/score.md`](references/score.md), only from evidence: the latest
 `ep-review-summary` block, commits, comments, the probe's task counts, and the PR's
 changed paths. Never use self-assessed confidence. Without OpenSpec, drop the OpenSpec
-items and move their weight to tests as described there. Print the breakdown (each item,
+items and move their weight to tests as described there. For a documentation-only PR
+(path rules in `references/score.md`), the tests item is met as not applicable. Print the breakdown (each item,
 its weight, met or not) and save it to `last_score`.
 
 ## 7. Decide

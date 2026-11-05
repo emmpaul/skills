@@ -24,7 +24,7 @@ All must pass, regardless of score. Any failure means **no merge**.
 | 2 | Minor findings fixed or waived | 20 | every verified minor finding from the final round is fixed by a later commit, or waived in a PR comment with a reason | review summary + commits + comments |
 | 3 | Spec conformance passed | 20 | `spec_conformance: passed` in the final summary | `ep-review-summary` block |
 | 4 | Tasks complete | 15 | `tasks_done == tasks_total` for the change | context probe |
-| 5 | Tests added or touched | 10 | the PR diff changes at least one test file covering changed code (paths under `test/`, `tests/`, `__tests__/`, `spec/`, or files named `*test*` / `*spec*`) | `gh pr diff <n> --name-only` |
+| 5 | Tests added or touched | 10 | the PR diff changes at least one test file covering changed code (paths under `test/`, `tests/`, `__tests__/`, `spec/`, or files named `*test*` / `*spec*`), or the PR is documentation-only (below) | `gh pr diff <n> --name-only` |
 |   | **Total** | **100** | | |
 
 ### Without OpenSpec (no root, or no matching change)
@@ -35,11 +35,26 @@ Items 3 and 4 are dropped; their 35 points move to test evidence.
 |---|---|---|---|
 | 1 | No verified critical/major findings | 35 | as above |
 | 2 | Minor findings fixed or waived | 20 | as above |
-| 5 | Tests added or touched | 45 | as above |
+| 5 | Tests added or touched | 45 | as above, including the documentation-only rule |
 |   | **Total** | **100** | |
 
 Items are all-or-nothing: an item scores its full weight when met, 0 otherwise. If the
 final round had zero minor findings, item 2 is met.
+
+### Documentation-only PRs
+
+A PR with no code has nothing to test, so item 5 counts as **met (not applicable)** when
+the PR is documentation-only. Decide from paths alone (`gh pr diff <n> --name-only`; for
+renames, check both the old and new path):
+
+- **Every** changed path matches one of: `*.md`, `*.mdx`, `*.rst`, `*.txt`, `docs/**`,
+  `openspec/**`, `LICENSE*`, `CHANGELOG*`; and
+- **no** changed path is an agent instruction file: `AGENTS.md` or `CLAUDE.md` at any depth,
+  anything under `.claude/` or `.agents/`, or any file in or below a directory that
+  contains a `SKILL.md` (the whole skill folder, including `references/` and `scripts/`).
+
+If either condition fails, item 5 needs test evidence as usual. Only item 5 changes: the
+review round, the other items, the gates, and the threshold apply unchanged.
 
 ## Threshold
 
@@ -59,6 +74,12 @@ Hard gates: required checks ✓ | no conflicts ✓ | threads resolved ✓ | no c
   [✓] 20  Spec conformance passed
   [✗]  0/15 Tasks complete (7/8)
   [✓] 10  Tests added or touched (tests/test_auth.py)
+```
+
+For a documentation-only PR, item 5 reads:
+
+```
+  [✓] 45  Tests added or touched (n/a: no code changed; 12 files, all docs/planning)
 ```
 
 ## Merge-state mapping
