@@ -16,12 +16,12 @@
 
 - [x] 3.1 Write `skills/ep-ci-debug/references/classes.md` with the five classes, the signals for each, and the action for each, including re-run-once and never-weaken-tests. Verify that each class has signals and an action
 - [x] 3.2 Write `skills/ep-ci-debug/SKILL.md` covering check selection, the log commands (`gh run view --log-failed`), quoted diagnosis, local reproduction, the OpenSpec-or-PR intent rule for test updates, the fix and push gate, caller mode, the parallel path with sequential fallback, the summary block, and a "rules that must match" list. Verify that every requirement in `specs/ep-ci-debug/spec.md` maps to a section
-- [ ] 3.3 Run `scripts/sync-shared.sh` and verify on a sandbox GitHub repo that a seeded failing test is classified `code`, fixed, and pushed after confirmation, and that a workflow reading a missing secret is classified `secret` with no code change
+- [x] 3.3 Run `scripts/sync-shared.sh` and verify on a sandbox GitHub repo that a seeded failing test is classified `code`, fixed, and pushed after confirmation, and that a workflow reading a missing secret is classified `secret` with no code change
 
 ## 4. ep-stack
 
 - [x] 4.1 Write `skills/ep-stack/SKILL.md` covering the `split`, `status`, `sync`, and `retarget` subcommands, plan-first approval, branch naming and the `<!-- ep-stack -->` body marker (D8), PRs following ep-open-pr conventions with no attribution, the merge-based sync through `ep-sync` when installed, gates (D7), and the summary block. Verify that every requirement in `specs/ep-stack/spec.md` maps to a section
-- [ ] 4.2 Run `scripts/sync-shared.sh` and verify on a sandbox repo that a 6-commit branch splits into 3 approved layers with 3 correctly based PRs, and that `status` rebuilds the stack from PR bodies alone. Merge PR 1 and verify that `retarget` moves PR 2 to `main` and syncs it
+- [x] 4.2 Run `scripts/sync-shared.sh` and verify on a sandbox repo that a 6-commit branch splits into 3 approved layers with 3 correctly based PRs, and that `status` rebuilds the stack from PR bodies alone. Merge PR 1 and verify that `retarget` moves PR 2 to `main` and syncs it
 
 ## 5. ep-babysit-pr integration
 
@@ -30,7 +30,7 @@
 - [x] 5.3 Update step 5b so fixes go through `ep-fixup` no-rewrite in squash repos and are normal commits otherwise, with the merge method detected as in `references/score.md`. Verify against the modified "Address review comments" scenarios
 - [x] 5.4 Update step 5c and the BEHIND/DIRTY rows of the merge-state table in `references/score.md` to use `ep-sync --caller` or `side-paths.md#sync`. Needs-update items become a fix round; `needs_decision` stops and notifies; review items are listed. Verify against the modified "Merge decision defers to GitHub" scenarios, and that the forbidden-actions list is unchanged
 - [x] 5.5 Add the "No history rewrite through sibling skills" rule to the forbidden actions or hard rules, and the side-path fallback note to the no-subagents text. Verify that every requirement in `specs/ep-babysit-pr/spec.md` (this change) maps to text
-- [ ] 5.6 Verify on a sandbox repo with the siblings installed, then again with them removed (`npx skills remove ep-sync ep-fixup ep-ci-debug`). In both runs, check that babysit fixes a failing check, handles a fix comment, and syncs a BEHIND branch with an audit, with no force-push in `git reflog` or the PR timeline
+- [x] 5.6 Verify on a sandbox repo with the siblings installed, then again with them removed (`npx skills remove ep-sync ep-fixup ep-ci-debug`). In both runs, check that babysit fixes a failing check, handles a fix comment, and syncs a BEHIND branch with an audit, with no force-push in `git reflog` or the PR timeline
 
 ## 6. Integration
 
