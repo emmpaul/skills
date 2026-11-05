@@ -13,6 +13,7 @@ Git workflow chores (writing commits, opening PRs, reviewing diffs, shepherding 
   - `ep-babysit-pr`: watch a PR, fix CI failures, address and reply to review comments, run up to 3 review rounds, and auto-merge when an evidence-based confidence score is >= 85 and GitHub's merge state allows it.
 - Add a shared context probe (`shared/context.sh`) copied into each skill's `scripts/` folder, with a drift check, that emits git/PR/OpenSpec state as JSON.
 - Fill in `openspec/config.yaml` `context` and `rules` with the constraints for this repo: per-folder self-contained skills, the `ep-` prefix, cross-agent portability, GitHub/`gh`, no attribution, and graceful behavior when OpenSpec is absent.
+- Add a basic root `README.md`: what the repo is, the four skills with one-line descriptions, install commands (`npx skills add <owner>/skills`, single-skill and local-path installs), requirements (`git`, `gh`, optional `openspec` and `bash`), and a safety note on `ep-babysit-pr` auto-merge recommending branch protection.
 - Every skill works without subagents (sequential fallback); subagents and Claude Code Workflows are optional accelerators.
 
 ## Capabilities
@@ -28,7 +29,7 @@ Git workflow chores (writing commits, opening PRs, reviewing diffs, shepherding 
 
 ## Impact
 
-- New files: `skills/ep-*/SKILL.md`, `skills/ep-*/scripts/context.sh`, `shared/context.sh`, a drift-check script, and a README describing installation.
+- New files: `skills/ep-*/SKILL.md`, `skills/ep-*/scripts/context.sh`, `shared/context.sh`, a drift-check script, and a root `README.md`.
 - Modified: `openspec/config.yaml`.
 - Runtime dependencies for users: `git`, `gh` (authenticated), `bash` (optional; inline fallback), `openspec` CLI (optional), `jq` or equivalent only if the probe needs it.
 - Outward effects: `ep-open-pr`, `ep-review --comment`, and `ep-babysit-pr` write to GitHub; `ep-babysit-pr` can push to and merge PRs, gated as specified.

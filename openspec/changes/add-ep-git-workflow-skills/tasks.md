@@ -3,7 +3,8 @@
 ## 1. Repo setup and project config
 
 - [ ] 1.1 Update `openspec/config.yaml` with `context` and `rules` per design D8, and verify `openspec instructions proposal --change add-ep-git-workflow-skills --json` returns the new context and rules
-- [ ] 1.2 Create `skills/`, `shared/`, `scripts/` directories and a `README.md` with install instructions (`npx skills add <owner>/skills`, local path install, per-skill selection) and a note recommending branch protection for repos using `ep-babysit-pr`; verify the README lists all four skills
+- [ ] 1.2 Create `skills/`, `shared/`, `scripts/` directories and verify they exist
+- [ ] 1.3 Write a basic root `README.md`: repo purpose, the four skills with one-line descriptions, install commands (`npx skills add emmpaul/skills`, single-skill install, local-path install), requirements (`git`, `gh`; optional `openspec`, `bash`), and a safety note on `ep-babysit-pr` auto-merge recommending branch protection; verify every section is present and the install commands match the CLI's syntax
 
 ## 2. Context probe
 
