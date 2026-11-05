@@ -65,7 +65,9 @@ For one fix-class review comment, in a repository whose merge method is squash:
    (`^<sha>`) come from the base.
    - one branch commit: target it.
    - several: one fixup per target (run `git reset -q` first so nothing else is staged),
-     staging hunk by hunk with `git apply --cached --unidiff-zero`, and line by line when each
+     staging per file a version built from `HEAD` with only that target's lines changed
+     (`git hash-object -w` + `git update-index --cacheinfo`; never `git apply` of `-U0`
+     hunks, whose line numbers shift), splitting a hunk line by line when each
      changed line replaces one old line. A change that still cannot be separated, or a new
      file with no clear target, is not guessed: outcome `needs_decision` for that change.
    - base lines only: make a normal ep-commit commit instead (listed under `commits:`).

@@ -78,10 +78,13 @@ as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds**
 (`<old-count>` is 0), blame the old-side lines directly above and below it.
 
 - **One branch commit:** that commit is the target.
-- **Several branch commits:** split the change into one fixup per target. Stage hunk by
-  hunk (`git apply --cached --unidiff-zero` with a hunk-only patch from `git diff -U0`), and split a hunk line by line when
-  each changed line replaces one old line (stage a file version with only that target's
-  lines changed, for example via `git hash-object -w` and `git update-index --cacheinfo`).
+- **Several branch commits:** split the change into one fixup per target. For each file,
+  stage a version built from the `HEAD` version with **only that target's** changed lines
+  applied (write it to a temp file, `git hash-object -w <tmp>`, then
+  `git update-index --cacheinfo 100644,<blob>,<file>`). Do not stage `-U0` hunk patches
+  with `git apply`: their line numbers assume the other targets' changes are present, so
+  an insertion can land at the wrong line without an error. A hunk is split line by line
+  when each changed line replaces one old line.
   When a hunk still cannot be separated (it replaces lines from several commits with a
   different number of new lines), ask the user which commit it belongs to. In caller mode,
   do not choose: leave that change uncommitted and end with outcome `needs_decision`,
@@ -105,7 +108,7 @@ leak into another target's commit:
 
 ```bash
 git reset -q                       # empty the index; working tree untouched
-git add -- <files>                 # or apply the hunk patch to the index
+git add -- <files>                 # whole files; or stage the per-target file version (step 2)
 git commit --fixup=<target-sha>    # subject: "fixup! <target subject>"
 ```
 
