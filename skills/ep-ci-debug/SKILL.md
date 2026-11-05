@@ -120,17 +120,13 @@ Before changing code, find the command the failing step runs (in the workflow fi
 
 Running it must not modify tracked files; if it does, restore them.
 
-In caller mode, do not run code from a PR opened from a fork (`isCrossRepository: true`) or
-by an author without write access, unless the caller says the user allowed it: its scripts
-can read local credentials. Report the fix as unverified locally and why.
-
 ## 6. Act by class
 
 | Class | Action |
 |---|---|
 | `code` | fix the code; re-run the local command |
 | `test` | update the test to the documented behaviour; name where it is documented |
-| `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change. If the failed job publishes, releases, or deploys, ask before re-running in direct use, and do not re-run it in caller mode (report instead) |
+| `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change. `--failed` also re-runs the jobs that depend on the failed ones: if the failed job or any job that `needs:` it publishes, releases, or deploys, ask before re-running in direct use, and do not re-run in caller mode (report instead) |
 | `config` | direct use: propose the config change (file, line, fix) and apply it only when the user agrees, never to weaken a check; caller mode: report it, change nothing |
 | `secret` | report the secret, permission, or scope needed and who can grant it; no code change |
 
