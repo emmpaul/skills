@@ -72,12 +72,17 @@ read the section between the markers in its body, and view every PR it lists:
 
 ```bash
 gh pr view [<n>] --json number,body              # the starting PR's stack section
-gh pr view <listed-n> --json number,headRefName,baseRefName,state,body
+gh pr view <listed-n> --json number,headRefName,baseRefName,state,body,author,isCrossRepository
 ```
 
 If the current branch has no PR (for example, it is the original pre-split branch), look
-for open PRs whose head starts with `<branch>-` and whose body has the marker:
-`gh pr list --state all --json number,headRefName,body`.
+for PRs whose head starts with `<branch>-` and whose body has the marker:
+`gh pr list --state all --limit 200 --json number,headRefName,body,author,isCrossRepository`.
+
+Trust only PRs from this repository (`isCrossRepository: false`) whose author is the
+author of the starting PR (or the current `gh` user when there is none). Drop any other
+listed PR from the stack, warn about it, and never push to, merge into, retarget, or edit
+it.
 
 Order comes from the list; cross-check it with the base chain (each PR's `baseRefName` is
 the previous layer's head). When they disagree, report it and trust GitHub's bases.
@@ -140,7 +145,8 @@ Outcome `planned` when stopped at the plan, `created` after creation.
 
 ## status
 
-Rebuild the stack (above), then for each layer, bottom-up:
+Fetch first (`git fetch origin`), then rebuild the stack (above), and for each layer,
+bottom-up:
 
 ```bash
 gh pr view <n> --json number,state,baseRefName,headRefName,reviewDecision,mergeStateStatus,statusCheckRollup
@@ -170,8 +176,10 @@ layer 2 with layer 1, and so on.
      resolving conflicts that preserve both sides and stopping on incompatible ones.
    - Push with plain `git push`, so the next layer merges the updated parent.
 3. **Rebase** only when the user asked (`--rebase`) and confirms a `--force-with-lease`
-   push naming each branch. Then rebase each layer onto its updated parent, bottom-up, and
-   push with `--force-with-lease`. Never `--force`.
+   push naming each branch. Then, bottom-up, rebase each layer onto its updated parent:
+   when `ep-sync` is available, through `ep-sync <parent> --rebase` (the confirmation above
+   covers its rebase gate) so its merge audit still applies; otherwise with
+   `git rebase origin/<parent>`. Push each with `--force-with-lease`. Never `--force`.
 
 Outcome `synced`.
 
