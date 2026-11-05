@@ -126,6 +126,15 @@ file instead (`fixup! <target subject>` on the first line, nothing else) and use
 
 Skip this step in no-rewrite mode, in caller mode, and when the user did not ask.
 
+If the branch has an upstream, first bring in commits that exist only on the remote, so the
+checks below and the rewrite see them (stop and report if local and remote diverged), and
+recompute `$mb`:
+
+```bash
+git fetch origin <branch>
+git pull --ff-only
+```
+
 The rebase rewrites every commit after the oldest target, so check all of them, not only the
 targets:
 
@@ -143,11 +152,11 @@ git rev-list --count $mb..HEAD                     # all commits in the range
   unpushed branch; if it has no upstream, offer `git push -u origin HEAD`.
 - **Some pushed** (fewer commits on no remote than in the range): explain that the rewrite replaces commits already on
   `origin/<branch>` and that anyone who pulled them must reset. Ask for explicit
-  confirmation naming the branch. Only when confirmed: run `git fetch origin <branch>` and
-  `git pull --ff-only` first, so commits that exist only on the remote are kept (stop and
-  report if they diverged), record `remote_tip=$(git rev-parse origin/<branch>)`, recompute
-  `$mb`, squash, and push with `git push --force-with-lease=<branch>:$remote_tip`. Never a
-  bare `--force-with-lease` (its lease follows the last fetch), never `--force`. Without confirmation, keep the fixup
+  confirmation naming the branch. Only when confirmed: record the remote tip's literal sha
+  (`git rev-parse origin/<branch>`, after the pull above; write the sha down, since shell
+  variables may not persist), squash, and push with
+  `git push --force-with-lease=<branch>:<remote-tip-sha>`. Never a bare
+  `--force-with-lease` (its lease follows the last fetch), never `--force`. Without confirmation, keep the fixup
   commits and say they can be squashed later.
 
 If the rebase stops on a conflict, abort it (`git rebase --abort`), keep the fixup commits,
