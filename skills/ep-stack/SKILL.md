@@ -176,10 +176,13 @@ layer 2 with layer 1, and so on.
      resolving conflicts that preserve both sides and stopping on incompatible ones.
    - Push with plain `git push`, so the next layer merges the updated parent.
 3. **Rebase** only when the user asked (`--rebase`) and confirms a `--force-with-lease`
-   push naming each branch. Then, bottom-up, rebase each layer onto its updated parent:
-   when `ep-sync` is available, through `ep-sync <parent> --rebase` (the confirmation above
-   covers its rebase gate) so its merge audit still applies; otherwise with
-   `git rebase origin/<parent>`. Push each with `--force-with-lease`. Never `--force`.
+   push naming each branch, after being told that rebase mode runs no merge audit
+   (`ep-sync` never rebases for another skill; use merge mode to get the audit). Before
+   rebasing, record each layer's current parent tip (`old_parent=$(git rev-parse
+   origin/<parent>)`). Then, bottom-up, move only the layer's own commits onto the updated
+   parent: `git rebase --onto <updated-parent> $old_parent <layer>`. A plain
+   `git rebase origin/<parent>` would replay the parent's old commits. Push each with
+   `--force-with-lease`. Never `--force`.
 
 Outcome `synced`.
 
