@@ -116,6 +116,13 @@ gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$
   nodes{databaseId author{login} body path line}}}}}}}' -F o=<owner> -F r=<repo> -F n=<n>
 ```
 
+Before acting, compare the local branch with the remote:
+`git rev-list --count origin/<head-branch>..HEAD` (after `git fetch`). If it is above 0,
+the branch holds commits no step of this tick made, for example a merge left local by an
+earlier `needs_decision` or `needs_attention` sync. Do not commit or push anything (every
+push in steps 5a-5d would publish them): report those commits and stop until the user pushes
+or discards them.
+
 Classify the situation:
 
 - **Checks running** (`bucket: pending`): wait. Take no action; next tick.
@@ -219,10 +226,7 @@ user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop af
 
 **Sync with the base** (`BEHIND`, `DIRTY`):
 
-1. If the local branch has commits that are not on `origin/<head-branch>` (for example a
-   merge left local by an earlier `needs_decision` or `needs_attention`), do not sync again:
-   report those commits and stop until the user pushes or discards them.
-   If the skill `ep-sync` is available to you, invoke it in caller mode
+1. If the skill `ep-sync` is available to you, invoke it in caller mode
    (`ep-sync --caller ep-babysit-pr`: merge only, no push, never waits for the user).
    With subagents, you may delegate that run to a subagent; its audit clusters fan out
    inside it. Otherwise follow

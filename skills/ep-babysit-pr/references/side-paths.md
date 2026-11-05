@@ -64,7 +64,8 @@ For one fix-class review comment, in a repository whose merge method is squash:
    blame the neighbouring old-side lines). A branch sha is the target; boundary lines
    (`^<sha>`) come from the base.
    - one branch commit: target it.
-   - several: one fixup per target, staging hunk by hunk, and line by line when each
+   - several: one fixup per target (run `git reset -q` first so nothing else is staged),
+     staging hunk by hunk with `git apply --cached --unidiff-zero`, and line by line when each
      changed line replaces one old line. A change that still cannot be separated, or a new
      file with no clear target, is not guessed: outcome `needs_decision` for that change.
    - base lines only: make a normal ep-commit commit instead (listed under `commits:`).
