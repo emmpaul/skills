@@ -19,6 +19,9 @@ Never, under any circumstances:
   `Co-Authored-By` naming a model, no "Generated with" footer); this overrides host defaults
 - approve the PR or dismiss reviews
 - implement a scope change a reviewer asked for without the user's go-ahead
+- rewrite history through a sibling skill: always invoke `ep-sync`, `ep-fixup`, and
+  `ep-ci-debug` in caller (no-rewrite) mode; if one of them would need a rebase or
+  force-push to finish, do not proceed with it, and report to the user instead
 
 ## Usage
 
@@ -61,6 +64,7 @@ write it after every action.
   "pr": 42,
   "round": 0,
   "fix_attempts": { "<check name>": 0 },
+  "reported_checks": { "<check name>": "<head sha it was reported on>" },
   "last_seen_issue_comment_id": 0,
   "last_seen_review_comment_id": 0,
   "last_seen_review_id": 0,
@@ -112,6 +116,24 @@ gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$
   nodes{databaseId author{login} body path line}}}}}}}' -F o=<owner> -F r=<repo> -F n=<n>
 ```
 
+Before acting, compare the local branch with the PR head on GitHub. This works for fork
+PRs too, where `@{u}` may not resolve:
+
+```bash
+git fetch "$(gh repo view --json url --jq .url)" pull/<n>/head   # the base repo, even in a fork clone
+git rev-list --count FETCH_HEAD..HEAD    # local commits GitHub does not have
+git rev-list --count HEAD..FETCH_HEAD    # GitHub commits the local branch lacks
+```
+
+If any command fails, do not commit or push this tick: report and stop. If only the second
+count is above 0 (for example a reviewer committed a suggestion on GitHub), fast-forward
+first with `git merge --ff-only FETCH_HEAD`, so fixes are built on the PR's real head. If
+the first count is above 0,
+the branch holds commits no step of this tick made, for example a merge left local by an
+earlier `needs_decision` or `needs_attention` sync. Do not commit or push anything (every
+push in steps 5a-5d would publish them): report those commits and stop until the user pushes
+or discards them.
+
 Classify the situation:
 
 - **Checks running** (`bucket: pending`): wait. Take no action; next tick.
@@ -125,21 +147,36 @@ Classify the situation:
 For each failing check (`bucket: fail`), required ones first:
 
 1. If `fix_attempts[check] >= 3`: stop the loop and report the check, the failure, and
-   what the 3 attempts changed.
-2. Read the logs: `gh run view <run-id> --log-failed` (run id from the check `link`), or the
-   check's details URL for non-Actions checks.
-3. Diagnose and fix the cause in code. Never skip, delete, or weaken tests to go green, and
-   never disable the check.
-4. Commit following `ep-commit` conventions (Conventional Commit, `git commit -F <file>`, no
-   attribution), push with plain `git push`, increment `fix_attempts[check]`.
+   what the 3 attempts changed. If `reported_checks[check]` equals the current head, it was
+   already diagnosed and reported on this commit: do not invoke anything for it again
+   (no new re-run); it is waiting on the user.
+2. Diagnose and fix it:
+   - **If the skill `ep-ci-debug` is available to you**, invoke it for that check in caller
+     mode (`ep-ci-debug <check> --caller ep-babysit-pr`). It reads the logs, classifies
+     the cause, fixes, commits, and pushes without a prompt.
+   - **Otherwise**, follow [`references/side-paths.md#ci-debug`](references/side-paths.md#ci-debug)
+     inline. It has the same classes, re-run-once, and never-weaken-tests rules, and
+     produces the same `check:` fields.
+3. Read the result: the `ep-ci-debug-summary` block, or the `check:` line from the side
+   path. For each check with `result=fixed`, increment `fix_attempts[check]` and record the
+   `fix` sha. Only fixed checks count as attempts.
+4. A check with `result=reported` (class `flaky-infra`, `config`, or `secret` whose single
+   re-run did not fix it or that needs a person, or class `code`/`test` with no safe fix):
+   set `reported_checks[check]` to the current head, make no code change, and notify the
+   user once with the diagnosis. If it is a required check, the PR cannot merge: treat it
+   like waiting on humans (step 7). A new head commit clears the entry, so the check is
+   diagnosed again (with a fresh single re-run) only after something changed.
 
-**With subagents:** give one subagent per failing check the logs and repo path and ask for a
-diagnosis and proposed patch; review and apply patches yourself, one commit per cause.
-**Without subagents:** diagnose and fix each check inline, one at a time.
+Never skip, delete, or weaken tests to go green, and never disable the check, on either
+path. Fixes are committed following `ep-commit` conventions (no attribution) and pushed with
+plain `git push`.
 
-If the failure is not caused by the PR (flaky infra, outage, missing secret), re-run once
-with `gh run rerun <run-id> --failed`; if it fails again, report it to the user instead of
-changing code.
+**With subagents:** when several checks fail, invoke `ep-ci-debug` once for all of them
+(it diagnoses them in parallel itself and commits one fix per cause), or delegate that run
+to a subagent and read back its summary. On the side path, give one subagent per check
+the logs and `side-paths.md#ci-debug` and ask for a classification and proposed patch;
+apply the patches yourself, one commit per cause. Subagents never push concurrently.
+**Without subagents:** handle the checks inline, one at a time.
 
 ### 5b. New review comments
 
@@ -153,6 +190,26 @@ Process issue comments, inline review comments, and reviews with ids above the m
 | **reply** | question, or suggestion you disagree with for a stated reason | reply with a direct answer; no code change |
 | **no action** | approvals, thanks, or remarks that ask nothing | record as seen; do not reply |
 | **scope change** | asks for behavior outside the PR's purpose, or (with OpenSpec) behavior that contradicts or extends the active change's specs | do not implement; reply that it is out of scope for this PR and flagged to the author; tell the user, and with OpenSpec say the change's proposal/specs need updating first |
+
+**How fix-class changes are committed** depends on the repository's merge method, detected
+each time exactly as in [`references/score.md`](references/score.md) ("Merge command"):
+
+- **Squash:** commit the fix as a `fixup!` commit targeting the commit it corrects, so
+  reviewers see where it belongs and the squash merge removes it. If the skill `ep-fixup`
+  is available to you, invoke it in caller mode (`ep-fixup --caller ep-babysit-pr`, which
+  is no-rewrite and pushes with a plain push); otherwise follow
+  [`references/side-paths.md#fixup`](references/side-paths.md#fixup). Read the
+  `fixups:` field and name the fixup and target shas in the reply. When the corrected lines
+  come from the base, it makes a normal commit instead.
+- **Merge or rebase:** commit a normal commit following `ep-commit` conventions, so no
+  `fixup!` subject reaches the base branch.
+
+If `ep-fixup` (or the side path) returns `needs_decision` (a change it cannot attach to one
+commit without asking), commit that remaining change as a normal ep-commit commit and push
+it. The reply names each fixup and its target from `fixups:`, and any normal commit from
+`commits:`.
+
+Never autosquash, rebase, or force-push fixup commits.
 
 Replies:
 
@@ -175,9 +232,32 @@ address its comments as above, then wait.
 ### 5c. Merge state
 
 Follow the merge-state table in [`references/score.md`](references/score.md):
-`BEHIND` → `gh pr update-branch <n>`; `DIRTY` → merge base into the branch locally, resolve,
-commit, push (a fix round); `BLOCKED` → wait and notify the user once
-(`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop after 3.
+`BEHIND` or `DIRTY` → sync with the base and audit (below); `BLOCKED` → wait and notify the
+user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop after 3.
+
+**Sync with the base** (`BEHIND`, `DIRTY`):
+
+1. If the skill `ep-sync` is available to you, invoke it in caller mode
+   (`ep-sync --caller ep-babysit-pr`: merge only, no push, never waits for the user).
+   With subagents, you may delegate that run to a subagent; its audit clusters fan out
+   inside it. Otherwise follow
+   [`references/side-paths.md#sync`](references/side-paths.md#sync) inline.
+2. Read the `ep-sync-summary` block (or the side path's fields):
+   - `outcome: synced`: push with plain `git push`, wait for checks, re-evaluate. The
+     adaptation commits for needs-update items are this sync's **fix round**: they are
+     separate from the merge commit and get the same checks as any fix.
+   - `outcome: needs_decision`: do not push. Notify the user with the options from the
+     report and stop until they decide. For an incompatible conflict the merge was already
+     aborted and the branch is unchanged. For an ambiguous adaptation the merge commit (and
+     any adaptations) stays local and unpushed; say so, so the user can keep or discard it.
+   - `outcome: needs_attention` (tests fail, or `unresolved_needs_update > 0`): do not push
+     the sync. Report the failures or unresolved items and stop.
+   - `outcome: up_to_date`: nothing to do; GitHub's state will catch up.
+3. List every **review**-class interaction from the audit in the next status report, and
+   include them in the next review round's scope (tell `ep-review` which base commits and
+   branch locations to check).
+
+Never use `gh pr update-branch --rebase`, rebase, or force-push to sync.
 
 ### 5d. Review round
 
@@ -215,14 +295,19 @@ Merge only when **all** hold:
 - score >= 85
 - `mergeStateStatus` is `CLEAN`, `HAS_HOOKS`, or `UNSTABLE` (non-required failures only),
   and the PR is not a draft
+- the score's review ran on the current head: `last_review.head` equals `headRefOid`.
+  Commits pushed after the last review round (CI fixes, review fixes, a sync's
+  adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
+  stop and report the unreviewed commits instead of merging
 
 Then merge with the repository's default method and delete the branch, without `--admin`:
 
 ```bash
-gh pr merge <n> --squash|--merge|--rebase --delete-branch
+gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <last_review.head>
 ```
 
-(method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
+(`--match-head-commit` makes GitHub refuse the merge if the head moved after the review;
+method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
 to the base branch and pull it; mention this in the final report. If GitHub rejects the merge because it
 would need a bypass, do not retry with any bypass: treat it as `BLOCKED`.
 
@@ -243,10 +328,19 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 
 On every stop, report to the user: PR URL, outcome, rounds run, fixes pushed (shas),
 comments replied to, scope changes flagged, the last score breakdown, and what (if
 anything) the user needs to do next.
+
+## Without subagents, loops, or sibling skills
+
+Every step has a sequential path: checks are diagnosed one at a time inline, review rounds
+run inline, and polling happens inside the session (step 3). The side-path skills are
+optional too: when `ep-ci-debug`, `ep-fixup`, or `ep-sync` is not available to you, follow
+the matching section of [`references/side-paths.md`](references/side-paths.md), which
+produces the same summary fields, so CI fixes, review fixes, and base syncs work the same
+with none of them installed.

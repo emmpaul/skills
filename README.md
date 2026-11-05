@@ -13,6 +13,10 @@ comments.
 | `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door. |
 | `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, and verifies each finding before reporting it. |
 | `ep-babysit-pr` | Watches a PR: fixes CI failures, answers review comments, runs up to 3 review rounds, and merges when gates pass and the confidence score is at least 85. |
+| `ep-sync` | Merges the base branch into the current branch (rebase only on request, gated), then audits semantic interactions with no textual conflict (renamed or re-signatured symbols, behaviour and contract changes, new base callers, base tests), adapts the branch in separate commits, and runs tests. |
+| `ep-fixup` | Attaches fixes to the branch commits they correct as `fixup!` commits, and autosquashes only on request: unpushed commits freely, pushed ones after confirmation with `--force-with-lease`. |
+| `ep-ci-debug` | Diagnoses failing CI checks from their logs, classifies the cause (code, test, flaky-infra, config, secret), reproduces locally, and fixes it without weakening tests; re-runs infra failures once. |
+| `ep-stack` | Splits a branch into a stack of dependent PRs after you approve the plan, shows stack status, syncs layers bottom up with merges, and retargets the next PR when a parent merges. |
 
 ## Install
 
@@ -22,17 +26,17 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 # Interactive: pick from the skills found in the repo
 npx skills add emmpaul/skills
 
-# All four ep-* skills
-npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr
+# All eight ep-* skills
+npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
 
 # A single skill
 npx skills add emmpaul/skills --skill ep-commit
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr
+npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr
+npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
@@ -49,7 +53,9 @@ Remove with `npx skills remove ep-<name>`.
 
 ## Safety: `ep-babysit-pr` auto-merge
 
-`ep-babysit-pr` can push to and merge your PR on its own. It never force-pushes,
+`ep-babysit-pr` can push to and merge your PR on its own. When it syncs a branch, fixes CI,
+or commits review fixes, it calls `ep-sync`, `ep-ci-debug`, and `ep-fixup` in their
+no-rewrite caller modes when they are installed, and uses bundled fallback steps when not. It never force-pushes,
 never uses `--admin` or other protection bypasses, never resolves review threads,
 and refuses to merge when checks fail, conflicts exist, threads are unresolved, or
 changes are requested. It also defers to GitHub's merge state.
