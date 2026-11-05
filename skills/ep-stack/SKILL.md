@@ -126,7 +126,10 @@ short kebab-case summary of the layer, unless the user names the branches.
    ```
 
    When the user approved a split of a mixed commit, create that layer's commits on a new
-   branch and say which commits were rewritten (they are unpushed).
+   branch, then rebuild every layer above it on top of the rewritten layer
+   (`git rebase --onto <rewritten-layer> <original-last-commit-of-that-layer> <layer>`, in
+   order), before anything is pushed, so each layer still descends from the one below. Say
+   which commits were rewritten (they are unpushed).
 5. **Open PRs** bottom-up, each based on the previous layer's branch (the first on the
    base), following `ep-open-pr` conventions: Conventional Commit title for that layer's
    commits, body with Summary, Changes, (with OpenSpec) the OpenSpec section,
