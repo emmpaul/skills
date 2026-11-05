@@ -8,7 +8,7 @@ Git workflow chores (writing commits, opening PRs, reviewing diffs, shepherding 
 
 - Add four agent skills under `skills/`, installable via `npx skills add <owner>/skills` (vercel-labs/skills CLI):
   - `ep-commit`: split working-tree changes into logical Conventional Commits, matching repo style, with no model attribution.
-  - `ep-open-pr`: open a GitHub PR whose title/body is built from the commits and, when present, the active OpenSpec change (proposal summary, spec deltas, task progress).
+  - `ep-open-pr`: open a GitHub PR whose title/body is built from the commits and, when present, the active OpenSpec change (proposal summary, spec deltas, task progress), plus a one-way / two-way door reversibility classification.
   - `ep-review`: review a local diff, branch, or PR across parallel dimensions (correctness, OpenSpec spec conformance, tests, security) followed by an adversarial verify pass; report locally or post to the PR.
   - `ep-babysit-pr`: watch a PR, fix CI failures, address and reply to review comments, run up to 3 review rounds, and auto-merge when an evidence-based confidence score is >= 85 and GitHub's merge state allows it.
 - Add a shared context probe (`shared/context.sh`) copied into each skill's `scripts/` folder, with a drift check, that emits git/PR/OpenSpec state as JSON.

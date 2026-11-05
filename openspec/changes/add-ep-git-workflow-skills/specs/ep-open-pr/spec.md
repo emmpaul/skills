@@ -35,6 +35,21 @@ The PR title SHALL summarize the change in Conventional Commit style and the bod
 - **WHEN** the skill opens a PR for a branch with several commits
 - **THEN** the body includes a summary, a list of changes, and test instructions
 
+### Requirement: Reversibility classification
+The PR body SHALL classify the change as a one-way door (some effect remains after a revert, such as data migrations, public interface changes, releases, external side effects, or security changes) or a two-way door (fully undoable by reverting), with a one-sentence reason, and for a one-way door SHALL list each irreversible element with a mitigation.
+
+#### Scenario: Two-way door
+- **WHEN** the branch only refactors internal code and adds tests
+- **THEN** the body has a Reversibility section marking it a two-way door with a reason
+
+#### Scenario: One-way door
+- **WHEN** the branch adds a migration that drops a database column
+- **THEN** the body marks it a one-way door, lists the column drop, gives a mitigation, and the final report mentions the classification
+
+#### Scenario: Uncertain classification
+- **WHEN** the skill cannot tell whether an effect is reversible
+- **THEN** it classifies the PR as a one-way door and states what is uncertain
+
 ### Requirement: OpenSpec-aware body
 When the branch relates to an active OpenSpec change, the PR body SHALL include the change name, a summary of the proposal's Why, the capabilities touched, and task progress (done/total).
 
