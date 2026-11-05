@@ -63,16 +63,18 @@ openspec list --json                                          # optional; root n
 
   No check with `bucket: fail`: report that nothing is failing, change nothing, and end
   with outcome `nothing_failing`. Checks still pending are listed and not debugged.
-- **No PR and nothing named:** use the latest failed run for the branch:
+- **No PR and nothing named:** use the latest failed run that belongs to this branch:
 
   ```bash
-  gh run list --branch <branch> --status failure --limit 1 --json databaseId,workflowName,headSha
+  git fetch origin <branch>
+  gh run list --branch <branch> --status failure --limit 20 --json databaseId,workflowName,headSha,createdAt
   ```
 
-  None: report that there is nothing to debug and stop (`nothing_failing`). Use the run
-  only if its `headSha` is in the local branch (`git merge-base --is-ancestor <headSha>
-  HEAD`); a run for another repository's branch of the same name (for example a fork PR)
-  is ignored, and you say so.
+  Take the newest run whose `headSha` is in the local branch
+  (`git merge-base --is-ancestor <headSha> HEAD`). Skip runs for another repository's branch
+  of the same name (for example a fork PR) and say so. If a run's `headSha` is on
+  `origin/<branch>` but not local, tell the user to pull before debugging it. No matching
+  run: report that there is nothing to debug and stop (`nothing_failing`).
 
 Skip a run whose `headSha` is older than the branch head when a newer run of the same
 workflow exists; say so.
@@ -118,14 +120,18 @@ Before changing code, find the command the failing step runs (in the workflow fi
 
 Running it must not modify tracked files; if it does, restore them.
 
+In caller mode, do not run code from a PR opened from a fork (`isCrossRepository: true`) or
+by an author without write access, unless the caller says the user allowed it: its scripts
+can read local credentials. Report the fix as unverified locally and why.
+
 ## 6. Act by class
 
 | Class | Action |
 |---|---|
 | `code` | fix the code; re-run the local command |
 | `test` | update the test to the documented behaviour; name where it is documented |
-| `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change |
-| `config` | report the needed change (file, line, and fix); no change to workflow, build config, or code |
+| `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change. If the failed job publishes, releases, or deploys, ask before re-running in direct use, and do not re-run it in caller mode (report instead) |
+| `config` | direct use: propose the config change (file, line, fix) and apply it only when the user agrees, never to weaken a check; caller mode: report it, change nothing |
 | `secret` | report the secret, permission, or scope needed and who can grant it; no code change |
 
 **Direct use:** show the diagnosis and the proposed patch and ask before applying,
@@ -193,8 +199,10 @@ lists identical.
 - Diagnose from the failed job logs and quote the decisive lines.
 - Never reproduce publish, deploy, release, push, infrastructure, or credentialed steps
   locally.
-- Five classes: code, test, flaky-infra, config, secret; only code and test change code.
-- Re-run failed jobs at most once per check; a second failure is reported.
+- Five classes: code, test, flaky-infra, config, secret; only code and test change code;
+  a config fix is applied only in direct use, after the user agrees.
+- Re-run failed jobs at most once per check; a second failure is reported; never re-run a
+  publish, release, or deploy job without the user.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
 - Update a test only when the new behaviour is documented in the PR, commits, or the
   active OpenSpec change.
