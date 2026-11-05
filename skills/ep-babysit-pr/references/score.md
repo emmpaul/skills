@@ -58,8 +58,9 @@ review round, the other items, the gates, and the threshold apply unchanged.
 
 ## Threshold
 
-Merge is allowed only when **score >= 85**, all hard gates pass, and the merge state allows
-it (below). Note that with OpenSpec, missing items 4+5 (25) or item 3 alone (20) is enough
+Merge is allowed only when **score >= 85**, all hard gates pass, the merge state allows
+it (below), and the review the score uses ran on the current head (`last_review.head`
+equals `headRefOid`). Note that with OpenSpec, missing items 4+5 (25) or item 3 alone (20) is enough
 to block; without OpenSpec, missing tests (45) blocks.
 
 ## Report format
@@ -101,8 +102,11 @@ From `gh pr view <n> --json mergeStateStatus`:
 ```bash
 method=$(gh repo view --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed \
   --jq 'if .squashMergeAllowed then "--squash" elif .mergeCommitAllowed then "--merge" else "--rebase" end')
-gh pr merge <n> $method --delete-branch
+gh pr merge <n> $method --delete-branch --match-head-commit <last_review.head>
 ```
+
+`--match-head-commit` makes GitHub refuse the merge when the head moved after the reviewed
+commit.
 
 Prefer the repo's configured default when it is known (for example from a
 `CONTRIBUTING.md` or the user's instruction); otherwise use the first allowed method in the

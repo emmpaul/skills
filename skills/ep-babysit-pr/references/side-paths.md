@@ -28,13 +28,12 @@ For one failing check:
 3. **Reproduce** the failing step's command locally (from `.github/workflows/`). Never run
    steps that publish, release, deploy, push, apply infrastructure, or use credentials. If
    reproduction is not possible or not allowed, note why; the fix is unverified locally.
-   For a fork PR (`isCrossRepository: true`) or an author without write access, run no PR
-   code locally unless the user allowed it when starting babysit.
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.
    - `flaky-infra`: `gh run rerun <run-id> --failed` once; if it fails again, report. Do
-     not re-run a job that publishes, releases, or deploys; report it instead.
+     not re-run when the failed job, or any job that `needs:` it (`--failed` re-runs those
+     too), publishes, releases, or deploys; report it instead.
    - `config`, `secret`: report what is needed; no code change.
 5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
@@ -112,7 +111,7 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
       changed in behaviour (returns, errors, side effects)
    2. contracts both touch: schemas, migrations, config keys, routes, API or type shapes
    3. new call sites in B of functions R modified
-   4. tests in B covering files or identifiers R modified (run them)
+   4. tests in B covering files or identifiers R modified (list them; they run in step 5)
    5. with an OpenSpec root and an active change only: base commits that edit, archive, or
       add specs for the change's capabilities (name the requirements on both sides);
       otherwise skip and do not mention OpenSpec
@@ -123,9 +122,8 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
    conventions, `fix`/`refactor`, body naming the base commit, no attribution). If more
    than one reasonable fix behaves differently, do not choose: stop with `needs_decision`
    and the options.
-5. **Test** (full suite, or the subset covering the interactions; for a fork PR or an
-   author without write access, only if the user allowed running PR code, else
-   `tests: not_run`). Failures: outcome
+5. **Test** (full suite, or the subset covering the interactions, including the base tests
+   from check 4). Failures: outcome
    `needs_attention`, never `synced`.
 6. **Report** the audit table (`# | Class | Check | Base commit | Branch location | Reason |
    Resolution`; every interaction, no-impact rows last; `No interactions found.` when

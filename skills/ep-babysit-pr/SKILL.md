@@ -49,11 +49,6 @@ and `openspec list --json` (optional; root null = no OpenSpec).
 - Make sure the local checkout is on the PR's head branch (`gh pr checkout <n>`) with a
   clean tree before changing code. If the tree is dirty, ask the user first.
 
-If the PR comes from a fork (`gh pr view <n> --json isCrossRepository`) or its author
-lacks write access, ask the user once whether PR code may run locally (tests, CI
-reproduction). Without a yes, pass that to `ep-ci-debug` and `ep-sync` (they then run no PR
-code) and follow the same rule on the side paths.
-
 Find the OpenSpec change the PR implements (named in the PR body, used as commit scope,
 or whose folder the PR touches). Without OpenSpec, or with no matching change, the
 OpenSpec-dependent parts below are skipped.
@@ -125,12 +120,15 @@ Before acting, compare the local branch with the PR head on GitHub. This works f
 PRs too, where `@{u}` may not resolve:
 
 ```bash
-git fetch origin pull/<n>/head
-git rev-list --count FETCH_HEAD..HEAD
+git fetch "$(gh repo view --json url --jq .url)" pull/<n>/head   # the base repo, even in a fork clone
+git rev-list --count FETCH_HEAD..HEAD    # local commits GitHub does not have
+git rev-list --count HEAD..FETCH_HEAD    # GitHub commits the local branch lacks
 ```
 
-If either command fails, do not commit or push this tick: report and stop. If the count is
-above 0,
+If any command fails, do not commit or push this tick: report and stop. If only the second
+count is above 0 (for example a reviewer committed a suggestion on GitHub), fast-forward
+first with `git merge --ff-only FETCH_HEAD`, so fixes are built on the PR's real head. If
+the first count is above 0,
 the branch holds commits no step of this tick made, for example a merge left local by an
 earlier `needs_decision` or `needs_attention` sync. Do not commit or push anything (every
 push in steps 5a-5d would publish them): report those commits and stop until the user pushes
