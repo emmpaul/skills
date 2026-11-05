@@ -328,7 +328,7 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 
