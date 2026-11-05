@@ -49,6 +49,11 @@ and `openspec list --json` (optional; root null = no OpenSpec).
 - Make sure the local checkout is on the PR's head branch (`gh pr checkout <n>`) with a
   clean tree before changing code. If the tree is dirty, ask the user first.
 
+If the PR comes from a fork (`gh pr view <n> --json isCrossRepository`) or its author
+lacks write access, ask the user once whether PR code may run locally (tests, CI
+reproduction). Without a yes, pass that to `ep-ci-debug` and `ep-sync` (they then run no PR
+code) and follow the same rule on the side paths.
+
 Find the OpenSpec change the PR implements (named in the PR body, used as commit scope,
 or whose folder the PR touches). Without OpenSpec, or with no matching change, the
 OpenSpec-dependent parts below are skipped.
@@ -116,9 +121,16 @@ gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$
   nodes{databaseId author{login} body path line}}}}}}}' -F o=<owner> -F r=<repo> -F n=<n>
 ```
 
-Before acting, compare the local branch with the remote:
-`git rev-list --count @{u}..HEAD` (after `git fetch`; the upstream is the PR head as set
-by `gh pr checkout`, which also works for fork PRs). If it is above 0,
+Before acting, compare the local branch with the PR head on GitHub. This works for fork
+PRs too, where `@{u}` may not resolve:
+
+```bash
+git fetch origin pull/<n>/head
+git rev-list --count FETCH_HEAD..HEAD
+```
+
+If either command fails, do not commit or push this tick: report and stop. If the count is
+above 0,
 the branch holds commits no step of this tick made, for example a merge left local by an
 earlier `needs_decision` or `needs_attention` sync. Do not commit or push anything (every
 push in steps 5a-5d would publish them): report those commits and stop until the user pushes
@@ -285,14 +297,19 @@ Merge only when **all** hold:
 - score >= 85
 - `mergeStateStatus` is `CLEAN`, `HAS_HOOKS`, or `UNSTABLE` (non-required failures only),
   and the PR is not a draft
+- the score's review ran on the current head: `last_review.head` equals `headRefOid`.
+  Commits pushed after the last review round (CI fixes, review fixes, a sync's
+  adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
+  stop and report the unreviewed commits instead of merging
 
 Then merge with the repository's default method and delete the branch, without `--admin`:
 
 ```bash
-gh pr merge <n> --squash|--merge|--rebase --delete-branch
+gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <last_review.head>
 ```
 
-(method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
+(`--match-head-commit` makes GitHub refuse the merge if the head moved after the review;
+method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
 to the base branch and pull it; mention this in the final report. If GitHub rejects the merge because it
 would need a bypass, do not retry with any bypass: treat it as `BLOCKED`.
 

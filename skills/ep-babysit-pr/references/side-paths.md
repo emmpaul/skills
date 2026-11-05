@@ -28,10 +28,13 @@ For one failing check:
 3. **Reproduce** the failing step's command locally (from `.github/workflows/`). Never run
    steps that publish, release, deploy, push, apply infrastructure, or use credentials. If
    reproduction is not possible or not allowed, note why; the fix is unverified locally.
+   For a fork PR (`isCrossRepository: true`) or an author without write access, run no PR
+   code locally unless the user allowed it when starting babysit.
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.
-   - `flaky-infra`: `gh run rerun <run-id> --failed` once; if it fails again, report.
+   - `flaky-infra`: `gh run rerun <run-id> --failed` once; if it fails again, report. Do
+     not re-run a job that publishes, releases, or deploys; report it instead.
    - `config`, `secret`: report what is needed; no code change.
 5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
@@ -44,8 +47,10 @@ For one failing check:
 - Diagnose from the failed job logs and quote the decisive lines.
 - Never reproduce publish, deploy, release, push, infrastructure, or credentialed steps
   locally.
-- Five classes: code, test, flaky-infra, config, secret; only code and test change code.
-- Re-run failed jobs at most once per check; a second failure is reported.
+- Five classes: code, test, flaky-infra, config, secret; only code and test change code;
+  a config fix is applied only in direct use, after the user agrees.
+- Re-run failed jobs at most once per check; a second failure is reported; never re-run a
+  publish, release, or deploy job without the user.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
 - Update a test only when the new behaviour is documented in the PR, commits, or the
   active OpenSpec change.
@@ -66,7 +71,8 @@ For one fix-class review comment, in a repository whose merge method is squash:
    - one branch commit: target it.
    - several: one fixup per target (run `git reset -q` first so nothing else is staged),
      staging per file a version built from `HEAD` with only that target's lines changed
-     (`git hash-object -w` + `git update-index --cacheinfo`; never `git apply` of `-U0`
+     (`git hash-object -w` + `git update-index --cacheinfo <mode from git ls-files -s>`;
+   never `git apply` of `-U0`
      hunks, whose line numbers shift), splitting a hunk line by line when each
      changed line replaces one old line. A change that still cannot be separated, or a new
      file with no clear target, is not guessed: outcome `needs_decision` for that change.
@@ -117,7 +123,9 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
    conventions, `fix`/`refactor`, body naming the base commit, no attribution). If more
    than one reasonable fix behaves differently, do not choose: stop with `needs_decision`
    and the options.
-5. **Test** (full suite, or the subset covering the interactions). Failures: outcome
+5. **Test** (full suite, or the subset covering the interactions; for a fork PR or an
+   author without write access, only if the user allowed running PR code, else
+   `tests: not_run`). Failures: outcome
    `needs_attention`, never `synced`.
 6. **Report** the audit table (`# | Class | Check | Base commit | Branch location | Reason |
    Resolution`; every interaction, no-impact rows last; `No interactions found.` when
