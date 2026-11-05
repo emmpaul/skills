@@ -59,27 +59,40 @@ squash, report `nothing_to_do` and stop.
 
 ## 2. Select a target per hunk
 
-For each hunk of `git diff HEAD` (staged and unstaged together; untracked files have no
-lines to blame, see below), find which commit introduced the lines it changes or deletes:
+List the hunks with no context lines, so each hunk covers only changed lines (staged and
+unstaged together; untracked files have no lines to blame, see below):
 
 ```bash
-git blame -s -L <start>,<end> $mb..HEAD -- <file>
+git diff -U0 HEAD
+```
+
+For each hunk `@@ -<old-start>,<old-count> +... @@`, blame the **old-side** lines it
+changes or deletes, in `HEAD`:
+
+```bash
+git blame -s -L <old-start>,+<old-count> $mb..HEAD -- <file>
 ```
 
 Lines blamed on a commit in `$mb..HEAD` belong to that branch commit. Lines that blame shows
-as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds** lines,
-blame the lines directly above and below it.
+as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds** lines
+(`<old-count>` is 0), blame the old-side lines directly above and below it.
 
 - **One branch commit:** that commit is the target.
-- **Several branch commits in one file or change:** split the change into one fixup per
-  target, hunk by hunk (`git apply --cached` with a hunk-only patch). When one hunk mixes
-  lines from several commits and cannot be separated, ask the user which commit it belongs
-  to (caller mode: the target is the newest of those commits, and the report says so).
+- **Several branch commits:** split the change into one fixup per target. Stage hunk by
+  hunk (`git apply --cached` with a hunk-only patch), and split a hunk line by line when
+  each changed line replaces one old line (stage a file version with only that target's
+  lines changed, for example via `git hash-object -w` and `git update-index --cacheinfo`).
+  When a hunk still cannot be separated (it replaces lines from several commits with a
+  different number of new lines), ask the user which commit it belongs to. In caller mode,
+  do not choose: leave that change uncommitted and end with outcome `needs_decision`,
+  naming the change and the candidate commits.
 - **Base lines only** (no branch commit introduced them): do not make a fixup. Propose a
   normal commit following `ep-commit` conventions instead. Outcome `needs_decision` in
-  direct use until the user agrees; caller mode makes the normal commit.
+  direct use until the user agrees; caller mode makes the normal commit and lists it under
+  `commits:`.
 - **New untracked file:** target the commit that added the code it serves (for example
-  the commit adding the module a new test covers); when unclear, ask.
+  the commit adding the module a new test covers). When unclear, ask; in caller mode,
+  leave it uncommitted and end with `needs_decision`.
 
 Show the plan before committing (hunks, target sha and subject), unless the user or caller
 said to proceed.
@@ -103,16 +116,22 @@ file instead (`fixup! <target subject>` on the first line, nothing else) and use
 
 Skip this step in no-rewrite mode, in caller mode, and when the user did not ask.
 
-Find whether any affected commit (each target and each fixup) is on the remote:
+The rebase rewrites every commit after the oldest target, so check all of them, not only the
+targets:
 
 ```bash
-git branch -r --contains <target-sha>
+git rev-list --merges $mb..HEAD                    # merge commits in the range
+git rev-list $mb..HEAD --not --remotes | wc -l     # commits on no remote branch
+git rev-list --count $mb..HEAD                     # all commits in the range
 ```
 
-- **None pushed:** squash locally without further confirmation:
+- **Merge commits in the range** (for example after an `ep-sync` merge): do not autosquash.
+  `--autosquash` would drop the merge and replay commits onto the merge base. Keep the
+  fixup commits, say why, and stop.
+- **None pushed** (the two counts are equal): squash locally without further confirmation:
   `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash $mb`. No push is needed for an
   unpushed branch; if it has no upstream, offer `git push -u origin HEAD`.
-- **Some pushed:** explain that the rewrite replaces commits already on
+- **Some pushed** (fewer commits on no remote than in the range): explain that the rewrite replaces commits already on
   `origin/<branch>` and that anyone who pulled them must reset. Ask for explicit
   confirmation naming the branch. Only when confirmed, squash and push with
   `git push --force-with-lease`. Never `--force`. Without confirmation, keep the fixup
@@ -133,8 +152,9 @@ When another skill invokes this one (`--caller ep-babysit-pr`, or the same in pl
 
 - no-rewrite: create `fixup!` commits only; never autosquash, rebase, or force-push
 - push with a plain `git push`, without a prompt
-- unresolvable target choices follow the caller-mode rules in step 2, so the run never
-  waits for the user
+- unresolvable target choices end the run with `needs_decision` (step 2), leaving that
+  change uncommitted, so the run never waits for the user; the caller decides what to do
+  with it
 - `rewritten: false` always
 
 ## 6. Report
@@ -147,13 +167,15 @@ history was rewritten, and whether anything was pushed. Then always end with:
 outcome: created | squashed | needs_decision | nothing_to_do
 head: <sha after the skill ran>
 fixups: <fixup-sha>-><target-sha>,<fixup-sha>-><target-sha>
+commits: <sha>,<sha>
 rewritten: true | false
 pushed: true | false
 -->
 ```
 
 After an autosquash, the fixup shas no longer exist: list the pre-squash shas and set
-`outcome: squashed`, `rewritten: true`. With no fixups, `fixups:` is empty.
+`outcome: squashed`, `rewritten: true`. With no fixups, `fixups:` is empty. `commits:`
+lists normal commits made instead of fixups (base lines), and is empty otherwise.
 
 ## Rules that must match
 
@@ -165,4 +187,5 @@ identical.
 - Lines from the base get a normal ep-commit commit, never a fixup.
 - No autosquash, rebase, or force-push in caller mode; `rewritten: false`.
 - Never `--force`; `--force-with-lease` only after confirmation in direct use.
-- Summary keys: `outcome`, `head`, `fixups`, `rewritten`, `pushed`.
+- Caller mode never waits: an unresolvable target returns `needs_decision`, uncommitted.
+- Summary keys: `outcome`, `head`, `fixups`, `commits`, `rewritten`, `pushed`.
