@@ -69,7 +69,10 @@ openspec list --json                                          # optional; root n
   gh run list --branch <branch> --status failure --limit 1 --json databaseId,workflowName,headSha
   ```
 
-  None: report that there is nothing to debug and stop (`nothing_failing`).
+  None: report that there is nothing to debug and stop (`nothing_failing`). Use the run
+  only if its `headSha` is in the local branch (`git merge-base --is-ancestor <headSha>
+  HEAD`); a run for another repository's branch of the same name (for example a fork PR)
+  is ignored, and you say so.
 
 Skip a run whose `headSha` is older than the branch head when a newer run of the same
 workflow exists; say so.
