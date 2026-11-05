@@ -179,10 +179,17 @@ layer 2 with layer 1, and so on.
    push naming each branch, after being told that rebase mode runs no merge audit
    (`ep-sync` never rebases for another skill; use merge mode to get the audit). Before
    rebasing, record each layer's current parent tip (`old_parent=$(git rev-parse
-   origin/<parent>)`). Then, bottom-up, move only the layer's own commits onto the updated
-   parent: `git rebase --onto <updated-parent> $old_parent <layer>`. A plain
-   `git rebase origin/<parent>` would replay the parent's old commits. Push each with
-   `--force-with-lease`. Never `--force`.
+   origin/<parent>)`). Then, bottom-up, for each layer:
+   - `git checkout <layer>` and `git pull --ff-only`, so commits added on GitHub (for
+     example committed review suggestions) are not lost; record
+     `remote_tip=$(git rev-parse origin/<layer>)`.
+   - Move only the layer's own commits onto the updated parent:
+     `git rebase --onto <updated-parent> $old_parent <layer>`. A plain
+     `git rebase origin/<parent>` would replay the parent's old commits.
+   - On a conflict, `git rebase --abort`, stop, and report; push nothing for this layer or
+     any layer above it.
+   - Push with an explicit lease: `git push --force-with-lease=<layer>:$remote_tip`.
+     Never `--force`.
 
 Outcome `synced`.
 
@@ -191,10 +198,12 @@ Outcome `synced`.
 When a layer's PR has merged:
 
 1. Run `status`. Find each merged layer and the next open layer above it.
-2. Show the change and wait for confirmation:
+2. Show the change, including every branch that will be pushed by the sync in step 3, and
+   wait for confirmation:
 
    ```
    #102 feature-2-login: base feature-1-token-model -> main  (parent #101 merged into main)
+   push: feature-2-login (merge of main)
    ```
 
 3. Change the base, then sync the layer with its new base (through `ep-sync` when it is
