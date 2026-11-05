@@ -1,32 +1,32 @@
 schema: spec-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+context: |
+  This repo is a personal set of agent skills, installed with `npx skills add emmpaul/skills`
+  (vercel-labs/skills CLI). The CLI copies each `skills/<name>/` folder independently into
+  `~/.agents/skills/<name>/`, so a skill may only reference files inside its own folder.
+  Shared code lives in `shared/` and is copied into each skill by `scripts/sync-shared.sh`;
+  `scripts/check-shared.sh` must pass before committing.
+  Every skill name uses the `ep-` prefix.
+  Skills must be portable across agents: plain-instruction SKILL.md, subagents and Claude Code
+  Workflows are optional accelerators and always have a sequential fallback.
+  The only supported forge is GitHub, accessed through the `gh` CLI.
+  Commits, PR titles and bodies, replies, and comments produced by skills carry no model or tool
+  attribution (no Co-Authored-By model trailers, no "Generated with" footers).
+  OpenSpec is optional in target repos: every skill must behave sensibly, and not mention
+  OpenSpec, when the target repo has no OpenSpec root.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  proposal:
+    - Name the skills affected and whether each change is new behavior or a modification
+    - State any new outward effect on GitHub (push, comment, merge) explicitly
+  specs:
+    - One capability per skill, named after the skill (e.g. `ep-commit`)
+    - Include a scenario for repositories without OpenSpec when behavior depends on OpenSpec
+    - Include a scenario for agents without subagents when behavior uses subagents
+  design:
+    - Show the subagent path next to its sequential fallback
+    - Give every outward or destructive action an explicit gate
+    - Keep skills self-contained; justify any file shared across skill folders
+  tasks:
+    - Each task ends with a concrete verification step
+    - Include `scripts/check-shared.sh` when a task touches the shared probe
