@@ -75,13 +75,17 @@ git blame -s -L <old-start>,+<old-count> $mb..HEAD -- <file>
 
 Lines blamed on a commit in `$mb..HEAD` belong to that branch commit. Lines that blame shows
 as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds** lines
-(`<old-count>` is 0), blame the old-side lines directly above and below it.
+(`<old-count>` is 0), blame the old-side lines directly above and below it; at the top of
+the file (`<old-start>` is 0) only the line below exists, so blame line 1. A file that does
+not exist in `HEAD` (new, whether untracked or already staged) has no lines to blame: use
+the new-file rule below.
 
 - **One branch commit:** that commit is the target.
 - **Several branch commits:** split the change into one fixup per target. For each file,
   stage a version built from the `HEAD` version with **only that target's** changed lines
   applied (write it to a temp file, `git hash-object -w <tmp>`, then
-  `git update-index --cacheinfo 100644,<blob>,<file>`). Do not stage `-U0` hunk patches
+  `git update-index --cacheinfo <mode>,<blob>,<file>`, with `<mode>` taken from
+  `git ls-files -s <file>` so an executable keeps `100755`). Do not stage `-U0` hunk patches
   with `git apply`: their line numbers assume the other targets' changes are present, so
   an insertion can land at the wrong line without an error. A hunk is split line by line
   when each changed line replaces one old line.
@@ -93,7 +97,7 @@ as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds**
   normal commit following `ep-commit` conventions instead. Outcome `needs_decision` in
   direct use until the user agrees; caller mode makes the normal commit and lists it under
   `commits:`.
-- **New untracked file:** target the commit that added the code it serves (for example
+- **New file** (untracked, or staged but absent from `HEAD`): target the commit that added the code it serves (for example
   the commit adding the module a new test covers). When unclear, ask; in caller mode,
   leave it uncommitted and end with `needs_decision`.
 
@@ -139,8 +143,11 @@ git rev-list --count $mb..HEAD                     # all commits in the range
   unpushed branch; if it has no upstream, offer `git push -u origin HEAD`.
 - **Some pushed** (fewer commits on no remote than in the range): explain that the rewrite replaces commits already on
   `origin/<branch>` and that anyone who pulled them must reset. Ask for explicit
-  confirmation naming the branch. Only when confirmed, squash and push with
-  `git push --force-with-lease`. Never `--force`. Without confirmation, keep the fixup
+  confirmation naming the branch. Only when confirmed: run `git fetch origin <branch>` and
+  `git pull --ff-only` first, so commits that exist only on the remote are kept (stop and
+  report if they diverged), record `remote_tip=$(git rev-parse origin/<branch>)`, recompute
+  `$mb`, squash, and push with `git push --force-with-lease=<branch>:$remote_tip`. Never a
+  bare `--force-with-lease` (its lease follows the last fetch), never `--force`. Without confirmation, keep the fixup
   commits and say they can be squashed later.
 
 If the rebase stops on a conflict, abort it (`git rebase --abort`), keep the fixup commits,
