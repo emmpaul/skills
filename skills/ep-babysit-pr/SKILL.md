@@ -64,6 +64,7 @@ write it after every action.
   "pr": 42,
   "round": 0,
   "fix_attempts": { "<check name>": 0 },
+  "reported_checks": { "<check name>": "<head sha it was reported on>" },
   "last_seen_issue_comment_id": 0,
   "last_seen_review_comment_id": 0,
   "last_seen_review_id": 0,
@@ -128,7 +129,9 @@ Classify the situation:
 For each failing check (`bucket: fail`), required ones first:
 
 1. If `fix_attempts[check] >= 3`: stop the loop and report the check, the failure, and
-   what the 3 attempts changed.
+   what the 3 attempts changed. If `reported_checks[check]` equals the current head, it was
+   already diagnosed and reported on this commit: do not invoke anything for it again
+   (no new re-run); it is waiting on the user.
 2. Diagnose and fix it:
    - **If the skill `ep-ci-debug` is available to you**, invoke it for that check in caller
      mode (`ep-ci-debug <check> --caller ep-babysit-pr`). It reads the logs, classifies
@@ -138,11 +141,13 @@ For each failing check (`bucket: fail`), required ones first:
      produces the same `check:` fields.
 3. Read the result: the `ep-ci-debug-summary` block, or the `check:` line from the side
    path. For each check with `result=fixed`, increment `fix_attempts[check]` and record the
-   `fix` sha.
-4. A check with `result=reported` and class `flaky-infra`, `config`, or `secret` (its
-   single re-run did not fix it, or it needs a person) is not a code problem: report it to
-   the user, make no code change, and do not count an attempt. A `reported` check of class
-   `code` or `test` (no safe fix found) counts as an attempt.
+   `fix` sha. Only fixed checks count as attempts.
+4. A check with `result=reported` (class `flaky-infra`, `config`, or `secret` whose single
+   re-run did not fix it or that needs a person, or class `code`/`test` with no safe fix):
+   set `reported_checks[check]` to the current head, make no code change, and notify the
+   user once with the diagnosis. If it is a required check, the PR cannot merge: treat it
+   like waiting on humans (step 7). A new head commit clears the entry, so the check is
+   diagnosed again (with a fresh single re-run) only after something changed.
 
 Never skip, delete, or weaken tests to go green, and never disable the check, on either
 path. Fixes are committed following `ep-commit` conventions (no attribution) and pushed with
@@ -181,6 +186,11 @@ each time exactly as in [`references/score.md`](references/score.md) ("Merge com
 - **Merge or rebase:** commit a normal commit following `ep-commit` conventions, so no
   `fixup!` subject reaches the base branch.
 
+If `ep-fixup` (or the side path) returns `needs_decision` (a change it cannot attach to one
+commit without asking), commit that remaining change as a normal ep-commit commit and push
+it. The reply names each fixup and its target from `fixups:`, and any normal commit from
+`commits:`.
+
 Never autosquash, rebase, or force-push fixup commits.
 
 Replies:
@@ -209,7 +219,10 @@ user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop af
 
 **Sync with the base** (`BEHIND`, `DIRTY`):
 
-1. If the skill `ep-sync` is available to you, invoke it in caller mode
+1. If the local branch has commits that are not on `origin/<head-branch>` (for example a
+   merge left local by an earlier `needs_decision` or `needs_attention`), do not sync again:
+   report those commits and stop until the user pushes or discards them.
+   If the skill `ep-sync` is available to you, invoke it in caller mode
    (`ep-sync --caller ep-babysit-pr`: merge only, no push, never waits for the user).
    With subagents, you may delegate that run to a subagent; its audit clusters fan out
    inside it. Otherwise follow
@@ -219,8 +232,9 @@ user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop af
      adaptation commits for needs-update items are this sync's **fix round**: they are
      separate from the merge commit and get the same checks as any fix.
    - `outcome: needs_decision`: do not push. Notify the user with the options from the
-     report (incompatible conflict or ambiguous adaptation) and stop until they decide.
-     Leave the local merge in place and say so; the user may keep or reset it.
+     report and stop until they decide. For an incompatible conflict the merge was already
+     aborted and the branch is unchanged. For an ambiguous adaptation the merge commit (and
+     any adaptations) stays local and unpushed; say so, so the user can keep or discard it.
    - `outcome: needs_attention` (tests fail, or `unresolved_needs_update > 0`): do not push
      the sync. Report the failures or unresolved items and stop.
    - `outcome: up_to_date`: nothing to do; GitHub's state will catch up.

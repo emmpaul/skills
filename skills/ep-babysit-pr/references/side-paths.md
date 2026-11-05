@@ -25,8 +25,9 @@ For one failing check:
      does not touch, passes on re-run.
    - `config`: workflow YAML errors, wrong tool version, missing paths or jobs.
    - `secret`: missing or invalid secret, `401`/`403`, missing token permissions.
-3. **Reproduce** the failing step's command locally (from `.github/workflows/`). If that
-   is not possible, note why; the fix is unverified locally.
+3. **Reproduce** the failing step's command locally (from `.github/workflows/`). Never run
+   steps that publish, release, deploy, push, apply infrastructure, or use credentials. If
+   reproduction is not possible or not allowed, note why; the fix is unverified locally.
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.
@@ -34,12 +35,15 @@ For one failing check:
    - `config`, `secret`: report what is needed; no code change.
 5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
-6. **Result fields**, as in `ep-ci-debug-summary`:
+6. **Result fields**, as in `ep-ci-debug-summary`: `outcome` (`fixed`, `rerun`, or
+   `reported`), `head`, and
    `check: <name> class=<class> result=<fixed|rerun|reported> fix=<sha|none>`.
 
 **Rules that must match** (`ep-ci-debug/SKILL.md`):
 
 - Diagnose from the failed job logs and quote the decisive lines.
+- Never reproduce publish, deploy, release, push, infrastructure, or credentialed steps
+  locally.
 - Five classes: code, test, flaky-infra, config, secret; only code and test change code.
 - Re-run failed jobs at most once per check; a second failure is reported.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
@@ -54,19 +58,22 @@ For one failing check:
 For one fix-class review comment, in a repository whose merge method is squash:
 
 1. Make the code change in the working tree.
-2. **Target:** `mb=$(git merge-base HEAD origin/<base>)`; for each changed hunk,
-   `git blame -s -L <start>,<end> $mb..HEAD -- <file>` (for added-only hunks, blame the
-   neighbouring lines). A branch sha is the target; boundary lines (`^<sha>`) come from
-   the base.
+2. **Target:** `mb=$(git merge-base HEAD origin/<base>)`; list hunks with
+   `git diff -U0 HEAD` and, for each, blame its old-side lines:
+   `git blame -s -L <old-start>,+<old-count> $mb..HEAD -- <file>` (for added-only hunks,
+   blame the neighbouring old-side lines). A branch sha is the target; boundary lines
+   (`^<sha>`) come from the base.
    - one branch commit: target it.
-   - several: one fixup per target, staging hunk by hunk; an inseparable hunk targets the
-     newest of its commits.
-   - base lines only: make a normal ep-commit commit instead.
+   - several: one fixup per target, staging hunk by hunk, and line by line when each
+     changed line replaces one old line. A change that still cannot be separated, or a new
+     file with no clear target, is not guessed: outcome `needs_decision` for that change.
+   - base lines only: make a normal ep-commit commit instead (listed under `commits:`).
 3. **Commit:** `git commit --fixup=<target-sha>` per target, containing only its hunks.
    Subject is exactly `fixup! <target subject>`; check it has no attribution.
 4. **Push** with plain `git push`. Never autosquash, rebase, or force-push.
-5. **Result fields**, as in `ep-fixup-summary`: `fixups: <fixup-sha>-><target-sha>,...`,
-   `rewritten: false`, `pushed: true`.
+5. **Result fields**, as in `ep-fixup-summary`: `outcome` (`created`, `needs_decision`,
+   or `nothing_to_do`), `head`, `fixups: <fixup-sha>-><target-sha>,...`,
+   `commits: <sha>,...`, `rewritten: false`, `pushed`.
 
 **Rules that must match** (`ep-fixup/SKILL.md`):
 
@@ -75,7 +82,8 @@ For one fix-class review comment, in a repository whose merge method is squash:
 - Lines from the base get a normal ep-commit commit, never a fixup.
 - No autosquash, rebase, or force-push in caller mode; `rewritten: false`.
 - Never `--force`; `--force-with-lease` only after confirmation in direct use.
-- Summary keys: `outcome`, `head`, `fixups`, `rewritten`, `pushed`.
+- Caller mode never waits: an unresolvable target returns `needs_decision`, uncommitted.
+- Summary keys: `outcome`, `head`, `fixups`, `commits`, `rewritten`, `pushed`.
 
 ## sync
 
@@ -109,7 +117,8 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
 5. **Test** (full suite, or the subset covering the interactions). Failures: outcome
    `needs_attention`, never `synced`.
 6. **Report** the audit table (`# | Class | Check | Base commit | Branch location | Reason |
-   Resolution`; no-impact as a count; `No interactions found.` when empty), then the
+   Resolution`; every interaction, no-impact rows last; `No interactions found.` when
+   empty), then the
    fields as in `ep-sync-summary`: `outcome`, `head`, `mode: merge`,
    `base: origin/<base>@<sha>`, `conflicts`, `audit: needs_update=<n> review=<n>
    no_impact=<n>`, `unresolved_needs_update`, `tests`, `pushed: false`. The loop pushes.
