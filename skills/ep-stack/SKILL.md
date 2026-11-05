@@ -125,11 +125,17 @@ short kebab-case summary of the layer, unless the user names the branches.
    git push -u origin <layer-branch>          # plain push, never force
    ```
 
-   When the user approved a split of a mixed commit, create that layer's commits on a new
-   branch, then rebuild every layer above it on top of the rewritten layer
-   (`git rebase --onto <rewritten-layer> <original-last-commit-of-that-layer> <layer>`, in
-   order), before anything is pushed, so each layer still descends from the one below. Say
-   which commits were rewritten (they are unpushed).
+   When the user approved splitting a mixed commit C of layer k into C_a (layer k) and C_b
+   (layer k+1), rebuild before anything is pushed:
+   1. Record every layer's original tip sha first.
+   2. Layer k: create its commits with C_a in place of C.
+   3. Layer k+1: start from the rebuilt layer k, commit C_b, then replay the layer's own
+      commits: `git rebase --onto <rebuilt-k+1-so-far> <original tip of k> <layer k+1>`.
+   4. Each higher layer j: `git rebase --onto <rebuilt j-1> <original tip of j-1> <layer j>`,
+      in order, so each layer descends from the rebuilt one below it.
+   5. Check that the top layer's tree equals the original branch's
+      (`git diff <original-branch> <top-layer>` is empty).
+   Say which commits were rewritten (they are unpushed).
 5. **Open PRs** bottom-up, each based on the previous layer's branch (the first on the
    base), following `ep-open-pr` conventions: Conventional Commit title for that layer's
    commits, body with Summary, Changes, (with OpenSpec) the OpenSpec section,
@@ -185,13 +191,14 @@ layer 2 with layer 1, and so on.
    origin/<parent>)`). Then, bottom-up, for each layer:
    - `git checkout <layer>` and `git pull --ff-only`, so commits added on GitHub (for
      example committed review suggestions) are not lost; record
-     `remote_tip=$(git rev-parse origin/<layer>)`.
+     the literal sha of `git rev-parse origin/<layer>` (write it down; shell variables may
+     not persist).
    - Move only the layer's own commits onto the updated parent:
      `git rebase --onto <updated-parent> $old_parent <layer>`. A plain
      `git rebase origin/<parent>` would replay the parent's old commits.
    - On a conflict, `git rebase --abort`, stop, and report; push nothing for this layer or
      any layer above it.
-   - Push with an explicit lease: `git push --force-with-lease=<layer>:$remote_tip`.
+   - Push with an explicit lease: `git push --force-with-lease=<layer>:<recorded-sha>`.
      Never `--force`.
 
 Outcome `synced`.
