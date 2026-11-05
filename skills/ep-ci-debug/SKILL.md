@@ -18,6 +18,10 @@ Find out why a check failed, from its logs, and fix the cause, not the symptom.
 - **Push gate:** push only after the user confirms, or when the caller owns pushing.
   Never force-push.
 - Non-code classes (`flaky-infra`, `config`, `secret`) never produce a code change.
+- **Never run side effects locally.** Do not reproduce steps that publish, release,
+  deploy, push, apply infrastructure, send notifications, or use credentials (for example
+  `npm publish`, `docker push`, `gh release`, `terraform apply`, `kubectl apply`,
+  deploy scripts, steps reading `secrets.*`). Report them as unverified locally.
 
 ## Usage
 
@@ -105,7 +109,8 @@ Before changing code, find the command the failing step runs (in the workflow fi
 
 - Reproduced: keep the output. You will run it again after the fix.
 - Not possible (needs CI-only services, secrets, another OS, a matrix entry you lack, or the
-  tool is not installed): say exactly why. The fix is then reported as **unverified
+  tool is not installed), or not allowed (the step publishes, deploys, releases, pushes,
+  applies infrastructure, or uses credentials; never run those locally): say exactly why. The fix is then reported as **unverified
   locally**.
 
 Running it must not modify tracked files; if it does, restore them.
@@ -117,14 +122,14 @@ Running it must not modify tracked files; if it does, restore them.
 | `code` | fix the code; re-run the local command |
 | `test` | update the test to the documented behaviour; name where it is documented |
 | `flaky-infra` | `gh run rerun <run-id> --failed` once; wait (`gh run watch <run-id>`); if it fails again, report, no code change |
-| `config` | report the needed change; change workflow or build config only when the branch introduced the mistake, never to weaken a check |
+| `config` | report the needed change (file, line, and fix); no change to workflow, build config, or code |
 | `secret` | report the secret, permission, or scope needed and who can grant it; no code change |
 
 **Direct use:** show the diagnosis and the proposed patch and ask before applying,
 committing, and pushing. **Caller mode:** apply, commit, and push without a prompt.
 
 Commit each cause separately, following `ep-commit` conventions: Conventional Commit
-(`fix`, or `test` for a test-class update, `ci`/`build` for config), the repo's scope
+(`fix`, or `test` for a test-class update), the repo's scope
 convention (with OpenSpec, the active change name), a body quoting the check name, and no
 attribution. Push with plain `git push`.
 
@@ -183,6 +188,8 @@ These rules are repeated in `ep-babysit-pr/references/side-paths.md#ci-debug`. K
 lists identical.
 
 - Diagnose from the failed job logs and quote the decisive lines.
+- Never reproduce publish, deploy, release, push, infrastructure, or credentialed steps
+  locally.
 - Five classes: code, test, flaky-infra, config, secret; only code and test change code.
 - Re-run failed jobs at most once per check; a second failure is reported.
 - Never skip, delete, loosen, or xfail tests, or disable or edit a check, to go green.
