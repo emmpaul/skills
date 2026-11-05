@@ -117,7 +117,8 @@ gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$
 ```
 
 Before acting, compare the local branch with the remote:
-`git rev-list --count origin/<head-branch>..HEAD` (after `git fetch`). If it is above 0,
+`git rev-list --count @{u}..HEAD` (after `git fetch`; the upstream is the PR head as set
+by `gh pr checkout`, which also works for fork PRs). If it is above 0,
 the branch holds commits no step of this tick made, for example a merge left local by an
 earlier `needs_decision` or `needs_attention` sync. Do not commit or push anything (every
 push in steps 5a-5d would publish them): report those commits and stop until the user pushes
