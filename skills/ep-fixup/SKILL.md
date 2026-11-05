@@ -79,7 +79,7 @@ as boundary commits (`^<sha>`) come from the base. For a hunk that only **adds**
 
 - **One branch commit:** that commit is the target.
 - **Several branch commits:** split the change into one fixup per target. Stage hunk by
-  hunk (`git apply --cached` with a hunk-only patch), and split a hunk line by line when
+  hunk (`git apply --cached --unidiff-zero` with a hunk-only patch from `git diff -U0`), and split a hunk line by line when
   each changed line replaces one old line (stage a file version with only that target's
   lines changed, for example via `git hash-object -w` and `git update-index --cacheinfo`).
   When a hunk still cannot be separated (it replaces lines from several commits with a
@@ -99,9 +99,12 @@ said to proceed.
 
 ## 3. Create fixup commits
 
-One commit per target, containing only that target's hunks:
+One commit per target, containing only that target's hunks. Unstage everything first
+(`git reset -q`, which keeps the working tree), so a previously staged change cannot
+leak into another target's commit:
 
 ```bash
+git reset -q                       # empty the index; working tree untouched
 git add -- <files>                 # or apply the hunk patch to the index
 git commit --fixup=<target-sha>    # subject: "fixup! <target subject>"
 ```
