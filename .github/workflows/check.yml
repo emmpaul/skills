@@ -1,0 +1,29 @@
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shared probe copies match shared/context.sh
+        run: scripts/check-shared.sh
+
+      - name: Shell scripts parse
+        run: |
+          for f in shared/*.sh scripts/*.sh skills/*/scripts/*.sh; do
+            bash -n "$f" && echo "ok: $f"
+          done
+
+      - name: Probe prints valid JSON
+        run: shared/context.sh | jq -e '.git and has("pr") and has("openspec")'
+
+      - name: OpenSpec specs and changes validate
+        run: npx -y @fission-ai/openspec@1.16.0 validate --all --strict
