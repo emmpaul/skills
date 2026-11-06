@@ -111,3 +111,42 @@ commit.
 Prefer the repo's configured default when it is known (for example from a
 `CONTRIBUTING.md` or the user's instruction); otherwise use the first allowed method in the
 order above. Never pass `--admin`. Do not use `--auto`: the skill itself decides when to merge.
+
+### Stacked PRs
+
+A PR in a GitHub native stack merges through the async merge API instead of `gh pr merge`
+(GitHub names it the required API for stacked PRs). Every call passes the same API version
+header as `ep-stack`.
+
+Detect stacking; a non-null value means the PR is stacked, and gives the stack number:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>" --jq '.stack'
+```
+
+Find the lowest open PR of the stack. The order of `pull_requests` is the stack order,
+bottom first; `stack.position` is not used, because GitHub does not define it:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks/<stack.number>" \
+  --jq '[.pull_requests[] | select(.state == "open" and .merged_at == null)] | .[0].number'
+```
+
+The PR may merge only when this prints `<n>`. Merge pinned to the reviewed head, with the
+method detected above without its dashes (`squash`, `merge`, or `rebase`), no bypass, and
+the default `merge_action`:
+
+```bash
+gh api -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async" \
+  -f sha=<last_review.head> -f merge_method="${method#--}" -F bypass_rules=false
+```
+
+A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
+UUID it returns. Read the result:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"
+```
+
+`status` is `pending`, `merged`, `enqueued`, or `failed`. SKILL.md step 7 says what each one
+leads to. The head branch is left in place: GitHub rebases the PRs above onto it.

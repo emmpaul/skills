@@ -43,7 +43,7 @@
 
 ## 2. ep-babysit-pr stacked merge
 
-- [ ] 2.1 In `skills/ep-babysit-pr/SKILL.md` step 7 (the merge) and the Merge command in
+- [x] 2.1 In `skills/ep-babysit-pr/SKILL.md` step 7 (the merge) and the Merge command in
   `skills/ep-babysit-pr/references/score.md`, add the stacked-PR path from D8:
   - stack detection
   - the lowest-open-PR check

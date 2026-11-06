@@ -74,12 +74,15 @@ write it after every action.
   "started_at": "<iso time>",
   "last_review": { "head": null, "summary": null },
   "last_score": null,
+  "merge_async": null,
   "outcome": null
 }
 ```
 
 `last_review.head` is the commit the latest review round ran on and `last_review.summary`
 the raw `ep-review-summary` block, so a later run can score without re-reviewing.
+`merge_async` is the UUID of a requested async merge of a stacked PR (step 7), so later
+ticks read its result instead of requesting another merge.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
 state file missing fields, add them with defaults; when own post ids are unknown, treat
 posts that reference commits you pushed as your own.
@@ -300,7 +303,11 @@ Merge only when **all** hold:
   adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
   stop and report the unreviewed commits instead of merging
 
-Then merge with the repository's default method and delete the branch, without `--admin`:
+Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
+object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
+takes the stacked path below. A PR in no native stack merges as follows.
+
+Merge with the repository's default method and delete the branch, without `--admin`:
 
 ```bash
 gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <last_review.head>
@@ -310,6 +317,25 @@ gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <l
 method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
 to the base branch and pull it; mention this in the final report. If GitHub rejects the merge because it
 would need a bypass, do not retry with any bypass: treat it as `BLOCKED`.
+
+**Stacked path.** Merging a stacked PR also merges every open PR below it, so only the
+bottom layer merges:
+
+1. Find the lowest open PR of the stack (`references/score.md`, "Stacked PRs"). When an
+   open PR sits below this one, do not merge: report the lower open PRs, in order, as the
+   ones that must merge first, set `outcome: stopped: mid-stack` and stop. Never merge a
+   PR below this one.
+2. When this PR is the lowest open PR, request the async merge pinned to
+   `last_review.head`, with the repository's method and `bypass_rules=false`. Save the
+   UUID in `merge_async` (a 409 answer returns the UUID of the merge already pending).
+3. Read the result once per tick:
+   - `pending`: next tick.
+   - `enqueued`: the merge queue holds it. Wait as on `BLOCKED`.
+   - `merged`: confirm with `gh pr view <n> --json state` (`MERGED`). Then the PR is merged.
+   - `failed`: report the response details, set `outcome: stopped: merge failed` and stop.
+     Do not retry with any bypass.
+4. Leave the head branch in place. GitHub rebases the PRs above onto it. The final report
+   says the branch was kept and that the repository's auto-delete setting still applies.
 
 Otherwise:
 
@@ -328,7 +354,7 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; the PR is mid-stack or its async merge failed (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 
