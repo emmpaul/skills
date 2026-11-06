@@ -14,7 +14,7 @@
   `openspec/changes/update-ep-orchestrate-group-review/specs/ep-orchestrate/spec.md` each
   map to text in `## review`. Also check that `grep -n "g<n>" skills/ep-orchestrate/references/briefs.md`
   shows the id form.
-- [ ] 1.2 In `briefs.md`, `## fix`: let the round input and the block's `round:` value be
+- [x] 1.2 In `briefs.md`, `## fix`: let the round input and the block's `round:` value be
   `<k>` or `g<n>` for a group pass (D6). Leave everything else in the section unchanged.
   Verify: `git diff -- skills/ep-orchestrate/references/briefs.md` touches only `## review`
   and `## fix`, and the fix block shows `round: <k> | g<n>`.

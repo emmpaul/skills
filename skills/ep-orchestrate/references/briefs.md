@@ -274,9 +274,9 @@ finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario>
 
 ## fix
 
-**Inputs:** change name, branch, round number, the verified findings (the `finding:`
-lines from review, unchanged), `large_predicted: yes|no`, and when yes, the group of each
-task id (`groups: 1=1.1-1.3,2=2.1-2.4`). On a re-run after a question, the findings are
+**Inputs:** change name, branch, round (`<k>` for an end-of-run round, `g<n>` for the
+pass after group `<n>`), the verified findings (the `finding:` lines from review,
+unchanged), `large_predicted: yes|no`, and when yes, the group of each task id (`groups: 1=1.1-1.3,2=2.1-2.4`). On a re-run after a question, the findings are
 only those with no fix commit yet, plus:
 
 - `answers:` lines of `<id>: <question> => <answer>`, where `<id>` is a finding id. Treat
@@ -314,7 +314,7 @@ Minor findings left unfixed are counted as deferred, with no blocker.
 
 ```
 <!-- ep-orchestrate-fix
-round: <k>
+round: <k> | g<n>
 fixed: <n>
 deferred: <n>
 commits: <finding-id>=<sha>,<finding-id>=<sha>
