@@ -36,7 +36,7 @@
   pairs) to the JSON example (D5). Verify: the example is valid JSON once its `<...>`
   placeholders are replaced, which you can check by pasting it into
   `python3 -c 'import json,sys; json.load(sys.stdin)'`.
-- [ ] 2.2 In `SKILL.md`, "Asking the user": describe the phase question point. A question
+- [x] 2.2 In `SKILL.md`, "Asking the user": describe the phase question point. A question
   blocker from plan, apply, or fix is asked with its options plus `Stop` (open when it
   has none). `question` is written to the state file before asking and cleared when the
   answer is recorded under `answers`. A third question for the same id stops as

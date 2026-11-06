@@ -45,6 +45,30 @@ Every question in this skill follows these rules:
   when running phases inline. Questions another skill asks under its own rules (such as
   `ep-stack split`'s plan approval) stay with that skill.
 
+### Phase questions
+
+A plan, apply, or fix phase that needs a choice ends with a question blocker, on one line:
+`blocker: needs input: <id>: <question> | <option> ; <option>`. `<id>` is the task id
+(apply), the finding id (fix), or the change name (plan), and there are 0, 2 or 3
+options. Any other `blocker:` value is a stop, never a question. At this question point:
+
+1. **Limit.** When `answers` already holds 2 entries for `<id>`, do not ask: stop with
+   outcome `blocked`, and report the question and the earlier answers.
+2. **Record first.** Write `question` to the state file (phase, id, text, options, and
+   the phase's `files:` paths) before asking, so a session that ends unanswered resumes
+   at the same question.
+3. **Ask** (as above): the phase's options plus `Stop`, at most 4 in all; with no
+   options, an open question in plain text that says replying `Stop` ends the run.
+4. **Answer.** Append `{ "q": <question>, "a": <answer> }` to `answers.<id>` and set
+   `question` to `null`. Then re-run the phase as its step says (4, 6, or 8), passing every
+   recorded answer as `answers:` lines (`<id>: <question> => <answer>`) and, for apply and
+   fix, the blocked paths as `partial: <id>: <path>,<path>`.
+5. **`Stop`** ends the run with outcome `blocked`, reported as the phase's step says.
+   `question` stays set, so the next run asks it again.
+
+With subagents, the re-run is a fresh subagent; without them, the phase runs inline
+again. Either way the question is asked here, between phases, never mid-phase.
+
 ## Usage
 
 ```
@@ -179,10 +203,10 @@ phase to resend.
 
 ## 4. Plan
 
-- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the
-  planner's question as written (see "Asking the user"): when the blocker names 2 to 4
-  choices, they are the options; otherwise it is an open question. Re-run the plan phase
-  with the answer. Record `plan_commit`.
+- **Description given:** run the `plan` phase. On a question blocker (its id is the
+  change name), ask it at the phase question point ("Phase questions" under "Asking the
+  user") and re-run the plan phase with the answer. `Stop` ends the run with outcome
+  `blocked`. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
   `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
   write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
