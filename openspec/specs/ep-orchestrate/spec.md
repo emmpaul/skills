@@ -94,6 +94,14 @@ The skill SHALL implement tasks one task group at a time, in order, run each tas
 - **WHEN** implementing a task shows that the specs or design are wrong or incomplete
 - **THEN** the skill stops and reports the conflict instead of silently changing the specs
 
+#### Scenario: Task needs a decision
+- **WHEN** an apply phase ends with a question blocker for a task
+- **THEN** the skill asks the user the question with the blocker's options plus `Stop`, and on an answer other than `Stop` re-runs the group with the answer as input, continuing from the task's uncommitted work, without stopping the run
+
+#### Scenario: User stops at a task question
+- **WHEN** the user answers `Stop` to an apply or fix question
+- **THEN** the run ends with outcome `blocked`, the task stays unticked, and its work stays uncommitted in the working tree
+
 ### Requirement: Frequent, traceable commits
 The skill SHALL commit in small steps following `ep-commit` conventions, with no model or tool attribution. It SHALL commit newly written planning artifacts on their own, each task on its own once verified, together with its `tasks.md` tick, and each review fix on its own. It SHALL NOT batch several tasks or a whole group into one commit.
 
@@ -147,6 +155,14 @@ After all tasks are done, the skill SHALL run `ep-review` on the branch and fix 
 - **WHEN** the third round still reports critical or major findings
 - **THEN** the skill stops, lists the remaining findings, and does not start a fourth round
 
+#### Scenario: Fix needs a decision
+- **WHEN** a fix phase ends with a question blocker for a finding
+- **THEN** the skill asks the user, and on an answer other than `Stop` re-runs the fix phase of the same round with the answer, for the findings that have no fix commit yet; the re-run does not count as a new review round
+
+#### Scenario: Fix needs a spec change
+- **WHEN** a fix phase ends with a `spec:` blocker
+- **THEN** the skill stops with outcome `blocked` without asking, as before
+
 ### Requirement: Fresh-context phases
 When it can spawn subagents, the skill SHALL run planning, each apply batch, each review round, and each fix round in a fresh subagent that reads the artifacts from disk and returns only a summary block. The driving session SHALL NOT read full diffs, logs, or artifact bodies into its own context.
 
@@ -173,7 +189,7 @@ In Claude Code with a Workflow tool, the skill SHALL run the review rounds as a 
 - **THEN** the skill says so and uses the subagent path, or the inline path without subagents
 
 ### Requirement: Resumable state
-The skill SHALL keep run state in `.git/ep-orchestrate/<change>.json`, updated after every phase, and SHALL resume from the first unfinished phase when run again on the same change.
+The skill SHALL keep run state in `.git/ep-orchestrate/<change>.json`, updated after every phase, and SHALL resume from the first unfinished phase when run again on the same change. An unanswered phase question SHALL be recorded in the state file with the paths its blocked work changed.
 
 #### Scenario: Resume after interruption
 - **WHEN** the skill is run again on a change whose state file and `git log` show tasks through 2.1 committed
@@ -182,6 +198,18 @@ The skill SHALL keep run state in `.git/ep-orchestrate/<change>.json`, updated a
 #### Scenario: State disagrees with the repository
 - **WHEN** the state file records a commit that is no longer on the branch, or tasks it marks done are unticked
 - **THEN** the skill trusts `tasks.md` and git, says what differed, and rebuilds the state from them
+
+#### Scenario: Resume with an open question
+- **WHEN** the skill is run again on a change whose state file records an unanswered apply or fix question
+- **THEN** the clean-tree check accepts uncommitted changes in exactly the recorded paths, and the skill asks the same question again before running any phase
+
+#### Scenario: Leftovers outside the recorded paths
+- **WHEN** a resume with an open question finds uncommitted changes outside the recorded paths and the change folder
+- **THEN** the skill stops with outcome `dirty_tree` and lists those paths
+
+#### Scenario: Resume at a fix question
+- **WHEN** the skill is run again on a change whose state file records an unanswered fix question
+- **THEN** it takes that round's findings and fix commits from `.git/ep-orchestrate/<change>.findings`, which keeps finding text out of the state file, and re-runs the fix phase of the same round with the recorded finding ids instead of starting a new review; when that file is missing, it stops with outcome `blocked` and says the round's findings are lost
 
 ### Requirement: No outward effects for regular changes
 For a change below the large-change threshold, the skill SHALL NOT push, open or edit pull requests, comment, or merge. It SHALL end with a reviewed local branch and offer `ep-open-pr` and `ep-babysit-pr` as next steps.
@@ -267,16 +295,20 @@ When the driving session asks the user a question with fixed options, the skill 
 - **THEN** the skill does not guess: it acts on the text only when it clearly picks one option or gives the requested input (such as a new change name), and otherwise asks again
 
 ### Requirement: Questions only from the driving session
-Only the driving session SHALL ask the user questions. Phase workers SHALL NOT call the question tool or wait for the user; a phase that needs an answer SHALL end with a blocker naming the question, and the driving session SHALL ask it. Questions that another skill asks under its own rules (such as `ep-stack`'s plan approval) SHALL stay with that skill.
+Only the driving session SHALL ask the user questions. Phase workers SHALL NOT call the question tool or wait for the user; a phase that needs an answer SHALL end with a question blocker (`blocker: needs input: <id>: <question>`, optionally followed by 2 or 3 options), and the driving session SHALL ask it and pass the answer into a re-run of that phase. Blockers that are not questions (failed verification, plan conflicts, findings that need a spec change) SHALL stop the run without a question. A task or finding SHALL come back with a question at most twice; a third question stops the run with outcome `blocked`. Questions that another skill asks under its own rules (such as `ep-stack`'s plan approval) SHALL stay with that skill.
 
 #### Scenario: Phase subagent needs an answer
-- **WHEN** a phase running in a subagent finds a choice it cannot make
-- **THEN** it ends with a blocker naming the question, and the driving session asks the user
+- **WHEN** a plan, apply, or fix phase running in a subagent finds a choice it cannot make
+- **THEN** it ends with a question blocker naming the question, the driving session asks the user, and the phase re-runs with the answer
 
 #### Scenario: Agent without subagents
 - **WHEN** the host has no subagents and the skill runs the phases inline
-- **THEN** questions are still asked only at the driving session's question points, through the question tool when available, and never mid-phase
+- **THEN** a choice the phase cannot make still ends that phase with a question blocker, the question is asked at the driving session's question point, through the question tool when available, and never mid-phase, and the phase then re-runs inline with the answer
 
 #### Scenario: Interrupted at a gate question
 - **WHEN** the session ends while the gate question is unanswered
 - **THEN** the state file already records `decision: paused`, and the next run asks the same question again
+
+#### Scenario: Third question for the same task
+- **WHEN** a task or finding comes back with a question after two answered questions
+- **THEN** the skill does not ask again: it stops with outcome `blocked` and reports the question and the earlier answers
