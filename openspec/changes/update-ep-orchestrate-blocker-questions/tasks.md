@@ -2,7 +2,7 @@
 
 ## 1. Phase briefs
 
-- [ ] 1.1 In `skills/ep-orchestrate/references/briefs.md`, "Rules for every phase": replace
+- [x] 1.1 In `skills/ep-orchestrate/references/briefs.md`, "Rules for every phase": replace
   the question rule's last sentence with the question blocker form (D1). The form is
   `blocker: needs input: <id>: <question> | <option> ; <option>`, with 0, 2 or 3 options,
   and `<id>` is the task id, finding id, or change name. Also state that conflicts with

@@ -24,7 +24,14 @@ Rules for every phase:
 - Never edit the change's `proposal.md`, `design.md`, or `specs/` after the plan phase.
   When they turn out wrong, stop and report it as the `blocker`.
 - Never ask the user or call a question tool, and never wait for a reply. A choice you
-  cannot make becomes your `blocker`, naming the question; the orchestrator asks it.
+  cannot make ends the phase with a question blocker, on one line:
+  `blocker: needs input: <id>: <question> | <option> ; <option>`. `<id>` is the task id
+  (apply), the finding id (fix), or the change name (plan). Give 0, 2 or 3 options; with
+  0, drop the ` | ` part and the question is asked open. The orchestrator asks it and
+  re-runs the phase with the answer.
+- A conflict with the specs or design is never a question: it is a `plan:` blocker
+  (plan, apply) or a `spec:` blocker (fix). Any `blocker:` value other than
+  `needs input:` stops the run.
 
 ## plan
 
