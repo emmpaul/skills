@@ -187,18 +187,28 @@ Run the `gate` phase, then decide with the table in `references/confidence.md`
 - Print the score report: each item met or not with its weight, the total, the
   hard-to-undo result with what was counted, and the size (`large: stacked delivery will
   be offered` when predicted large).
-- **Hard to undo found:** pause and name each element, even at score 100 and even with
-  `--yes`, then offer the same three options as below.
-- **Score < 85 without `--yes`:** pause, list the unmet items, and offer: approve,
-  revise (run `openspec-update-change` or edit the artifacts, commit them as
-  `docs(<change>)`, then re-run the gate), or stop.
+- **Hard to undo found:** pause and name each element in the printed text, even at
+  score 100 and even with `--yes`, then ask as below.
+- **Score < 85 without `--yes`:** pause, list the unmet items in the printed text, and
+  ask as below.
 - **Otherwise:** proceed and state the score proceeded on (and "proceeding on --yes"
   when that is why).
 
 Record `score`, `unmet`, `hard_to_undo`, `decision`, and `artifacts` (the "Plan
 fingerprint" from `references/confidence.md`, computed now) under `gate`, so a resume can
-keep the decision. A paused run records `decision: paused`, ends with outcome `paused_at_gate`, and makes
-no code change. The user's approval sets `decision: approved` and continues to apply.
+keep the decision.
+
+**At a pause** (either kind), write `decision: paused` with those fields to the state
+file first, so an interrupted session resumes at the same question. Then ask (see
+"Asking the user"); the question carries only the decision, with the options:
+
+- `Approve`: set `decision: approved` and continue to apply.
+- `Revise`: run `openspec-update-change` or edit the artifacts, commit them as
+  `docs(<change>)`, then re-run the gate.
+- `Stop`: the run ends with outcome `paused_at_gate`.
+
+Make no code change before the answer. The outcome is `paused_at_gate` only when the run
+ends at the pause (`Stop`, or the session ends unanswered).
 
 ## 6. Apply
 

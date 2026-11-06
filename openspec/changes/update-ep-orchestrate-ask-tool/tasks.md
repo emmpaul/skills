@@ -20,7 +20,7 @@
   "Plan needs input", and "Large change offered as a stack" scenarios each map to text in
   the matching step, and `grep -n "ask" skills/ep-orchestrate/SKILL.md` shows no question
   point left without a reference to "Asking the user".
-- [ ] 1.3 Update step 5 (gate) in `skills/ep-orchestrate/SKILL.md` (D2, D3): print the score
+- [x] 1.3 Update step 5 (gate) in `skills/ep-orchestrate/SKILL.md` (D2, D3): print the score
   report and hard-to-undo elements as text, write `decision: paused` to the state file,
   then ask Approve / Revise / Stop through "Asking the user", for both the hard-to-undo
   and the score pause; outcome `paused_at_gate` only when the run ends at the pause.
