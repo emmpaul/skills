@@ -308,7 +308,10 @@ Merge only when **all** hold:
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
-takes the stacked path below. A PR in no native stack merges as follows.
+takes the stacked path below. A PR in no native stack merges as follows. When the detection
+call fails, run `ep-stack`'s probe (`references/score.md`, "Stacked PRs"): if it also fails,
+the repository has no native stacks and the PR is not stacked; if it succeeds, do not merge,
+report both answers, set `outcome: stopped: stack detection failed` and stop.
 
 Merge with the repository's default method and delete the branch, without `--admin`:
 
@@ -333,6 +336,9 @@ bottom layer merges:
    Save the UUID in `merge_async` (a 409 answer returns the UUID of the merge already
    pending). A 200 answer has no UUID: the PR is already merged or already in the merge
    queue. Save `"queued"` in `merge_async`, so no later tick requests the merge again.
+   Any other answer (an error such as 403, 405 or 422) rejected the merge: report the
+   status and message, leave `merge_async` `null`, set `outcome: stopped: merge rejected`
+   and stop. Do not retry, with or without a bypass, in this run.
    When `merge_async` is already set, skip the request and go to step 3.
 3. When `merge_async` is `"queued"`, check the PR once per tick instead
    (`references/score.md`, "Stacked PRs"): `MERGED` means the PR is merged; still in the
@@ -369,7 +375,7 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; the PR is mid-stack, its async merge failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 

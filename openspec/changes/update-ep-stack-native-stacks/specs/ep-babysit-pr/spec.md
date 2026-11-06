@@ -12,8 +12,20 @@ For a PR in a GitHub native stack, the skill SHALL merge only when the PR is the
 - **THEN** the skill does not merge, because the merge would also merge the PRs below, and it reports the lower PRs that must merge first
 
 #### Scenario: Merge enqueued
-- **WHEN** the async merge result is `enqueued`
-- **THEN** the skill waits for the merge queue to finish, as it waits on a blocked PR
+- **WHEN** the async merge result is `enqueued`, or the merge request answers that the PR is already queued
+- **THEN** the skill does not request the merge again and checks the PR on each tick, waiting as it waits on a blocked PR while the PR stays in the merge queue
+
+#### Scenario: Ejected from the merge queue
+- **WHEN** a PR the skill saw enqueued is open and no longer in the merge queue
+- **THEN** the skill reports it and stops without requesting the merge again
+
+#### Scenario: Merge request rejected
+- **WHEN** GitHub answers the async merge request with an error
+- **THEN** the skill reports the status and message and stops without retrying, with or without a bypass
+
+#### Scenario: Stack detection unavailable
+- **WHEN** reading the PR's stack fails and the repository's stacks endpoint also fails
+- **THEN** the skill treats the PR as not stacked and merges as it did before this change
 
 #### Scenario: Merge failed
 - **WHEN** the async merge result is `failed`

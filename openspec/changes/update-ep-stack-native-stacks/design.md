@@ -103,8 +103,11 @@ stack wins when the two disagree, and the skill reports the disagreement.
 
 **D5. Refreshing a branch that GitHub rewrote.**
 - A layer is rewritten when `origin/<layer>` is not a descendant of the local `<layer>`.
-- The skill runs `git cherry origin/<layer> <layer>`. When it shows no `+` line, the branch
-  has no local-only patch. Then the skill moves the branch: `git branch -f` when the branch
+- The skill lists local commits, merge commits included, with no equivalent patch on the
+  remote (`git rev-list --right-only --cherry-pick origin/<layer>...<layer>`), excluding
+  every remote tip in the reflog of `origin/<layer>` (pushed commits, such as the merges
+  `sync` pushed, which GitHub's rebase drops) and the heads of merged layers below. When
+  the list is empty, the branch has no local-only commit. Then the skill moves the branch: `git branch -f` when the branch
   is not checked out, or `git reset --keep origin/<layer>` when it is checked out and the tree
   is clean.
 - Otherwise it lists the commits and stops for that layer and every layer above it.
@@ -140,11 +143,20 @@ stack wins when the two disagree, and the skill reports the disagreement.
   `gh api -X PUT repos/{o}/{r}/pulls/{n}/merge-async -f sha=<last_review.head> -f merge_method=<squash|merge|rebase> -F bypass_rules=false`,
   where the method comes from the same detection as `references/score.md` and
   `merge_action` keeps its default.
+- If the detection call fails, run `ep-stack`'s probe: a failing probe means no native
+  stacks (merge as before); a passing probe means detection failed, so stop without merging.
+- The request's answer: 202 carries a UUID; a 409 (merge already pending) reuses the
+  returned UUID; a 200 (already merged or queued) has none, so the skill records `queued`
+  and watches the PR; any error stops the run with no retry. The state field `merge_async`
+  keeps the UUID or `queued` so no later tick requests the merge again, and is cleared on
+  stop.
 - Poll `.../merge-async/{uuid}` once per babysit tick:
   - `merged` means done; confirm with `gh pr view --json state`.
-  - `enqueued` waits, like `BLOCKED`.
+  - `enqueued` is final: it does not change when the queue merges or ejects the PR. The
+    skill records `queued` and from then on checks the PR's `state` and `mergeQueueEntry`:
+    merged means done, still queued waits like `BLOCKED`, open and out of the queue stops.
+  - A 404 means the result expired (24 hours); the skill watches the PR the same way.
   - `failed` reports the details and stops, with no bypass retry.
-  - A 409 response (merge already pending) reuses the returned UUID.
 - Do not delete the head branch. GitHub is about to rebase the PRs above, and deleting a
   stacked head is not described in the docs.
 - Mid-stack PRs are never merged: the skill reports the lower open PRs and stops waiting on

@@ -124,6 +124,14 @@ Detect stacking; a non-null value means the PR is stacked, and gives the stack n
 gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>" --jq '.stack'
 ```
 
+When that call fails, run `ep-stack`'s probe. A failing probe means the repository has no
+native stacks, so the PR is not stacked; a passing probe means detection itself failed, so
+SKILL.md step 7 stops without merging:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
+```
+
 Find the lowest open PR of the stack. The order of `pull_requests` is the stack order,
 bottom first; `stack.position` is not used, because GitHub does not define it:
 
@@ -144,7 +152,8 @@ gh api -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/
 A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
 UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;
 it has no UUID, so save `"queued"` in `merge_async` and do not request the merge again in this run
-(SKILL.md step 7). On later ticks, check the PR instead:
+(SKILL.md step 7). Any other answer (an error such as 403, 405 or 422) rejected the merge:
+SKILL.md step 7 stops without retrying. On later ticks after a 200, check the PR instead:
 
 ```bash
 gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
