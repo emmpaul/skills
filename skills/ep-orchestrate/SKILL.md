@@ -70,7 +70,9 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
 3. **Input.** The argument names an active change (`openspec list --json`): use it.
    Otherwise it is a description: derive a kebab-case name of 2-5 words with a verb
    prefix such as `add-`, `fix-`, `update-`, `rename-`, or `remove-`. If that name matches an existing
-   change, ask whether to continue that change or pick a different name.
+   change, ask (see "Asking the user") with the options `Continue <change>` and
+   `Use a different name`; take the new name from the reply or a follow-up plain
+   question.
 4. **State.** If `.git/ep-orchestrate/<change>.json` exists, this is a resume: go to
    "Resume" below.
 5. **Clean tree.** Any staged, unstaged, or untracked path outside
@@ -78,7 +80,10 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
 6. **Branch.** On the default branch (or detached HEAD), create and switch to
    `<type>/<change>` (`git switch -c`), where `<type>` comes from the change name's
    prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If that branch exists,
-   ask. On any other branch, stay on it.
+   create nothing and ask (see "Asking the user") with the options `Continue on <branch>`
+   (`git switch <branch>`, no new branch) and `Stop` (the run ends; no state file). A
+   different branch name given as free text is created with `git switch -c`. On any other
+   branch, stay on it.
 7. **Base.** `base` = `<ref>@<sha>`, where `<ref>` is the default branch and `<sha>` is
    `git rev-parse HEAD` now, before the run's first commit. On a new branch that is the
    default branch's tip; on an existing branch it keeps the user's earlier commits out
@@ -164,8 +169,10 @@ phase to resend.
 
 ## 4. Plan
 
-- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the user
-  the question and re-run. Record `plan_commit`.
+- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the
+  planner's question as written (see "Asking the user"): when the blocker names 2 to 4
+  choices, they are the options; otherwise it is an open question. Re-run the plan phase
+  with the answer. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
   `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
   write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
@@ -263,9 +270,12 @@ Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
   push nothing. Report the change as large, name the missing piece, and recommend
   installing it (`npx skills add emmpaul/skills --skill <name>`) or splitting by hand.
   The outcome stays what step 8 gave (`reviewed` or `review_limit`).
-- Otherwise offer stacked delivery and follow `briefs.md#stack`. Layers are task groups
-  (adjacent small groups may share one, so each layer stays under the diff thresholds);
-  the plan commit, when it is on the branch, goes in layer 1. Gates:
+- Otherwise ask (see "Asking the user") with the options `Deliver as a stack` and
+  `Keep the local branch`, and push nothing before the answer. `Keep the local branch`
+  ends the run as regular (outcome from step 8). `Deliver as a stack` follows
+  `briefs.md#stack`, where `ep-stack split`'s own plan approval still applies. Layers
+  are task groups (adjacent small groups may share one, so each layer stays under the
+  diff thresholds); the plan commit, when it is on the branch, goes in layer 1. Gates:
 
 | Action | Gate |
 |---|---|

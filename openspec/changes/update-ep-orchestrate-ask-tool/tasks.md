@@ -11,7 +11,7 @@
   finds the subsection, and the "Structured user questions" requirement text and its
   "Gate pause without a question tool" and "Answer outside the options" scenarios in
   `openspec/changes/update-ep-orchestrate-ask-tool/specs/ep-orchestrate/spec.md` map to it.
-- [ ] 1.2 Reword the question points in `skills/ep-orchestrate/SKILL.md` to point at
+- [x] 1.2 Reword the question points in `skills/ep-orchestrate/SKILL.md` to point at
   "Asking the user" and name their options (D2): step 1.3 (continue / different name),
   step 1.6 (continue on the existing branch / stop; another branch name through free
   text), step 4 (the planner's question; its options when it names 2 to 4), step 9
