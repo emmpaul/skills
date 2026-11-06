@@ -309,9 +309,11 @@ Merge only when **all** hold:
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
 takes the stacked path below. A PR in no native stack merges as follows. When the detection
-call fails, run `ep-stack`'s probe (`references/score.md`, "Stacked PRs"): if it also fails,
-the repository has no native stacks and the PR is not stacked; if it succeeds, do not merge,
-report both answers, set `outcome: stopped: stack detection failed` and stop.
+call fails, run `ep-stack`'s probe (`references/score.md`, "Stacked PRs"). Only a probe
+answer of 404, or a 400 that rejects the API version, means the repository has no native
+stacks, so the PR is not stacked. Any other result (the probe succeeds, a 403 or 5xx, a
+rate limit, no network) means the stack is unknown: do not merge, report both answers, set
+`outcome: stopped: stack detection failed` and stop.
 
 Merge with the repository's default method and delete the branch, without `--admin`:
 

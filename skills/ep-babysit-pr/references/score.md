@@ -124,12 +124,14 @@ Detect stacking; a non-null value means the PR is stacked, and gives the stack n
 gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>" --jq '.stack'
 ```
 
-When that call fails, run `ep-stack`'s probe. A failing probe means the repository has no
-native stacks, so the PR is not stacked; a passing probe means detection itself failed, so
-SKILL.md step 7 stops without merging:
+When that call fails, run `ep-stack`'s probe with `-i` to see its HTTP status. Only a 404,
+or a 400 that rejects the API version, means the repository has no native stacks, so the PR
+is not stacked. Any other result, success included, leaves the stack unknown, so SKILL.md
+step 7 stops without merging. Unlike `ep-stack`, which falls back to plain branches on any
+error, a merge cannot be undone, so a transient error must not count as "not stacked":
 
 ```bash
-gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
+gh api -i -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
 ```
 
 Find the lowest open PR of the stack. The order of `pull_requests` is the stack order,

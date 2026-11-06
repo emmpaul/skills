@@ -24,8 +24,16 @@ For a PR in a GitHub native stack, the skill SHALL merge only when the PR is the
 - **THEN** the skill reports the status and message and stops without retrying, with or without a bypass
 
 #### Scenario: Stack detection unavailable
-- **WHEN** reading the PR's stack fails and the repository's stacks endpoint also fails
+- **WHEN** reading the PR's stack fails and the repository's stacks endpoint answers 404, or 400 rejecting the API version
 - **THEN** the skill treats the PR as not stacked and merges as it did before this change
+
+#### Scenario: Stack detection failed
+- **WHEN** reading the PR's stack fails and the stacks endpoint answers anything else (success, another error status, or no answer)
+- **THEN** the skill does not merge, reports both answers, and stops
+
+#### Scenario: Merge result expired
+- **WHEN** reading the async merge result answers 404 because the result expired
+- **THEN** the skill does not request the merge again and checks the PR on each tick, as for an enqueued merge
 
 #### Scenario: Merge failed
 - **WHEN** the async merge result is `failed`

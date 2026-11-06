@@ -143,8 +143,10 @@ stack wins when the two disagree, and the skill reports the disagreement.
   `gh api -X PUT repos/{o}/{r}/pulls/{n}/merge-async -f sha=<last_review.head> -f merge_method=<squash|merge|rebase> -F bypass_rules=false`,
   where the method comes from the same detection as `references/score.md` and
   `merge_action` keeps its default.
-- If the detection call fails, run `ep-stack`'s probe: a failing probe means no native
-  stacks (merge as before); a passing probe means detection failed, so stop without merging.
+- If the detection call fails, run `ep-stack`'s probe: only a 404, or a 400 rejecting the
+  API version, means no native stacks (merge as before). Any other result (success, 403,
+  5xx, rate limit, no network) leaves the stack unknown, so stop without merging. A merge
+  cannot be undone, so a transient error must not count as "not stacked".
 - The request's answer: 202 carries a UUID; a 409 (merge already pending) reuses the
   returned UUID; a 200 (already merged or queued) has none, so the skill records `queued`
   and watches the PR; any error stops the run with no retry. The state field `merge_async`

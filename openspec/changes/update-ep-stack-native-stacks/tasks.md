@@ -27,9 +27,11 @@
 - [x] 1.4 Add the refresh rule for layers that GitHub rewrote (D5) and use it in `sync`
   and `retarget` where `git pull --ff-only` is today. Keep merge-default sync and the gated
   rebase unchanged (D6). Verify: the "Refresh layers rewritten by GitHub" and "Stack sync"
-  scenarios map to text. Also verify in a scratch local repo that `git cherry` shows no `+`
-  line after the remote branch is rebased with identical patches, and shows a `+` line after
-  a local-only commit is added.
+  scenarios map to text. Also verify in a scratch local repo that the refresh's
+  `git rev-list` command lists nothing after the remote branch is rebased with identical
+  patches, after a 2-commit lower layer is squash-merged, and after the rebase drops a sync
+  merge that was pushed; and that it lists an unpushed local commit and an unpushed local
+  merge.
 - [x] 1.5 Update `retarget` for native mode (D4): check the retarget GitHub made, re-check
   once, offer the gated plain retarget when GitHub did not retarget, refresh local branches,
   update the body sections, and run no merge-sync. Verify: the "Retarget on parent merge"

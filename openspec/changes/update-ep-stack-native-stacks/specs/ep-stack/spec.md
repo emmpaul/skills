@@ -38,14 +38,14 @@ The skill SHALL offer a `link` subcommand. It links a plain stack made by this s
 - **THEN** the skill reports the mismatch and links nothing
 
 ### Requirement: Refresh layers rewritten by GitHub
-When GitHub has rewritten a layer's remote branch (for example its cascading rebase after a lower PR merged), the skill SHALL reset the local branch to the remote copy only when the local branch has no commits of its own. Otherwise it SHALL stop for that layer and the layers above it, and SHALL push nothing.
+When GitHub has rewritten a layer's remote branch (for example its cascading rebase after a lower PR merged), the skill SHALL reset the local branch to the remote copy only when the local branch has no commits of its own: commits, merge commits included, that have no equivalent patch on the remote, were never pushed, and do not come from a merged layer. Otherwise it SHALL stop for that layer and the layers above it, and SHALL push nothing.
 
 #### Scenario: Clean local branch
-- **WHEN** GitHub rebased layer 2 after layer 1 merged, and local layer 2 has no commits missing from the remote
+- **WHEN** GitHub rebased layer 2 after layer 1 merged, and every commit of local layer 2 is on the remote, was pushed before the rebase (such as a sync merge the rebase dropped), or comes from merged layer 1
 - **THEN** the local branch is moved to the remote copy and the skill continues
 
 #### Scenario: Local-only commits
-- **WHEN** local layer 2 has a commit that the rewritten remote branch does not contain
+- **WHEN** local layer 2 has a commit, merge commits included, that was never pushed, is not on the rewritten remote branch, and does not come from a merged layer
 - **THEN** the skill lists that commit and stops, pushing nothing for layer 2 or the layers above it
 
 ## MODIFIED Requirements
