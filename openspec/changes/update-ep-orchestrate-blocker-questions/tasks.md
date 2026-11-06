@@ -54,7 +54,7 @@
   Show the subagent path next to the inline path. Verify: the "Task needs a decision",
   "User stops at a task question", "Fix needs a decision", and "Fix needs a spec change"
   scenarios map to steps 6 and 8.
-- [ ] 2.4 In `SKILL.md`, "Resume": when `question` is set, change two steps (D6):
+- [x] 2.4 In `SKILL.md`, "Resume": when `question` is set, change two steps (D6):
   - step 3: accept uncommitted changes only in `question.files` and the change folder,
     with any other path stopping as `dirty_tree`
   - step 4: ask the question again before continuing at the recorded phase, and start

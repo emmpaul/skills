@@ -161,8 +161,15 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    unticked, or ticked tasks lack a commit), say exactly what differed and rebuild
    `tasks`, `groups`, and `phase` from `tasks.md` and git.
 3. The clean-tree check (step 1.5) still applies; the only acceptable leftovers are
-   inside the change folder.
-4. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
+   inside the change folder. When `question` is set, uncommitted changes in exactly the
+   paths in `question.files` are accepted too; any other path stops the run with outcome
+   `dirty_tree`, listing those paths.
+4. **Open question first.** When `question` is set, ask it again at the phase question
+   point ("Phase questions") before running any phase, then continue at the recorded
+   phase with the answer. When none of `question.files` still has changes (the user
+   discarded them), leave `partial:` out: the task or finding starts fresh, and the
+   answer still applies.
+5. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
    ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
