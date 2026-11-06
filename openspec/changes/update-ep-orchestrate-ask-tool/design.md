@@ -55,9 +55,9 @@ question point then says "ask (see Asking the user)" and names its options.
   through "Other" or a follow-up plain question).
 - 1.6 existing branch: `Continue on <branch>` (switch to it with `git switch`, no new branch;
   the clean-tree check has already passed) / `Stop`. Stop ends the run before the state file
-  exists, like the other step-1 stops. The user can give another branch name through "Other",
-  which the skill then creates with `git switch -c`. This is the conservative reading of
-  today's bare "ask": nothing is created or deleted without the answer.
+  exists, like the other step-1 stops. A typed answer that is neither option is asked again
+  (no other branch is created). This is the conservative reading of today's bare "ask":
+  nothing is created or deleted without the answer.
 - 4 needs input: the planner's question as written. When the blocker names choices (2-4),
   they become the options; otherwise the question is open and goes as plain text even when
   the tool exists, since the tool needs at least two options.
@@ -68,11 +68,12 @@ question point then says "ask (see Asking the user)" and names its options.
   `briefs.md#stack` runs and `ep-stack split`'s own approval still applies.
 
 **D3. Paused state is written before asking.** At a gate pause, write `decision: paused`
-(and the score fields) to the state file before calling the tool, so an interrupted session
-resumes at the same question (Resume step 4 already re-asks a `paused` decision). The
-outcome becomes `paused_at_gate` only when the run ends at the pause (the user picks Stop,
-or the session ends unanswered); on Approve, `decision: approved` and the run continues;
-on Revise, as today.
+(and the score fields) and `outcome: paused_at_gate` to the state file, and print the
+report with its summary block, before calling the tool. An interrupted session has then
+already recorded the pause and its summary, and resumes at the same question (Resume step 4
+already re-asks a `paused` decision). On Stop the outcome stays; on Approve,
+`decision: approved` and `outcome` is cleared; on Revise, `outcome` is cleared and the
+gate re-runs as today.
 
 **D4. Phases never ask.** Add to `briefs.md` "Rules for every phase": "Never ask the user or
 call a question tool. A choice you cannot make becomes your `blocker`; the orchestrator asks."
