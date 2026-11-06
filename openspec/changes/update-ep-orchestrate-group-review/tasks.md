@@ -43,7 +43,7 @@
   second pass for a group", "Group stopped before finishing", "Agent without subagents",
   "Major finding in a group pass", "Only minor findings", "Group fix needs a decision",
   and "Group fix needs a spec change" scenarios map to step 6 or the table.
-- [ ] 2.3 In `SKILL.md`, "Resume", add the group pass rules (D9):
+- [x] 2.3 In `SKILL.md`, "Resume", add the group pass rules (D9):
   - derive `start` from git
   - run a missing pass only when no later group has `Task:` commits
   - continue a pass with `fixed: null` from `<change>.findings` labelled `g<n>`, or run

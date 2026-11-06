@@ -200,8 +200,23 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    `<change>.findings` (step 8.4), taking the findings and their fix commits from that
    file; never run a new review for it. When that file is missing, set `question` to `null`
    and stop with outcome `blocked`: say the round's findings are lost and list
-   `question.files`, which the user commits or discards before running again.
-5. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
+   `question.files`, which the user commits or discards before running again. An open
+   fix question while `phase` is `apply` is a group fix question: the same rules apply,
+   with the pass's findings from `<change>.findings` labelled `g<n>`, re-run as step 6's
+   group pass step 3; never a new pass.
+5. **Group passes.** Rebuild each group's `start` from git: the parent of the earliest
+   commit in `<base-sha>..HEAD` whose `Task:` line names a task of the group. While
+   `phase` is `apply`:
+   - A group with every task done and no `group_reviews` entry gets its pass (step 6)
+     before the next group starts, only when no later group has a commit with a `Task:`
+     line. Earlier groups are never reviewed after the fact, which also covers state
+     files from before group passes.
+   - An entry with `fixed: null` continues at step 6's group pass step 2, with the
+     findings and fix commits from `<change>.findings` when its label is `g<n>`. When
+     that file is missing or has another label, run the pass again: it is read-only.
+
+   Once `phase` is past `apply`, no group pass runs.
+6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
    ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
