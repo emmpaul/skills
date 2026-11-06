@@ -245,7 +245,14 @@ finding: r<round>.<n> <dimension> <severity> <file>:<line> | <summary> | <scenar
 
 **Inputs:** change name, branch, round number, the verified findings (the `finding:`
 lines from review, unchanged), `large_predicted: yes|no`, and when yes, the group of each
-task id (`groups: 1=1.1-1.3,2=2.1-2.4`).
+task id (`groups: 1=1.1-1.3,2=2.1-2.4`). On a re-run after a question, the findings are
+only those with no fix commit yet, plus:
+
+- `answers:` lines of `<id>: <question> => <answer>`, where `<id>` is a finding id. Treat
+  each answer as the decision for that finding. An answer never overrides the specs or
+  design: when one would need a spec change, use the `spec:` blocker below.
+- `partial: <id>: <path>,<path>`: the working tree holds that finding's uncommitted work
+  in those paths. Continue from it; when those paths have no changes, start fresh.
 
 For each critical or major finding, and each minor one that is cheap to fix:
 
@@ -254,6 +261,11 @@ For each critical or major finding, and each minor one that is cheap to fix:
 2. Never weaken tests to pass, and never edit specs, design, or proposal to match the
    code. A finding whose fix needs a spec change is not fixed: count it as deferred and
    set `blocker: spec: <finding id> <one line>`.
+   A finding with an open choice that the specs, design, and `answers` do not settle,
+   and that is not a spec change, is not deferred: leave its work uncommitted, set
+   `blocker: needs input: <finding id>: <question> | <option> ; <option>` (the form in
+   the rules above), list its changed paths in `files:`, and end the phase. Fixes of
+   other findings stay committed; leave only that finding's work uncommitted.
 3. Run the tests that cover the fix (and the suite when cheap). A fix whose tests fail
    after 3 attempts is reverted from the working tree (`git checkout -- <its files>`,
    only files you changed for it) and deferred.
@@ -276,9 +288,13 @@ fixed: <n>
 deferred: <n>
 commits: <finding-id>=<sha>,<finding-id>=<sha>
 head: <sha>
+files: <path>,<path> | none
 blocker: none | <one line>
 -->
 ```
+
+`files:` lists the paths with the blocked finding's uncommitted work; `none` when nothing
+was left uncommitted.
 
 ## stack
 

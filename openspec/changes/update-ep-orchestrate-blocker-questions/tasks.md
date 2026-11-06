@@ -20,7 +20,7 @@
 
   Verify: the "Task needs a decision" scenario maps to the stop condition and the inputs,
   and the block shows `files:`.
-- [ ] 1.3 In `briefs.md#fix`, make three changes (D2, D3):
+- [x] 1.3 In `briefs.md#fix`, make three changes (D2, D3):
   - add the `answers:` input
   - add the question blocker for a finding with an open choice, which leaves only that
     finding's work uncommitted
