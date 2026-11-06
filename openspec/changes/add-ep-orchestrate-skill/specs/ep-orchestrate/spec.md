@@ -114,6 +114,25 @@ The skill SHALL commit in small steps following `ep-commit` conventions, with no
 - **WHEN** the run is interrupted during group 2
 - **THEN** `git log` shows one commit per finished task, and the unfinished task's work is the only uncommitted change
 
+### Requirement: Dead-code check before review
+After all tasks are done and before the first review round, the skill SHALL check the branch for dead code it added or orphaned, remove dead code the branch added (one commit per removal, tests run after each), and report instead of removing anything that may be public, reached dynamically, or hard to undo. Code that implements a spec requirement SHALL NOT count as dead.
+
+#### Scenario: Unused helper added by the branch
+- **WHEN** a task added a function that no code, test, or spec requirement uses
+- **THEN** the skill removes it in its own `refactor(<change>)` commit whose body names it on a `Dead-code:` line, before review round 1
+
+#### Scenario: Possibly reachable from outside
+- **WHEN** an unreferenced symbol is exported from a public interface, registered by name, or may be reached dynamically
+- **THEN** the skill leaves it in place and lists it in the report
+
+#### Scenario: Removal breaks tests
+- **WHEN** the tests fail after a removal
+- **THEN** the skill reverts that removal, commits nothing for it, and lists it in the report
+
+#### Scenario: No dead code
+- **WHEN** the check finds no dead code
+- **THEN** no commit is made and the review rounds start
+
 ### Requirement: Review rounds
 After all tasks are done, the skill SHALL run `ep-review` on the branch and fix its verified findings, for at most 3 rounds. It SHALL stop early when a round has no verified critical or major findings and spec conformance passes. Fixes SHALL be committed separately from the apply commits, one commit per finding or shared root cause.
 
@@ -203,7 +222,7 @@ For a large change, the skill SHALL offer to deliver it as a stack: `ep-stack sp
 - **THEN** the skill runs the stack and babysit steps inline, layer by layer, with the same approval and stop rules
 
 ### Requirement: Summary block
-The skill SHALL end its output with an `ep-orchestrate-summary` HTML comment block with flat `key: value` lines giving the change, branch, head, outcome, gate result, task progress, review rounds, and remaining findings.
+The skill SHALL end its output with an `ep-orchestrate-summary` HTML comment block with flat `key: value` lines giving the change, branch, head, outcome, gate result, task progress, dead-code result, review rounds, and remaining findings.
 
 #### Scenario: Paused at the gate
 - **WHEN** the run pauses at the confidence gate

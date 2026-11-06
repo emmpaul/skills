@@ -36,7 +36,7 @@ SKILL.md stays short enough to load in full. A subagent receives only its own se
 ### D2. Phase pipeline and the driving session's role
 
 ```
- resolve ──► plan ──► gate ──► apply g1 ──► apply g2 ─ … ─► review r1 ──► fix r1 ──► review r2 … (≤3) ──► report
+ resolve ──► plan ──► gate ──► apply g1 ──► apply g2 ─ … ─► dead code ──► review r1 ──► fix r1 ──► review r2 … (≤3) ──► report
    │          │        │          │                            │            │
    └──────────┴────────┴──────────┴──── state file updated after every arrow ┴───────────────────────────►
 ```
@@ -49,6 +49,7 @@ The driving session (the "orchestrator") only resolves inputs, decides gates, sp
 | plan | 1 subagent follows `openspec-propose` (if installed) or the CLI `instructions` loop, then commits the artifacts (`docs(<change>): propose …`); returns `plan-summary` | inline, same steps |
 | gate | 1 subagent scores `references/confidence.md` read-only; orchestrator decides | inline, same checklist |
 | apply group *n* | 1 fresh subagent per group; inside it, for each task: implement → verify → tick → commit via `ep-commit` (D9); returns `apply-summary` | inline, one group at a time, same per-task commits; after each group, print the resume command and suggest `/clear` or compaction |
+| dead code | 1 fresh subagent finds and removes dead code (D11); per removal: remove → test → commit; returns `deadcode-summary` | inline |
 | review round *k* | 1 subagent runs `ep-review <branch>`; orchestrator reads only `ep-review-summary` plus the findings list | inline `ep-review` |
 | fix round *k* | 1 fresh subagent gets the verified findings; per finding (or shared root cause): fix → test → commit | inline |
 
@@ -192,7 +193,20 @@ review rounds done ──► size check ──► regular ──► report (loca
 - Alternative: one large PR babysat as-is. Rejected because the user asked for stacking on huge changes, and a single large PR is hard to review.
 - Alternative: split before apply (one change per layer). Rejected because it multiplies OpenSpec changes and gates. A single change with stacked delivery keeps one plan and one review.
 
+### D11. Dead-code check
+
+Runs once, after every task is done and before review round 1, so `ep-review` sees the removals like any other commit. Running it after review would land unreviewed commits.
+
+- **Candidates.** Code the branch added that nothing reaches: functions, classes, constants, files, imports, parameters, and unreachable branches. Also pre-existing code whose last reference the branch removed. Found by running `git grep -w` for each symbol the diff adds or stops referencing, and by the repo's own dead-code tool when it is already configured (for example `vulture`, `knip`, `ts-prune`, `staticcheck`, or compiler unused warnings). The phase never installs a tool.
+- **Not dead.** Code that implements a spec requirement, even when only tests reach it (a library helper is the feature). Entry points, plugin or framework hooks, and anything registered by name.
+- **Remove only what is safe.** Dead code the branch added is removed. Pre-existing code is removed only when it is internal and passes the hard-to-undo checklist from `references/confidence.md`. Otherwise, and whenever a reference may be dynamic or public, it is reported and left in place.
+- **Commits.** One removal (or one shared cause) per commit: `refactor(<change>): remove unused <what>`, with `Dead-code: <file>:<symbol>` in the body. Tests run after each removal; a removal that breaks them is reverted and reported. When large is predicted, removals are split per task group, as in the fix phase.
+- **No stop.** Reported items go in the final report and do not stop the run. The summary block gains `deadcode: removed=<n> reported=<n>`.
+- Alternative: leave dead code to `ep-review`. Rejected because review reports only defects with a failure scenario, and unused code has none.
+
 ## Risks / Trade-offs
+
+- [Dead-code check removes code reached in a way grep cannot see] → it removes only code the branch added or internal code that passes the hard-to-undo checklist, runs tests after each removal, reports anything that may be dynamic or public, and each removal is its own commit that can be reverted.
 
 - [Score passes but the plan is still subtly wrong] → apply stops on the first verification failure or plan conflict instead of pushing on. Review rounds include spec conformance, so drift is caught before hand-off.
 - [Hard-refactor heuristic misses a case (e.g. dynamic references grep cannot see)] → "uncertain counts as hard to undo", and the gate output lists what was counted, so the user can see the basis.
