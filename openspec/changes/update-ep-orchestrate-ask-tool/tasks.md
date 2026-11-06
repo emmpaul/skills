@@ -36,6 +36,6 @@
 
 ## 2. Integration
 
-- [ ] 2.1 Run `scripts/check-shared.sh` and verify that it passes, and check that
+- [x] 2.1 Run `scripts/check-shared.sh` and verify that it passes, and check that
   `README.md` and the `description:` frontmatter of `skills/ep-orchestrate/SKILL.md` are
   unchanged (`git diff main -- README.md` is empty and the frontmatter line is identical) (D5).
