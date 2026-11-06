@@ -259,11 +259,18 @@ the group finished before the next one starts. Then:
 - `blocker: none` but `done` below `total` (the phase ended early): run the group again
   in a fresh phase, once; it skips the tasks already done. Still short: stop as
   `blocked` naming the unfinished tasks.
-- `verification: failed` or any blocker: stop. The task stays unticked and its work
+- **Question blocker** (`blocker: needs input: <id>: ...`): the task stays unticked and
+  its work uncommitted. Ask it at the phase question point ("Phase questions"), with the
+  block's `files:` as the blocked paths. On an answer other than `Stop`, run the same
+  group again with `answers:` and `partial: <id>: <files>`; it skips the tasks already
+  done and continues the blocked task from its uncommitted work. With subagents that is a
+  fresh subagent; without, the group runs inline again. This does not stop the run.
+- **`Stop` at that question**, `verification: failed`, or any other blocker (`plan:`,
+  `<id>: ticked but not done`, a failure): stop. The task stays unticked and its work
   uncommitted; record the blocker and report it, and tell the user that the next run
   needs that work finished and committed (with `Task: <id>` in the commit body), or
-  discarded, by them (the clean-tree check
-  stops otherwise). Outcome `blocked`.
+  discarded, by them (the clean-tree check stops otherwise; after `Stop` it accepts the
+  recorded paths and asks the question again, see "Resume"). Outcome `blocked`.
 
 ## 7. Dead code
 
@@ -285,8 +292,19 @@ When every task is done, run up to 3 rounds. Round *k*:
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
 4. Otherwise run the `fix` phase with that round's `finding:` lines (and the task groups
-   when large is predicted, as in `briefs.md#fix`). A `blocker` (for example a finding needing a spec change)
-   stops the run with outcome `blocked`. Then start round *k+1* on the new head.
+   when large is predicted, as in `briefs.md#fix`). Then, by its `blocker`:
+   - **Question blocker** (`blocker: needs input: <finding id>: ...`): fixes of other
+     findings stay committed and only that finding's work is uncommitted. Ask it at the
+     phase question point ("Phase questions"), with the block's `files:` as the blocked
+     paths. On an answer other than `Stop`, run the fix phase of the same round again,
+     only for the round's findings with no fix commit yet (from the `commits:` of the
+     earlier fix blocks), with `answers:` and `partial: <finding id>: <files>`. With
+     subagents that is a fresh subagent; without, the fix phase runs inline again. The
+     re-run is not a new review round; repeat this step on its block.
+   - **`Stop` at that question**, or any other blocker (such as `spec:` for a finding
+     that needs a spec change, which is never asked): stop the run with outcome
+     `blocked`, reporting the blocker and any uncommitted paths.
+   - **`blocker: none`:** start round *k+1* on the new head.
 
 **Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
 `--workflow` is the opt-in: run each review round's step 1 as one Workflow, a `pipeline`

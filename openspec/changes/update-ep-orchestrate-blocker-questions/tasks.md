@@ -43,7 +43,7 @@
   `blocked` (D1, D4, D5, D7). Point step 4 (plan) at it, keeping the plan behavior.
   Verify: the "Third question for the same task" and "Agent without subagents" scenarios
   map to the text.
-- [ ] 2.3 In `SKILL.md`, rewrite step 6 (apply) and step 8.4 (fix) to separate question
+- [x] 2.3 In `SKILL.md`, rewrite step 6 (apply) and step 8.4 (fix) to separate question
   blockers from stops (D2, D3, D7, D8):
   - On a question blocker: ask, then re-run the same group, or the same round's fix
     phase for findings without a fix commit, with `answers` and the partial-work paths.
