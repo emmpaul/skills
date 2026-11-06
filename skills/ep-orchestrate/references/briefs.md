@@ -95,7 +95,12 @@ Read the change's proposal, design, specs, and `tasks.md` first. Then, for each 
 the group, in order, finish the task before starting the next:
 
 1. **Check** its line in `tasks.md` is still `- [ ]` with the same text. If it is already
-   `- [x]` and a commit since the base sha carries `Task: <id>`, skip it.
+   `- [x]` and a commit since the base sha has a `Task:` line naming it, skip it. If it
+   is `- [x]` with no such commit (for example the user finished it by hand, or a folded
+   tick was never committed), run its verification on the current code: when it passes,
+   commit any of its uncommitted files (or, with none, an empty commit via
+   `git commit --allow-empty`) as `chore(<change>): record task <id>` with
+   `Task: <id>`; when it fails, stop with `blocker: <id>: ticked but not done`.
 2. **Implement** only that task. Keep the change minimal and inside what the specs and
    design describe.
 3. **Verify** with the task's stated verification (command, test, observable check). On

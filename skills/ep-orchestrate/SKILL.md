@@ -171,7 +171,9 @@ Run the `gate` phase, then decide with the table in `references/confidence.md`
 - **Otherwise:** proceed and state the score proceeded on (and "proceeding on --yes"
   when that is why).
 
-A paused run records `decision: paused`, ends with outcome `paused_at_gate`, and makes
+Record `score`, `unmet`, `hard_to_undo`, `decision`, and `artifacts` (the "Plan
+fingerprint" from `references/confidence.md`, computed now) under `gate`, so a resume can
+keep the decision. A paused run records `decision: paused`, ends with outcome `paused_at_gate`, and makes
 no code change. The user's approval sets `decision: approved` and continues to apply.
 
 ## 6. Apply
@@ -190,7 +192,8 @@ the group finished before the next one starts. Then:
   `blocked` naming the unfinished tasks.
 - `verification: failed` or any blocker: stop. The task stays unticked and its work
   uncommitted; record the blocker and report it, and tell the user that the next run
-  needs that work finished and committed, or discarded, by them (the clean-tree check
+  needs that work finished and committed (with `Task: <id>` in the commit body), or
+  discarded, by them (the clean-tree check
   stops otherwise). Outcome `blocked`.
 
 ## 7. Dead code
