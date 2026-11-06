@@ -255,12 +255,15 @@ Review the range. Post nothing to GitHub.
   `spec_conformance: passed`. The pass is clean.
 - **Partial change.** Tasks still `- [ ]` in `tasks.md` belong to later groups. A
   missing or partly implemented requirement whose implementing task is one of them is
-  not a finding: drop it, and count it in neither `verified` nor
-  `dropped_in_verification`. This applies to findings from `ep-review` and from the
-  fallback alike. After `ep-review`, recompute `verified`, `by_dimension`, and
-  `spec_conformance` over the findings that remain, so the summary matches the findings
-  list. A contradiction of a scenario's THEN by the group's code, out-of-spec behavior,
-  and a ticked task of this group whose behavior is missing stay findings.
+  not a finding, and neither is a missing test or untested scenario whose test an
+  unticked task is to write (for example a later "Tests" group): drop it, and count it
+  in neither `verified` nor `dropped_in_verification`. A scenario left untested only for
+  that reason does not fail `spec_conformance`. This applies to findings from
+  `ep-review` and from the fallback alike. After `ep-review`, recompute `verified`,
+  `by_dimension`, and `spec_conformance` over the findings that remain, so the summary
+  matches the findings list. A contradiction of a scenario's THEN by the group's code,
+  out-of-spec behavior, a ticked task of this group whose behavior is missing, and a
+  missing test that no unticked task covers stay findings.
 
 Then print the findings list (`finding: none` when there are none), one line per
 **verified** finding, and finally the `ep-review-summary` block as the review produced
