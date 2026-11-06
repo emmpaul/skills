@@ -295,7 +295,7 @@ When the driving session asks the user a question with fixed options, the skill 
 - **THEN** the skill does not guess: it acts on the text only when it clearly picks one option or gives the requested input (such as a new change name), and otherwise asks again
 
 ### Requirement: Questions only from the driving session
-Only the driving session SHALL ask the user questions. Phase workers SHALL NOT call the question tool or wait for the user; a phase that needs an answer SHALL end with a question blocker (`blocker: needs input: <id>: <question>`, optionally followed by 2 or 3 options), and the driving session SHALL ask it and pass the answer into a re-run of that phase. Blockers that are not questions (failed verification, plan conflicts, findings that need a spec change) SHALL stop the run without a question. A task or finding SHALL come back with a question at most twice; a third question stops the run with outcome `blocked`. Questions that another skill asks under its own rules (such as `ep-stack`'s plan approval) SHALL stay with that skill.
+Only the driving session SHALL ask the user questions. Phase workers SHALL NOT call the question tool or wait for the user; a phase that needs an answer SHALL end with a question blocker (`blocker: needs input: <id>: <question>`, optionally followed by 2 or 3 options), and the driving session SHALL ask it and pass the answer into a re-run of that phase. Questions that another skill asks under its own rules (such as `ep-stack`'s plan approval) SHALL stay with that skill.
 
 #### Scenario: Phase subagent needs an answer
 - **WHEN** a plan, apply, or fix phase running in a subagent finds a choice it cannot make
@@ -308,6 +308,9 @@ Only the driving session SHALL ask the user questions. Phase workers SHALL NOT c
 #### Scenario: Interrupted at a gate question
 - **WHEN** the session ends while the gate question is unanswered
 - **THEN** the state file already records `decision: paused`, and the next run asks the same question again
+
+### Requirement: Blockers that stop without a question
+Blockers that are not questions (failed verification, plan conflicts, findings that need a spec change) SHALL stop the run without a question. A task or finding SHALL come back with a question at most twice; a third question SHALL stop the run with outcome `blocked` instead of being asked.
 
 #### Scenario: Third question for the same task
 - **WHEN** a task or finding comes back with a question after two answered questions
