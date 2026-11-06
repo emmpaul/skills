@@ -75,7 +75,7 @@
 
 ## 4. Integration
 
-- [ ] 4.1 Run `openspec validate update-ep-orchestrate-group-review --strict` and
+- [x] 4.1 Run `openspec validate update-ep-orchestrate-group-review --strict` and
   `bash scripts/check-shared.sh`. Then check that
   `git diff main --stat -- skills/ shared/` lists only `skills/ep-orchestrate/SKILL.md` and
   `skills/ep-orchestrate/references/briefs.md`. Verify: both commands exit 0, and the stat
