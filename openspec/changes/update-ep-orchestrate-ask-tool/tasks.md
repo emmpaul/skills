@@ -27,7 +27,7 @@
   Verify: the "Gate pause with a question tool" and "Interrupted at a gate question"
   scenarios map to text, and the gate rows in `skills/ep-orchestrate/references/confidence.md`
   ("Gate decision") still agree with step 5.
-- [ ] 1.4 In `skills/ep-orchestrate/references/briefs.md`, add to "Rules for every phase":
+- [x] 1.4 In `skills/ep-orchestrate/references/briefs.md`, add to "Rules for every phase":
   never ask the user or call a question tool; a choice the phase cannot make becomes its
   `blocker` (D4). Leave `## stack` unchanged. Verify: the "Phase subagent needs an answer"
   and "Agent without subagents" scenarios map to text in `briefs.md` and `SKILL.md`

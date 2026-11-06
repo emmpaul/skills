@@ -161,7 +161,9 @@ the `tasks.md` headings and task ids) are fine.
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
 yours to do. After every phase (plan, gate, each apply group, dead code, each review
 and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
-suggest clearing or compacting context before continuing.
+suggest clearing or compacting context before continuing. Questions still come only at
+this file's question points (see "Asking the user"), never mid-phase: a phase's open
+choice ends it with a `blocker`, as with subagents.
 
 If a summary block is missing or malformed, re-derive its facts from git and `tasks.md`
 (commits and `Task:` lines since base, ticks, `git rev-parse HEAD`). Do not ask the
