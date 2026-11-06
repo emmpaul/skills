@@ -1,0 +1,26 @@
+# Tasks
+
+## 1. WCAG reference generator
+
+- [ ] 1.1 Create `scripts/fixtures/wcag-mini.json` (one principle, one guideline, a Level A criterion with notes, a list, a definition link, and techniques, plus obsolete 4.1.1 with an empty level) and `scripts/fixtures/wcag-bad.json` (missing `guidelines`), copying the field shapes from the live `wcag.json` (design Context); verify both files parse with `python3 -c 'import json,sys; json.load(open(sys.argv[1]))'`
+- [ ] 1.2 Write `scripts/wcag.py update` with `--source`/`--version` (default `22`): fetch, validate structure, convert HTML to Markdown with `html.parser`, write `sc/<num>-<id>.md`, `index.md` (with W3C license notice), and `manifest.json` into a temp dir and swap it in atomically (design D2, D3, D5); verify with `scripts/test_wcag.py` cases: the fixture produces the expected files and headers, two runs produce byte-identical `.md` files, and `wcag-bad.json` exits non-zero and leaves an existing output tree unchanged
+- [ ] 1.3 Add `update --dry-run` reporting added, removed, and changed criteria and `up to date` on an unchanged source hash; verify with a unit test that edits one criterion's text in a copied fixture, sees it listed as changed, and confirms no file was written
+- [ ] 1.4 Add `check` (manifest hashes, index ↔ `sc/` one-to-one, `checks.md`/`audit.md` citations exist and are not obsolete) (design D5); verify with unit tests that a hand-edited `sc/` file, an orphan `sc/` file, and a `## 4.1.1` or `## 9.9.9` section in `checks.md` each fail with the file or criterion named, and a clean tree passes
+- [ ] 1.5 Run `python3 scripts/wcag.py update` against the live WCAG 2.2 source to generate `skills/ep-a11y/references/wcag/`; verify the index has 87 rows (31 A, 24 AA, 31 AAA, 1 obsolete), `sc/4.1.1-parsing.md` is marked obsolete, spot-check `sc/2.4.11-focus-not-obscured-minimum.md` against the W3C TR text, and confirm `python3 scripts/wcag.py check` passes
+
+## 2. ep-a11y skill
+
+- [ ] 2.1 Write `skills/ep-a11y/references/audit.md` (finding shape, severity by impact per design D7, verification checklist, default manual-check list keyed by criterion number); verify every criterion number it cites resolves through `python3 scripts/wcag.py check`
+- [ ] 2.2 Write `skills/ep-a11y/references/checks.md` with `## <num> <handle>` sections for the code-detectable A/AA criteria (at least 1.1.1, 1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4.11, 1.4.12, 1.4.13, 2.1.1, 2.1.2, 2.4.1, 2.4.2, 2.4.3, 2.4.4, 2.4.6, 2.4.7, 2.4.11, 2.5.3, 2.5.8, 3.1.1, 3.2.2, 3.3.1, 3.3.2, 4.1.2, 4.1.3), each with what to look for, false positives to rule out, and the preferred fix (design D4); verify `python3 scripts/wcag.py check` passes and that every handle matches the index
+- [ ] 2.3 Write `skills/ep-a11y/SKILL.md` (frontmatter with `ep-a11y` name and a trigger description; hard rules; usage with targets, `--level`, `--fix`, `--comment`; probe with inline fallback; target and UI-file filter table; index/`checks.md` loading with on-demand `sc/` reads; per-principle subagent path with sequential fallback; existing a11y test command detection without installs; verification; manual checks and no-conformance wording; `--fix` gates including the PR head-branch check; `--comment` via `gh pr comment --body-file` without attribution; `ep-a11y-summary` block per design D6, D8, D9; no OpenSpec mention); verify every requirement and scenario in `specs/ep-a11y/spec.md` maps to a section, and `SKILL.md` contains no reference to files outside `skills/ep-a11y/`
+- [ ] 2.4 Run `scripts/sync-shared.sh` then `scripts/check-shared.sh`; verify `skills/ep-a11y/scripts/context.sh` exists and the check passes
+- [ ] 2.5 Verify the skill in a scratch git repo without OpenSpec containing a small HTML/TSX fixture with seeded issues (unlabelled input, icon-only button with no name, `div` click handler with no keyboard support, `outline: none` with no replacement, a wrapper component that does supply `aria-label`): the default run reports each seeded issue with an exact citation from the index and correct severity, drops the wrapper false positive, lists manual checks, does not claim conformance, does not mention OpenSpec, and changes no files (`git status` clean); `--level AAA` adds AAA citations; `--fix` fixes the labelling and keyboard issues without committing (`git log` unchanged) and lists any finding that needs a decision
+
+## 3. Docs and CI
+
+- [ ] 3.1 Add `ep-a11y` to the README skills table and every install command, and add a "WCAG references" subsection under Development describing `wcag.py update --dry-run`, `update`, reviewing changed criteria against `checks.md`, and `check`; verify each documented command runs as written from the repo root
+- [ ] 3.2 Add steps to `.github/workflows/check.yml` running `python3 scripts/wcag.py check` and `python3 -m unittest scripts/test_wcag.py`; verify both pass locally, the shell parse loop still passes, and `npx -y @fission-ai/openspec@1.16.0 validate --all --strict` passes
+
+## 4. Integration
+
+- [ ] 4.1 On a sandbox GitHub PR touching the fixture UI file, run `ep-a11y <pr>` and `ep-a11y <pr> --comment`; verify the first posts nothing (`gh pr view --json comments` unchanged), the second posts exactly one comment with no attribution, and `--fix` on a non-head branch reports only
