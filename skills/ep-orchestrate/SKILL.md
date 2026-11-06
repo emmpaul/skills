@@ -260,7 +260,7 @@ gate: score=<n> decision=<auto|approved|paused|none> hard_to_undo=<none|element 
 tasks: done=<n> total=<n>
 deadcode: removed=<n> reported=<n>
 reviews: rounds=<n> last=critical=<n>,major=<n>,minor=<n> spec=<passed|failed|not_applicable>
-remaining: <finding ids, or none>
+remaining: <ids of unfixed critical or major findings, or none>
 size: groups=<n> tasks=<n> lines=<n|na> files=<n|na> large=<yes|no>
 layer: <i> pr=<n> state=<state>
 blocker: none | <one line>

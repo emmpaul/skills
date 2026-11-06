@@ -176,7 +176,7 @@ for removed dead code goes in the same commit as the code.
 
 ```
 <!-- ep-orchestrate-deadcode
-removed: <n>
+removed: <n>   (items, one per `Dead-code:` line)
 reported: <n>
 commits: <file>:<symbol>=<sha>,...   (or none)
 report: <file>:<symbol> <reason> ; ...   (or none)
@@ -197,11 +197,11 @@ Review the branch against its base. Post nothing to GitHub.
   base sha.
 
 Then print the findings list (`finding: none` when there are none), one line per **verified** finding, ids numbered
-`<round>.<n>`, and finally the `ep-review-summary` block exactly as the review produced
+`r<round>.<n>` (for example `r1.2`, distinct from task ids), and finally the `ep-review-summary` block exactly as the review produced
 it:
 
 ```
-finding: <round>.<n> <dimension> <severity> <file>:<line> | <summary> | <scenario>
+finding: r<round>.<n> <dimension> <severity> <file>:<line> | <summary> | <scenario>
 ```
 
 ## fix
