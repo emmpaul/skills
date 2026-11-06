@@ -189,8 +189,11 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    `dirty_tree`, listing those paths.
 4. **Open question first.** When `question` is set, first check whether the user has
    resolved it since: for apply, its task is done (step 1); for fix, a commit in
-   `<base-sha>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
-   `Finding:` line naming the finding's `<dimension> <file>:<line>`. If so, set `question`
+   `<head>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
+   `Finding:` line naming the finding's `<dimension> <file>:<line>`, where `<head>` is
+   the `head` of the review that file holds (the `reviews` entry of round `<k>`, or the
+   `group_reviews` entry of group `<n>` for `g<n>`), so earlier reviews' fix commits
+   never match. If so, set `question`
    to `null` without asking (for fix, append `commits: <finding id>=<sha>` to
    `<change>.findings`) and continue at the recorded phase. Otherwise ask it again at the
    phase question point ("Phase questions") before running any phase, then continue at the recorded
