@@ -216,10 +216,13 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
      step 3 then fixes only findings with no fix commit yet. When
      that file is missing or has another label, run the pass again: it is read-only,
      and its step 1 replaces that entry instead of appending one.
-   - A `reviewing` group whose entry has `fixed` set continues at step 6's group pass
-     step 4, with the findings and fix commits from `<change>.findings` when its label
-     is `g<n>`. When that file is missing or has another label, step 4 records the
-     label `g<n>` with the note `findings lost` instead of its `finding:` lines.
+   - A group whose entry has `fixed` set and no `g<n>` block in
+     `<change>.group-findings` continues at step 6's group pass step 4 when no later
+     group has a commit with a `Task:` line, whatever its status (a step-2 rebuild
+     cannot tell `reviewing` from `done`), with the findings and fix commits from
+     `<change>.findings` when its label is `g<n>`. When that file is missing or has
+     another label, step 4 records the label `g<n>` with the note `findings lost`
+     instead of its `finding:` lines.
 
    Once `phase` is past `apply`, no group pass runs.
 6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
