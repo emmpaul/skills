@@ -128,9 +128,12 @@ One place for the numbers stacked delivery uses:
   `uv.lock`, `Gemfile.lock`, `go.sum`, `composer.lock`, and other `*.lock` files):
 
   ```bash
-  git diff --numstat <base-sha>...HEAD -- . ':(exclude)openspec/**' \
-    ':(exclude)**/*.lock' ':(exclude)**/package-lock.json' ':(exclude)**/pnpm-lock.yaml' \
-    ':(exclude)**/go.sum'
+  git diff --numstat <base-sha>...HEAD -- . ':(exclude,glob)openspec/**' \
+    ':(exclude,glob)**/*.lock' ':(exclude,glob)**/package-lock.json' \
+    ':(exclude,glob)**/pnpm-lock.yaml' ':(exclude,glob)**/go.sum'
+
+  (`glob` magic makes `**/` match the repository root too, so root lockfiles are
+  excluded.)
   ```
 
   Sum the first two columns for lines; count rows for files.

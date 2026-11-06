@@ -22,7 +22,8 @@ artifacts, editing code, running tests, reading diffs) happens inside a phase.
 - **Commit only on a work branch.** Never commit on the default branch; create the work
   branch first (step 1).
 - **The user's working tree is theirs.** A dirty tree stops the run. Never stash, reset,
-  checkout user files, amend, rebase, force-push, or delete branches.
+  checkout user files, rebase, force-push, or delete branches. Amend only to strip
+  attribution from the run's own unpushed commit (`briefs.md#commit` step 6).
 - **Specs are fixed once planning ends.** Apply and fix phases never edit `proposal.md`,
   `design.md`, or `specs/`; a plan conflict becomes a blocker and the run stops.
 - Never run `openspec init` and never create `openspec/` files outside a change folder.
@@ -61,8 +62,12 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
    `<type>/<change>` (`git switch -c`), where `<type>` comes from the change name's
    prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If that branch exists,
    ask. On any other branch, stay on it.
-7. **Base.** `base` = `<default>@<sha>` with sha `git merge-base HEAD <default>` (prefer
-   `origin/<default>` when it exists). Create the state file (step 2).
+7. **Base.** `base` = `<ref>@<sha>`, where `<ref>` is the default branch and `<sha>` is
+   `git rev-parse HEAD` now, before the run's first commit. On a new branch that is the
+   default branch's tip; on an existing branch it keeps the user's earlier commits out
+   of the run (dead code, review, and size cover only this run's commits; say so when
+   the branch already had commits). Pass `<ref>` where a skill wants a branch name and
+   `<sha>` where a brief wants the base sha. Create the state file (step 2).
 
 ## 2. State file
 
@@ -76,7 +81,8 @@ whose artifacts were already committed before `base`.
   "phase": "resolve|plan|gate|apply|deadcode|review|fix|stack|done",
   "started_at": "<iso>", "updated_at": "<iso>",
   "flags": { "yes": false, "workflow": false },
-  "gate": { "score": 90, "unmet": [], "hard_to_undo": [], "decision": "auto|approved|paused" },
+  "gate": { "score": 90, "unmet": [], "hard_to_undo": [], "decision": "auto|approved|paused",
+            "artifacts": "<tree sha of openspec/changes/<change> when scored>" },
   "plan_commit": "<sha|null>",
   "deadcode": { "removed": 0, "reported": 0, "head": "<sha>" },
   "tasks": { "1.1": "<sha>" },
@@ -92,8 +98,10 @@ whose artifacts were already committed before `base`.
 
 Run again on a change with a state file, `tasks.md` and git win over the file:
 
+0. HEAD must be on the recorded `branch`. If it is not, stop and ask the user to switch
+   back to it (`git switch <branch>`); do not rebuild state from another branch.
 1. A task is **done** when its `tasks.md` line is `- [x]` **and** a commit in
-   `<base-sha>..HEAD` carries `Task: <id>` in its body
+   `<base-sha>..HEAD` has a `Task:` line naming `<id>` (a folded tick names two ids)
    (`git log --format='%H%n%B' <base-sha>..HEAD`).
 2. If the file disagrees (a recorded sha is not on the branch, a task it marks done is
    unticked, or ticked tasks lack a commit), say exactly what differed and rebuild
@@ -101,7 +109,9 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
 3. The clean-tree check (step 1.5) still applies; the only acceptable leftovers are
    inside the change folder.
 4. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
-   a gate decision of `auto` or `approved`, re-ask a `paused` one, continue apply at
+   a gate decision of `auto` or `approved` only while the change folder is unchanged
+   since it was scored (`git rev-parse HEAD:openspec/changes/<change>` equals
+   `gate.artifacts`; otherwise re-run the gate), re-ask a `paused` one, continue apply at
    the first task that is not done, and run the dead-code check unless `deadcode` is
    recorded. Stack runs continue at the first unmerged layer.
 
@@ -127,9 +137,9 @@ the `tasks.md` headings and task ids) are fine.
 
 **Without subagents:** run the same sections yourself, in the same order, with the same
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
-yours to do. After the plan, the gate, and each apply group (the last one included),
-print `Resume with: ep-orchestrate <change>` and suggest clearing or compacting context
-before continuing.
+yours to do. After every phase (plan, gate, each apply group, dead code, each review
+and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
+suggest clearing or compacting context before continuing.
 
 If a summary block is missing or malformed, re-derive its facts from git and `tasks.md`
 (commits and `Task:` lines since base, ticks, `git rev-parse HEAD`). Do not ask the
@@ -171,12 +181,14 @@ group with tasks not done, start one `apply` phase (one fresh subagent per group
 run groups in parallel: they commit in order.
 
 After each group, read the `ep-orchestrate-apply` block and record each `commits` sha
-under `tasks`, then check: every done task has its own commit with a `Task:` line, and
+under `tasks`, then check: every done task has a commit whose `Task:` line names it, and
 the group finished before the next one starts. Then:
 
 - `blocker: none` and all done: mark the group done; next group.
 - `verification: failed` or any blocker: stop. The task stays unticked and its work
-  uncommitted; record the blocker and report it. Outcome `blocked`.
+  uncommitted; record the blocker and report it, and tell the user that the next run
+  needs that work finished and committed, or discarded, by them (the clean-tree check
+  stops otherwise). Outcome `blocked`.
 
 ## 7. Dead code
 
@@ -192,20 +204,21 @@ they never stop the run.
 When every task is done, run up to 3 rounds. Round *k*:
 
 1. Run the `review` phase on the branch against `base`. Record its counts and `head`.
-2. **Clean** (`critical=0 major=0`, `spec_conformance` passed or not_applicable): stop
+2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; `not_applicable`
+   means the review did not link the change, so re-run it naming the change): stop
    the rounds; its minor findings go in the report.
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
 4. Otherwise run the `fix` phase with that round's `finding:` lines (and the task groups
-   when large is predicted). A `blocker` (for example a finding needing a spec change)
+   when large is predicted, as in `briefs.md#fix`). A `blocker` (for example a finding needing a spec change)
    stops the run with outcome `blocked`. Then start round *k+1* on the new head.
 
 **Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
 `--workflow` is the opt-in: run each review round's step 1 as one Workflow, a `pipeline`
 over the four dimensions (each agent gets its checklist from `briefs.md#review-fallback`,
 the change name, and the base and head shas), feeding each dimension's findings to verify
-agents that try to disprove them, batched up to 5 findings per agent, so the Workflow
-stays under 10 agents. It returns the confirmed findings and counts; build the
+agents that try to disprove them: at most 5 verify agents in total, each taking a batch
+of findings across dimensions, so the Workflow has at most 9 agents. It returns the confirmed findings and counts; build the
 `finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan
 and apply never run as a Workflow. With `--workflow` but no Workflow tool, say so and use
 the subagent or inline path.
@@ -220,7 +233,8 @@ with groups, tasks, lines, and files.
 **Regular change:** done. Nothing is pushed. Suggest `ep-open-pr`, then `ep-babysit-pr`.
 Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
 
-**Large change**, after a clean review only:
+**Large change**, once the review rounds end without a blocker (`reviewed` or
+`review_limit`; each layer is reviewed again by `ep-babysit-pr`):
 
 - `gh` missing or unauthenticated, or `ep-stack` or `ep-babysit-pr` not available to you:
   push nothing. Report the change as large, name the missing piece, and recommend

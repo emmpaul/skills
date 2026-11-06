@@ -152,16 +152,16 @@ Runs once, after every task is done and before the first review round.
    (code after a `return`, conditions that cannot be true) are candidates too.
 2. **Not dead**, whatever the counts: code that implements a spec requirement of the
    change, even when only tests reach it; entry points (`main`, CLI commands, scripts in
-   the package manifest); framework or plugin hooks; anything registered or looked up by
-   name (decorators, registries, `getattr`, reflection, config strings). Tests are not
-   callers for anything else: code reached only by tests and no requirement is dead.
+   the package manifest); framework or plugin hooks. Tests are not callers for anything
+   else: code reached only by tests and no requirement is dead.
 3. **Remove or report.**
-   - Dead code the branch added: remove it.
+   - Dead code the branch added: remove it, unless it is exported from a public
+     interface (a published package's exports, a documented CLI or API), registered or
+     looked up by name (decorators, registries, `getattr`, reflection, config strings),
+     or may be reached dynamically: report those and leave them.
    - Pre-existing code the branch orphaned: remove it only when it is internal (no
      export from a public interface, nothing in the README or docs) and passes the
      hard-to-undo checklist in `references/confidence.md`. Otherwise report it.
-   - When a reference might be dynamic or come from outside the repo, report it and
-     leave it.
 4. **Per removal** (or per group of removals sharing one cause): remove it, run the
    tests, then commit, staging by path: subject `refactor(<change>): remove unused
    <what>`, body ends with `Dead-code: <file>:<symbol>` (one line per item). Through
@@ -190,11 +190,12 @@ head: <sha>
 
 Review the branch against its base. Post nothing to GitHub.
 
-- **If the skill `ep-review` is available to you** and the base is the default branch,
-  invoke `ep-review <branch>` (no `--comment`).
-- **Otherwise** (not installed, or the branch was cut from another branch, which
-  `ep-review <branch>` cannot diff against) follow [review](#review-fallback) with the
-  base sha.
+- **If the skill `ep-review` is available to you** and the base sha equals
+  `git merge-base <branch> <default>` (what `ep-review <branch>` diffs against), invoke
+  `ep-review <branch>` (no `--comment`).
+- **Otherwise** (not installed, or the base sha differs, for example a run started on a
+  branch that already had commits) follow [review](#review-fallback) with the base
+  sha.
 
 Then print the findings list (`finding: none` when there are none), one line per **verified** finding, ids numbered
 `r<round>.<n>` (for example `r1.2`, distinct from task ids), and finally the `ep-review-summary` block exactly as the review produced
@@ -248,13 +249,15 @@ blocker: none | <one line>
 Runs only for a large change, after the review rounds, when `ep-stack` and
 `ep-babysit-pr` are both available. **Inputs:** change name, branch, base, the layer
 grouping as `Task:` id ranges per layer (`layer 1: plan commit, 1.1-1.4`; adjacent small
-groups may share a layer), and fix commits per layer from their `Group:` lines.
+groups may share a layer), and fix and dead-code commits per layer from their `Group:`
+lines. When the change was large by diff only, those commits have no `Group:` lines and
+may mix groups: pass them as they are; `ep-stack` asks how to place or split them.
 
 This section runs in two parts, because only the user can approve the plan.
 
 **Part 1, split (in the driving session, not a subagent):**
 
-1. Invoke `ep-stack split <base>` and tell it the intended grouping. Fix commits sit
+1. Invoke `ep-stack split <ref>` (the `<ref>` part of `base`, never `<ref>@<sha>`) and tell it the intended grouping. Fix commits sit
    after all task commits, so a fix for an early layer must move down to it: `ep-stack`
    asks how to handle that (its own rule), which is fine, because the branch is unpushed.
 2. `ep-stack` shows its plan and waits. Its approval is the user's approval of the stack.
