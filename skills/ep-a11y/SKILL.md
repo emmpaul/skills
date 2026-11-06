@@ -10,8 +10,9 @@ what survives, each cited to a WCAG success criterion from this skill's referenc
 
 ## Hard rules
 
-- **Read-only by default.** Without `--fix`, change no files. Without `--comment`, post
-  nothing to GitHub.
+- **Read-only by default.** Without `--fix`, change no files yourself; the only exception
+  is what a project a11y test the user confirmed in step 5 writes, which the report lists.
+  Without `--comment`, post nothing to GitHub.
 - **Never** commit, push, merge, or install a tool or dependency.
 - **Cite only from the bundled index.** Every criterion number, name, and level comes
   from `references/wcag/index.md`; open the criterion's `references/wcag/sc/` file before
