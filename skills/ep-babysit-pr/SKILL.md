@@ -74,12 +74,18 @@ write it after every action.
   "started_at": "<iso time>",
   "last_review": { "head": null, "summary": null },
   "last_score": null,
+  "merge_async": null,
   "outcome": null
 }
 ```
 
 `last_review.head` is the commit the latest review round ran on and `last_review.summary`
 the raw `ep-review-summary` block, so a later run can score without re-reviewing.
+`merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
+`"queued"` when GitHub answered that the PR was already merged or queued, so later ticks
+read its result or check the PR instead of requesting another merge. It belongs to one
+run: a stop with `left merge queue` or `merge failed` clears it to `null`, so a re-run
+after the user fixes the cause can request the merge again.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
 state file missing fields, add them with defaults; when own post ids are unknown, treat
 posts that reference commits you pushed as your own.
@@ -300,7 +306,16 @@ Merge only when **all** hold:
   adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
   stop and report the unreviewed commits instead of merging
 
-Then merge with the repository's default method and delete the branch, without `--admin`:
+Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
+object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
+takes the stacked path below. A PR in no native stack merges as follows. When the detection
+call fails, run `ep-stack`'s probe (`references/score.md`, "Stacked PRs"). Only a probe
+answer of 404, or a 400 that rejects the API version, means the repository has no native
+stacks, so the PR is not stacked. Any other result (the probe succeeds, a 403 or 5xx, a
+rate limit, no network) means the stack is unknown: do not merge, report both answers, set
+`outcome: stopped: stack detection failed` and stop.
+
+Merge with the repository's default method and delete the branch, without `--admin`:
 
 ```bash
 gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <last_review.head>
@@ -310,6 +325,40 @@ gh pr merge <n> --squash|--merge|--rebase --delete-branch --match-head-commit <l
 method detection is in `references/score.md`). `gh pr merge` may switch the local checkout
 to the base branch and pull it; mention this in the final report. If GitHub rejects the merge because it
 would need a bypass, do not retry with any bypass: treat it as `BLOCKED`.
+
+**Stacked path.** Merging a stacked PR also merges every open PR below it, so only the
+bottom layer merges:
+
+1. Find the lowest open PR of the stack (`references/score.md`, "Stacked PRs"). When an
+   open PR sits below this one, do not merge: report the lower open PRs, in order, as the
+   ones that must merge first, set `outcome: stopped: mid-stack` and stop. Never merge a
+   PR below this one.
+2. When this PR is the lowest open PR and `merge_async` is null, request the async merge
+   pinned to `last_review.head`, with the repository's method and `bypass_rules=false`.
+   Save the UUID in `merge_async` (a 409 answer returns the UUID of the merge already
+   pending). A 200 answer has no UUID: the PR is already merged or already in the merge
+   queue. Save `"queued"` in `merge_async`, so no later tick requests the merge again.
+   Any other answer (an error such as 403, 405 or 422) rejected the merge: report the
+   status and message, leave `merge_async` `null`, set `outcome: stopped: merge rejected`
+   and stop. Do not retry, with or without a bypass, in this run.
+   When `merge_async` is already set, skip the request and go to step 3.
+3. When `merge_async` is `"queued"`, check the PR once per tick instead
+   (`references/score.md`, "Stacked PRs"): `MERGED` means the PR is merged; still in the
+   merge queue, wait as on `BLOCKED`; open and no longer in the queue (the queue ejected
+   it), report it, set `merge_async` to `null`, set `outcome: stopped: left merge queue`
+   and stop. Do not request the merge again in this run. Otherwise read the result of the UUID once per tick:
+   - `pending`: next tick.
+   - `enqueued`: the merge queue holds it. This result is final and does not change when
+     the queue merges or ejects the PR, so set `merge_async` to `"queued"` and check the
+     PR from the next tick on, as above.
+   - 404 (results are kept for 24 hours after their last update): set `merge_async` to
+     `"queued"` and check the PR as above.
+   - `merged`: confirm with `gh pr view <n> --json state` (`MERGED`). Then the PR is merged.
+   - `failed`: report the response details, set `merge_async` to `null`, set
+     `outcome: stopped: merge failed` and stop. Do not retry, with or without a bypass,
+     in this run.
+4. Leave the head branch in place. GitHub rebases the PRs above onto it. The final report
+   says the branch was kept and that the repository's auto-delete setting still applies.
 
 Otherwise:
 
@@ -328,7 +377,7 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 

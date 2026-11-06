@@ -111,3 +111,72 @@ commit.
 Prefer the repo's configured default when it is known (for example from a
 `CONTRIBUTING.md` or the user's instruction); otherwise use the first allowed method in the
 order above. Never pass `--admin`. Do not use `--auto`: the skill itself decides when to merge.
+
+### Stacked PRs
+
+A PR in a GitHub native stack merges through the async merge API instead of `gh pr merge`
+(GitHub names it the required API for stacked PRs). Every call passes the same API version
+header as `ep-stack`.
+
+Detect stacking; a non-null value means the PR is stacked, and gives the stack number:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>" --jq '.stack'
+```
+
+When that call fails, run `ep-stack`'s probe with `-i` to see its HTTP status. Only a 404,
+or a 400 that rejects the API version, means the repository has no native stacks, so the PR
+is not stacked. Any other result, success included, leaves the stack unknown, so SKILL.md
+step 7 stops without merging. Unlike `ep-stack`, which falls back to plain branches on any
+error, a merge cannot be undone, so a transient error must not count as "not stacked":
+
+```bash
+gh api -i -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
+```
+
+Find the lowest open PR of the stack. The order of `pull_requests` is the stack order,
+bottom first; `stack.position` is not used, because GitHub does not define it:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks/<stack.number>" \
+  --jq '[.pull_requests[] | select(.state == "open" and .merged_at == null)] | .[0].number'
+```
+
+The PR may merge only when this prints `<n>`. Merge pinned to the reviewed head, with the
+method detected above without its dashes (`squash`, `merge`, or `rebase`), no bypass, and
+the default `merge_action`:
+
+```bash
+gh api -i -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async" \
+  -f sha=<last_review.head> -f merge_method="${method#--}" -F bypass_rules=false
+```
+
+`-i` prints the HTTP status line: `gh api` exits 0 for both 200 and 202, so read the status
+from that line, not from the exit code. The UUID is at `.details.uuid` in the body, not at
+the top level. A 202 body says `"status": "pending"` and may say "Merge request enqueued.":
+that is the request being accepted, not the `enqueued` result below.
+
+A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
+UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;
+it has no UUID, so save `"queued"` in `merge_async` and do not request the merge again in this run
+(SKILL.md step 7). Any other answer (an error such as 403, 405 or 422) rejected the merge:
+SKILL.md step 7 stops without retrying. On later ticks after a 200, check the PR instead:
+
+```bash
+gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
+  pullRequest(number:$n){state mergeQueueEntry{state}}}}' -F o=<owner> -F r=<repo> -F n=<n>
+```
+
+`state: MERGED` means merged. A non-null `mergeQueueEntry` means it is still queued. An
+open PR with a null `mergeQueueEntry` has left the queue.
+
+With a UUID, read the result:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"
+```
+
+`status` is `pending`, `merged`, `enqueued`, or `failed`. `enqueued` is final: it does not
+change when the queue later merges or ejects the PR, so from then on check the PR with the
+query above. A 404 means the result expired (24 hours after its last update); check the PR
+the same way. SKILL.md step 7 says what each one leads to. The head branch is left in place: GitHub rebases the PRs above onto it.

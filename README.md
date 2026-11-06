@@ -16,7 +16,7 @@ comments.
 | `ep-sync` | Merges the base branch into the current branch (rebase only on request, gated), then audits semantic interactions with no textual conflict (renamed or re-signatured symbols, behaviour and contract changes, new base callers, base tests), adapts the branch in separate commits, and runs tests. |
 | `ep-fixup` | Attaches fixes to the branch commits they correct as `fixup!` commits, and autosquashes only on request: unpushed commits freely, pushed ones after confirmation with `--force-with-lease`. |
 | `ep-ci-debug` | Diagnoses failing CI checks from their logs, classifies the cause (code, test, flaky-infra, config, secret), reproduces locally, and fixes it without weakening tests; re-runs infra failures once. |
-| `ep-stack` | Splits a branch into a stack of dependent PRs after you approve the plan, shows stack status, syncs layers bottom up with merges, and retargets the next PR when a parent merges. |
+| `ep-stack` | Splits a branch into a stack of dependent PRs after you approve the plan, linked as a native GitHub stack when the repository supports it and as plain branches otherwise (`--no-native` forces plain). Links an existing plain stack as a GitHub stack, shows stack status, syncs layers bottom up with merges, and moves or checks the next PR's base when a parent merges. |
 | `ep-orchestrate` | Runs one OpenSpec change end to end: plans it, scores the plan and implements without asking only at 85 or more with nothing hard to undo, commits each task on its own, removes dead code the branch added, and runs up to 3 review and fix rounds, each phase in a fresh subagent with a resumable state file. Offers large changes as a stack of PRs landed with `ep-stack` and `ep-babysit-pr` after approval. |
 
 ## Install
