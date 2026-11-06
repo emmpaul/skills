@@ -2,7 +2,7 @@
 
 ## 1. Phase briefs
 
-- [ ] 1.1 In `skills/ep-orchestrate/references/briefs.md`, `## review`: add the optional
+- [x] 1.1 In `skills/ep-orchestrate/references/briefs.md`, `## review`: add the optional
   `group: <n>` input (D4). With it, the base sha is the group's start sha and the head is
   the group's head. The `ep-review` or fallback choice keeps today's merge-base rule
   (D3), with the fallback diffing `<start>...<head>`. Finding ids are `g<n>.<m>`. Add the
