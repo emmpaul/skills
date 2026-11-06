@@ -85,7 +85,7 @@ The skill SHALL run an accessibility test command only when the target project a
 - **THEN** the skill audits by reading code only and installs nothing
 
 ### Requirement: Fix mode
-With `--fix`, the skill SHALL apply fixes for verified findings to the working tree, SHALL skip findings whose fix needs a product decision (wording, colours, or a design change) and list them instead, SHALL create no commits, and SHALL show the resulting diff. Without `--fix`, it SHALL change no files.
+With `--fix`, the skill SHALL apply fixes for verified findings to the working tree, SHALL skip findings whose fix needs a product decision (wording, colours, or a design change) and list them instead, SHALL create no commits, and SHALL show the resulting diff. Without `--fix`, it SHALL change no files, except artifacts written by an accessibility test command the user confirmed, which the report lists.
 
 #### Scenario: Fix applied
 - **WHEN** the user runs `ep-a11y --fix` and a form input lacks a programmatic label
