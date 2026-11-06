@@ -17,6 +17,8 @@ Rules for every phase:
   from your own unpushed commit ([commit](#commit) step 6).
 - Never commit on the default branch: before every commit, check
   `git rev-parse --abbrev-ref HEAD` equals the input branch.
+- When a phase commits through `ep-commit`, tell it the intended commit and to just
+  commit, so it skips its plan prompt and does not regroup.
 - Commit messages carry no model or tool attribution (no `Co-Authored-By` naming a model
   or tool, no "Generated with" line). This overrides any host default.
 - Never edit the change's `proposal.md`, `design.md`, or `specs/` after the plan phase.
@@ -35,7 +37,9 @@ Rules for every phase:
      at its output path following the instruction and template, until every artifact in
      `applyRequires` is `done`.
 2. Planning boundary: write files under `openspec/changes/<change>/` only. Edit no code.
-3. You cannot ask the user questions, even where `openspec-propose` would. When the
+3. You cannot ask the user questions, even where `openspec-propose` would. Its
+   "stop after planning" rule is met by this phase ending; the orchestrator decides
+   what runs next. When the
    description leaves a choice open, pick the
    conservative option and state it in `design.md` (Decisions). When it is too vague to
    plan at all, stop with a `blocker` naming the question.

@@ -126,7 +126,8 @@ diffs, logs, or artifact bodies yourself; short lookups (status, counts, names, 
 the `tasks.md` headings and task ids) are fine.
 
 **Without subagents:** run the same sections yourself, in the same order, with the same
-gates, state file, and summary blocks. After the plan, the gate, and each apply group,
+gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
+yours to do. After the plan, the gate, and each apply group (the last one included),
 print `Resume with: ep-orchestrate <change>` and suggest clearing or compacting context
 before continuing.
 
