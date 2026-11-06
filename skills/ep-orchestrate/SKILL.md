@@ -63,7 +63,9 @@ options. Any other `blocker:` value is a stop, never a question. At this questio
 4. **Answer.** Append `{ "q": <question>, "a": <answer> }` to `answers.<id>` and set
    `question` to `null`. Then re-run the phase as its step says (4, 6, or 8), passing every
    recorded answer as `answers:` lines (`<id>: <question> => <answer>`) and, for apply and
-   fix, the blocked paths as `partial: <id>: <path>,<path>`.
+   fix, the blocked paths as `partial: <id>: <path>,<path>`. Every later run of a phase
+   that covers an id with recorded answers (a group or fix run again after a stop, on
+   resume, or for another question) gets that id's `answers:` lines too.
 5. **`Stop`** ends the run with outcome `blocked`, reported as the phase's step says.
    `question` stays set, so the next run asks it again.
 
