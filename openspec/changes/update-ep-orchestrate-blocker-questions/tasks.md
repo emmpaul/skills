@@ -65,7 +65,7 @@
 
 ## 3. Integration
 
-- [ ] 3.1 Run `openspec validate update-ep-orchestrate-blocker-questions --strict` and
+- [x] 3.1 Run `openspec validate update-ep-orchestrate-blocker-questions --strict` and
   `bash scripts/check-shared.sh`, and check that both pass. Check that
   `git diff main -- README.md` is empty and that the `description:` line of
   `skills/ep-orchestrate/SKILL.md` matches `main`. Verify: both commands exit 0, and both
