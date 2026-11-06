@@ -145,9 +145,14 @@ method detected above without its dashes (`squash`, `merge`, or `rebase`), no by
 the default `merge_action`:
 
 ```bash
-gh api -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async" \
+gh api -i -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async" \
   -f sha=<last_review.head> -f merge_method="${method#--}" -F bypass_rules=false
 ```
+
+`-i` prints the HTTP status line: `gh api` exits 0 for both 200 and 202, so read the status
+from that line, not from the exit code. The UUID is at `.details.uuid` in the body, not at
+the top level. A 202 body says `"status": "pending"` and may say "Merge request enqueued.":
+that is the request being accepted, not the `enqueued` result below.
 
 A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
 UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;

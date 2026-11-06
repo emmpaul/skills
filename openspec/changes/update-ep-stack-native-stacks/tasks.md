@@ -65,7 +65,9 @@
 ## Manual check (run by the user after review; not a tracked task)
 
 This check creates PRs, a GitHub stack, and a merge, so no phase worker runs it.
-On a sandbox GitHub repository, the user runs `ep-stack split` on a 3-layer branch. Verify:
+On a sandbox GitHub repository, the user runs `ep-stack split` on a 3-layer branch whose
+bottom layer has at least 2 commits (a one-commit layer's squash has the same patch, so it
+would not exercise the merged-layer exclusions in the refresh). Verify:
   - In a repository where the stacks endpoint answers, the PRs are linked as one GitHub
     stack (`gh api repos/{o}/{r}/stacks?pull_request=<n>` lists all three in order).
   - Merge the bottom PR with `ep-babysit-pr`, which uses `merge-async`. Then `ep-stack
