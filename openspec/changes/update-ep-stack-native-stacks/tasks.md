@@ -61,7 +61,11 @@
 
 - [ ] 3.1 Run `scripts/check-shared.sh` and verify that it passes. No shared file changes,
   but the skill folders must stay in sync.
-- [ ] 3.2 On a sandbox GitHub repository, run `ep-stack split` on a 3-layer branch. Verify:
+
+## Manual check (run by the user after review; not a tracked task)
+
+This check creates PRs, a GitHub stack, and a merge, so no phase worker runs it.
+On a sandbox GitHub repository, the user runs `ep-stack split` on a 3-layer branch. Verify:
   - In a repository where the stacks endpoint answers, the PRs are linked as one GitHub
     stack (`gh api repos/{o}/{r}/stacks?pull_request=<n>` lists all three in order).
   - Merge the bottom PR with `ep-babysit-pr`, which uses `merge-async`. Then `ep-stack
