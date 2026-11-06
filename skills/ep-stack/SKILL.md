@@ -217,6 +217,48 @@ short kebab-case summary of the layer, unless the user names the branches.
 
 Outcome `planned` when stopped at the plan, `created` after creation.
 
+## link
+
+Link a plain stack made by this skill as one GitHub stack. `link` needs native mode: when
+the probe fails or the user passed `--no-native`, report why and stop.
+
+1. **Rebuild** the stack from the body sections (Stack record). Here the trust rules
+   refuse instead of dropping: when a listed PR comes from another repository or another
+   author, report it and link nothing.
+2. **Check the layers.** Leave merged PRs out; the stack starts at the lowest open PR. Refuse
+   and link nothing when:
+   - a layer is closed without being merged;
+   - the base chain is broken: the lowest open PR is not based on the stack's base (the
+     body section's `Base:`), or a PR above is not based on the head branch of the PR below.
+     Report each mismatch (`#102 base: feature-x, expected feature-1-token-model`);
+   - fewer than two PRs remain open (a GitHub stack needs two or more).
+3. **Existing stack.** Look up the lowest open PR with `GET stacks?pull_request=<n>`. When it
+   is already in a GitHub stack whose PRs are the bottom of the list, only the PRs above
+   them are added. When the stack already holds every PR, report it and stop. Any other
+   overlap: report both orders and stop.
+4. **Confirm.** Show the PRs in stack order and what will be called, and wait:
+
+   ```
+   GitHub stack (new), bottom to top:
+   1. #101 feature-1-token-model   base: main
+   2. #102 feature-2-login         base: feature-1-token-model
+   3. #103 feature-3-docs          base: feature-2-login
+   ```
+
+5. **Create or add** after confirmation:
+
+   ```bash
+   gh api -X POST -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks" \
+     -F 'pull_requests[]=101' -F 'pull_requests[]=102' -F 'pull_requests[]=103' --jq .number
+   gh api -X POST -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks/<number>/add" \
+     -F 'pull_requests[]=103'                           # extending an existing stack
+   ```
+
+   On an error, report the endpoint and status; the PRs stay a plain stack. Report the
+   stack number on success.
+
+Outcome `linked`.
+
 ## status
 
 Fetch first (`git fetch origin`), then rebuild the stack. In native mode, read it from
@@ -362,14 +404,19 @@ user. Then always end with:
 
 ```
 <!-- ep-stack-summary
-outcome: planned | created | synced | retargeted | status
+outcome: planned | created | linked | synced | retargeted | status
+mode: native | branches
+stack: <GitHub stack number | none>
 head: <sha of the current branch after the skill ran>
 layer: 1 branch=<b> pr=<n|none> base=<b> state=<state>
 layer: 2 branch=<b> pr=<n|none> base=<b> state=<state>
 -->
 ```
 
-One `layer:` line per layer, bottom-up. `state` is `planned`, `open`, `merged`, `closed`,
+`mode` is the mode the skill ran in: `branches` when the probe failed, a link or stack read
+failed, or an existing stack has no GitHub stack object. `stack` is `none` until a GitHub
+stack exists, and always in `branches` mode. One `layer:` line per layer,
+bottom-up. `state` is `planned`, `open`, `merged`, `closed`,
 or `behind` (open and behind its parent).
 
 ## Without subagents

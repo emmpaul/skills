@@ -34,7 +34,7 @@
   once, offer the gated plain retarget when GitHub did not retarget, refresh local branches,
   update the body sections, and run no merge-sync. Verify: the "Retarget on parent merge"
   scenarios map to text.
-- [ ] 1.6 Add the `link` subcommand (D7): trust rules, open and chain checks, confirmation,
+- [x] 1.6 Add the `link` subcommand (D7): trust rules, open and chain checks, confirmation,
   create or add. Add `mode:` and `stack:` to the `ep-stack-summary` block (D9). Verify: the
   "Link an existing stack" scenarios map to text, and the summary block in SKILL.md lists
   `mode` and `stack`.
