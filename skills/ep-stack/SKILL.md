@@ -219,15 +219,28 @@ Outcome `planned` when stopped at the plan, `created` after creation.
 
 ## status
 
-Fetch first (`git fetch origin`), then rebuild the stack (above), and for each layer,
-bottom-up:
+Fetch first (`git fetch origin`), then rebuild the stack. In native mode, read it from
+GitHub, starting from the current branch's PR (or the PR number the user gives):
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?pull_request=<n>" --jq '.[0].number'
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks/<number>" --jq '.pull_requests'
+```
+
+The layer order is the order of `pull_requests`; apply the trust rules of the Stack record
+to each PR and compare with the body section, reporting any disagreement. When the PR
+belongs to no GitHub stack (empty list) or either call fails, rebuild from the body
+sections as in the Stack record: the stack is in plain-branch mode, with no stack number.
+
+Then, for each layer, bottom-up:
 
 ```bash
 gh pr view <n> --json number,state,baseRefName,headRefName,reviewDecision,mergeStateStatus,statusCheckRollup
 git rev-list --count origin/<layer>..origin/<parent>       # behind its parent when > 0
 ```
 
-Print one row per layer: index, branch, PR, base, state (open/merged/closed), checks
+Print the mode first (`Mode: native, stack #<number>` or `Mode: branches`, with the reason
+when the probe or the stack read failed), then one row per layer: index, branch, PR, base, state (open/merged/closed), checks
 (passing/failing/pending), review decision, and behind count. Flag a layer whose parent PR
 has merged (needs `retarget`) and a layer behind its parent (needs `sync`). Change nothing.
 Outcome `status`.

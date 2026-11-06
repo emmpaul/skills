@@ -21,7 +21,7 @@
 
   Verify: the "Native stack linking on split", "Stack creation", and "Outward action gate"
   scenarios map to text.
-- [ ] 1.3 Update `status` to read the stack from `GET .../stacks?pull_request=<n>`, then
+- [x] 1.3 Update `status` to read the stack from `GET .../stacks?pull_request=<n>`, then
   `GET .../stacks/{number}`, in native mode, and fall back to the body section. Show the mode
   and stack number. Verify: the "Stack status and summary block" scenarios map to text.
 - [ ] 1.4 Add the refresh rule for layers that GitHub rewrote (D5) and use it in `sync`
