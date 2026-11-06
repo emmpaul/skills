@@ -66,7 +66,7 @@
 
 ## 3. Description and README
 
-- [ ] 3.1 Update the `description:` frontmatter of `skills/ep-orchestrate/SKILL.md` and the
+- [x] 3.1 Update the `description:` frontmatter of `skills/ep-orchestrate/SKILL.md` and the
   `ep-orchestrate` row of `README.md` to say that each task group gets one review pass,
   with its findings fixed, before the next group, and that up to 3 review rounds still
   follow (D14). Verify: the description is under 1024 characters
