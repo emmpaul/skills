@@ -119,8 +119,9 @@ style it. Report only what the change adds or touches.
 
 Run four passes, one per WCAG principle: **1 Perceivable**, **2 Operable**,
 **3 Understandable**, **4 Robust**. Each pass walks its in-scope index rows against the UI
-files, using `checks.md` for criteria that have a section and the criterion's `sc/` file
-for those that do not. Each pass returns candidates in the finding shape from `audit.md`.
+files, using `checks.md` for criteria that have a section and the index row's name for
+those that do not; it opens an `sc/` file only for a criterion it has a candidate for, or
+whose scope it must confirm. Each pass returns candidates in the finding shape from `audit.md`.
 Before a pass records a candidate, it opens the criterion's `sc/` file and checks the
 normative text and exceptions support it.
 
@@ -144,9 +145,11 @@ none, the audit is code reading only.
 
 A project script is code: running it runs whatever its author wrote. Before running one:
 
-- **Skip it** when the target's diff changes the command's definition (the script entry,
-  the Makefile target, or a file the command invokes) or the dependency manifest. Say in
-  the report that it was skipped because the change under audit defines it.
+- **Skip it** when the target's diff touches anything the command could execute: the
+  script entry or Makefile target, a file the command invokes, test or spec files the
+  runner may pick up, test-runner, bundler, or setup config, or a dependency manifest or
+  lockfile. When unsure whether a changed file runs, skip. Say in the report that it was
+  skipped because the change under audit could run code through it.
 - **Skip it** when it needs installation, a server you cannot start, or network access,
   and say why.
 - Otherwise **ask the user** first, showing the exact command and noting it may write
@@ -186,9 +189,10 @@ settle, filtered to what the audited files touch, plus candidates moved there in
 
 Without `--fix`, skip this step.
 
-- **PR target:** fix only when the current branch equals the PR's `headRefName`.
-  Otherwise edit nothing, and say: "fixes need PR #<n>'s branch `<headRefName>` checked
-  out".
+- **PR target:** fix only when the current branch equals the PR's `headRefName` and
+  `HEAD` equals its `headRefOid` (a fork's `main` or a stale local branch fails this).
+  Otherwise edit nothing, and say: "fixes need PR #<n>'s head `<headRefName>` at
+  `<headRefOid>` checked out" (for example with `gh pr checkout <n>`).
 - **Branch target:** fix only when the current branch is that branch. Otherwise edit
   nothing, and say: "fixes need branch `<name>` checked out".
 - Fix only verified findings whose `decision` is `none`, only in the audited files, using
