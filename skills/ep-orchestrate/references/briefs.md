@@ -419,9 +419,13 @@ you**. Commit without a plan prompt: the phase already decided what one commit h
 ## review fallback
 
 Condensed `ep-review` steps, used **only when the skill `ep-review` is not available to
-you**. Read-only: change no files and post nothing.
+you, or when [review](#review) sends you here** (a base sha other than the merge base,
+including every group pass after the first group), even with `ep-review` installed. Do
+not invoke `ep-review` from here: it would review from the merge base instead of the
+base sha. Read-only: change no files and post nothing.
 
-1. **Diff:** `git diff <base-sha>...<branch>`. Read whole changed functions and callers
+1. **Diff:** `git diff <base-sha>...<branch>` (for a group pass,
+   `git diff <start>...<head>`). Read whole changed functions and callers
    of changed signatures, not only hunks. Empty diff: report nothing to review.
 2. **Spec input:** the change's `proposal.md`, `tasks.md`, and every `specs/**/spec.md`.
 3. **Four dimensions**, one after another (with subagents, one per dimension in
