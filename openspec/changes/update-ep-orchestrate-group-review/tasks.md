@@ -30,7 +30,7 @@
   Verify: the example is valid JSON once its `<...>` placeholders are replaced and the
   `"a|b"` enumerations are kept as strings, which you can check with
   `python3 -c 'import json,sys; json.load(sys.stdin)'`.
-- [ ] 2.2 In `SKILL.md` step 6 (apply), add the group review pass after a group finishes
+- [x] 2.2 In `SKILL.md` step 6 (apply), add the group review pass after a group finishes
   with every task done, before the next group (D1, D2, D6, D11):
   - record `start` before the group's first phase
   - run one `review` phase with `group: <n>`

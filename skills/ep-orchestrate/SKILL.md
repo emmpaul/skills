@@ -217,6 +217,8 @@ Each phase follows its section of `references/briefs.md` and ends with a summary
 | plan | 1 fresh subagent, brief `#plan` | inline, same section |
 | gate | 1 fresh subagent, brief `#gate` (read-only) | inline |
 | apply group *n* | 1 fresh subagent per group, brief `#apply` | inline, one group at a time |
+| group pass *n* | 1 fresh subagent, brief `#review` with `group: <n>` | inline, after the group |
+| group fix *n* | 1 fresh subagent, brief `#fix` with round `g<n>` | inline, after the pass |
 | dead code | 1 fresh subagent, brief `#deadcode` | inline |
 | review round *k* | 1 fresh subagent, brief `#review` | inline |
 | fix round *k* | 1 fresh subagent, brief `#fix` | inline |
@@ -230,8 +232,8 @@ the `tasks.md` headings and task ids) are fine.
 
 **Without subagents:** run the same sections yourself, in the same order, with the same
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
-yours to do. After every phase (plan, gate, each apply group, dead code, each review
-and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
+yours to do. After every phase (plan, gate, each apply group, each group pass and its
+fix, dead code, each review and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
 suggest clearing or compacting context before continuing. Questions still come only at
 this file's question points (see "Asking the user"), never mid-phase: a phase's open
 choice ends it with a `blocker`, as with subagents.
@@ -287,14 +289,16 @@ Make no code change before the answer.
 ## 6. Apply
 
 Groups are the `## ` headings of `tasks.md` holding tracked tasks, in file order. For each
-group with tasks not done, start one `apply` phase (one fresh subagent per group). Never
-run groups in parallel: they commit in order.
+group with tasks not done, record its `start` (`git rev-parse HEAD`) and set it
+`in_progress` before its first apply phase, then start one `apply` phase (one fresh
+subagent per group). Never run groups in parallel: they commit in order.
 
 After each group, read the `ep-orchestrate-apply` block and record each `commits` sha
 under `tasks`, then check: every done task has a commit whose `Task:` line names it, and
 the group finished before the next one starts. Then:
 
-- `blocker: none` and all done: mark the group done; next group.
+- `blocker: none` and all done: set the group `reviewing` and run its group pass (below);
+  the next group starts after it.
 - `blocker: none` but `done` below `total` (the phase ended early): run the group again
   in a fresh phase, once; it skips the tasks already done. Still short: stop as
   `blocked` naming the unfinished tasks.
@@ -310,6 +314,36 @@ the group finished before the next one starts. Then:
   needs that work finished and committed (with `Task: <id>` in the commit body), or
   discarded, by them (the clean-tree check stops otherwise; after `Stop` it accepts the
   recorded paths and asks the question again, see "Resume"). Outcome `blocked`.
+
+A group that stops with tasks not done gets no pass until it finishes, including after a
+re-run with an answer.
+
+### Group pass
+
+Each group gets exactly one review pass, once every task of it is done (after any apply
+re-run) and before the next group starts; for the last group, before step 7. A group is
+never reviewed twice: the next group's pass and step 8 cover its fix commits.
+
+1. **Review.** Run the `review` phase with `group: <n>`, the group's `start` as the base
+   sha, and HEAD as its head. It never runs as a Workflow, with or without `--workflow`.
+   Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
+   `null`), and overwrite `<change>.findings` with label `g<n>` and its `finding:` lines.
+2. **Clean** (the step 8.2 test: `critical=0 major=0` and `spec_conformance: passed`):
+   run no fix phase; set `fixed: 0` and `unfixed` to the minor count; go to 4.
+3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines, and
+   `large_predicted` and `groups:` as in step 8. Append its `commits:` line to
+   `<change>.findings`. Then, by its `blocker`, as in step 8.4:
+   - **Question blocker** (`blocker: needs input: g<n>.<m>: ...`): ask it at the phase
+     question point and, on an answer other than `Stop`, run the fix phase again for the
+     pass's findings with no fix commit yet, with `answers:` and `partial:`. The re-run
+     is never a new pass; repeat this step on its block.
+   - **`Stop` at that question**, a `spec:` blocker (never asked), or any other blocker:
+     stop the run with outcome `blocked`, reporting the blocker and any uncommitted paths.
+   - **`blocker: none`:** set `fixed` to the findings with a fix commit and `unfixed` to
+     the rest.
+4. **Finish.** Append the label `g<n>` and the pass's `finding:` lines with no fix commit
+   to `<change>.group-findings`, set the group `done`, write the state file, and start
+   the next group.
 
 ## 7. Dead code
 
