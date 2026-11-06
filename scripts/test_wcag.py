@@ -4,9 +4,11 @@ Run: python3 -m unittest scripts/test_wcag.py
 """
 
 import contextlib
+import http.client
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -484,6 +486,81 @@ class ReviewGapTest(Base):
         self.assertIn("has no criteria rows", r.stdout)
 
 
+class ReviewRound2Test(Base):
+    def test_dry_run_reports_generator_change_for_same_source(self):
+        self.generate()
+        f = self.out / "sc/4.1.2-name-role-value.md"
+        f.write_text(f.read_text() + "stale renderer output\n")
+        r = self.update(MINI, "--dry-run")
+        self.assertNotIn("up to date", r.stdout)
+        self.assertIn("changed: 4.1.2 Name, Role, Value (A)", r.stdout)
+        self.assertIn("the generator changed", r.stdout)
+
+    def test_failed_rollback_keeps_old_tree(self):
+        self.generate()
+        before = snapshot(self.out)
+        real = os.rename
+        calls = []
+
+        def flaky(src, dst):
+            calls.append(1)
+            if len(calls) >= 2:  # swap and rollback both fail
+                raise OSError("simulated rename failure")
+            return real(src, dst)
+
+        err = io.StringIO()
+        with mock.patch.object(wcag.os, "rename", flaky), contextlib.redirect_stderr(err), \
+                contextlib.redirect_stdout(io.StringIO()):
+            rc = wcag.main(["update", "--source", str(MINI), "--out", str(self.out)])
+        self.assertEqual(rc, 2)
+        self.assertIn("could not restore", err.getvalue())
+        self.assertNotIn("left unchanged", err.getvalue())
+        kept = [p for p in self.refs.rglob("old") if p.is_dir()]
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(snapshot(kept[0]), before)
+
+    def test_remove_only_update_prints_review_hint(self):
+        self.generate()
+        data = mini()
+        crit = criteria(data)
+        crit[:] = [crit[1]]
+        r = self.update(self.write_source(data))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("removed: 4.1.1", r.stdout)
+        self.assertIn("review the matching sections", r.stdout)
+
+    def test_structural_checks(self):
+        cases = [
+            (lambda d: d.update(principles={}), "missing or empty 'principles'"),
+            (lambda d: d["principles"][0].pop("handle"), "principles[0] missing 'handle'"),
+            (lambda d: d["principles"][0]["guidelines"][0].pop("num"),
+             "guidelines[0] missing 'num'"),
+            (lambda d: d["principles"][0]["guidelines"][0].update(successcriteria={}),
+             "missing 'successcriteria'"),
+            (lambda d: criteria(d)[1].update(handle=7), "'handle' is not a string"),
+            (lambda d: criteria(d)[1].update(content=None), "'content' is not a string"),
+        ]
+        for mutate, needle in cases:
+            data = mini()
+            mutate(data)
+            with self.subTest(needle=needle):
+                with self.assertRaisesRegex(wcag.SourceError, re.escape(needle)):
+                    wcag.load_source(json.dumps(data).encode(), "src")
+
+    def test_heading_name_must_match_exactly(self):
+        self.generate()
+        (self.refs / "checks.md").write_text("## 4.1.2 Name, Role, Value extra\n")
+        r = self.check()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("heading name 'Name, Role, Value extra'", r.stdout)
+
+    def test_non_oserror_fetch_failure_is_reported(self):
+        with mock.patch.object(wcag.urllib.request, "urlopen",
+                               side_effect=http.client.IncompleteRead(b"")):
+            with self.assertRaisesRegex(wcag.SourceError, "cannot fetch"):
+                wcag.read_source("https://www.w3.org/WAI/WCAG22/wcag.json")
+
+
 class CitationTest(unittest.TestCase):
     INDEX = {"4.1.2": {"handle": "Name, Role, Value", "level": "A", "obsolete": False, "file": ""},
              "4.1.1": {"handle": "Parsing", "level": "", "obsolete": True, "file": ""}}
@@ -500,12 +577,16 @@ class CitationTest(unittest.TestCase):
         self.assertIn("cites 9.9.9", out[0])
         self.assertIn("cites 4.1.1, which is obsolete", out[1])
 
+    def test_unrelated_capitalised_text_is_not_a_name(self):
+        self.assertEqual(self.problems("Fails 4.1.2 AA in Safari.\n"), [])
+
     def test_longer_dotted_numbers_are_not_citations(self):
         self.assertEqual(self.problems("Version 1.4.3.2 and NVDA 2024.1 are not criteria.\n"), [])
 
 
 class IndexTest(unittest.TestCase):
     def test_pipe_in_handle_round_trips(self):
+        self.assertEqual(wcag.cell("A | B"), "A \\| B")
         row = (f"| 1.2.3 | {wcag.cell('A | B')} | AA | 2.2 |  | "
                "[sc/1.2.3-x.md](sc/1.2.3-x.md) |")
         self.assertEqual(wcag.parse_index(row)["1.2.3"]["handle"], "A | B")

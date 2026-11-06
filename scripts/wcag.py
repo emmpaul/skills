@@ -523,6 +523,11 @@ def diff_trees(old, new):
     return added, removed, changed
 
 
+def md_files(tree):
+    return {p.relative_to(tree).as_posix(): p.read_bytes()
+            for p in sorted(Path(tree).rglob("*.md"))} if Path(tree).is_dir() else {}
+
+
 def numkey(n):
     return tuple(int(x) for x in n.split("."))
 
@@ -574,9 +579,10 @@ def cmd_update(args):
                 old = {}
             if not isinstance(old, dict):
                 old = {}
-            if old.get("source_sha256") == sha256(raw) and old.get("wcag_version") == dotted(ver):
-                print(f"up to date: {source} matches {rel(mf)}")
-                return 0
+        else:
+            old = {}
+        same_source = (old.get("source_sha256") == sha256(raw)
+                       and old.get("wcag_version") == dotted(ver))
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td) / "wcag"
             tmp.mkdir()
@@ -584,8 +590,16 @@ def cmd_update(args):
             idx = parse_index((tmp / "index.md").read_text(encoding="utf-8"))
             old_idx = parse_index((out / "index.md").read_text(encoding="utf-8")) if (out / "index.md").is_file() else {}
             added, removed, changed = diff_trees(out, tmp)
+            # also catches generator changes that alter output for an unchanged source
+            same_output = md_files(out) == md_files(tmp)
+            if same_source and same_output:
+                print(f"up to date: {source} matches {rel(mf)}")
+                return 0
             print(f"dry run: {source} (WCAG {dotted(ver)}) vs {rel(out)}; nothing written")
             print_diff(added, removed, changed, {**old_idx, **idx})
+            if same_source:
+                print("source unchanged, but regenerating changes the output "
+                      "(the generator changed): run update")
         return 0
 
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -666,6 +680,11 @@ def citations(text):
         yield m.group(1), name
 
 
+def first_word(s):
+    m = re.match(r"\w+", s)
+    return m.group(0) if m else ""
+
+
 def check_guidance(path, index):
     problems = []
     section = "(top of file)"
@@ -686,7 +705,8 @@ def check_guidance(path, index):
             elif is_heading and name and name != row["handle"]:
                 problems.append(f"{where} heading name '{name}' does not match the index "
                                 f"name '{row['handle']}' for {num}")
-            elif not is_heading and name and not name.startswith(row["handle"]):
+            elif (not is_heading and name and first_word(name) == first_word(row["handle"])
+                  and not name.startswith(row["handle"])):
                 problems.append(f"{where} name after {num} does not match the index "
                                 f"name '{row['handle']}'")
     return problems
