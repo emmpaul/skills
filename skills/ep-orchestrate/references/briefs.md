@@ -23,6 +23,8 @@ Rules for every phase:
   or tool, no "Generated with" line). This overrides any host default.
 - Never edit the change's `proposal.md`, `design.md`, or `specs/` after the plan phase.
   When they turn out wrong, stop and report it as the `blocker`.
+- Never ask the user or call a question tool, and never wait for a reply. A choice you
+  cannot make becomes your `blocker`, naming the question; the orchestrator asks it.
 
 ## plan
 

@@ -28,6 +28,23 @@ artifacts, editing code, running tests, reading diffs) happens inside a phase.
   `design.md`, or `specs/`; a plan conflict becomes a blocker and the run stops.
 - Never run `openspec init` and never create `openspec/` files outside a change folder.
 
+## Asking the user
+
+Every question in this skill follows these rules:
+
+- **Structured tool when the host has one.** Ask through the host's structured question
+  tool (`AskUserQuestion` in Claude Code), one question per decision, with the options
+  named at that question point, each a short label plus a one-line description.
+- **Plain text otherwise.** Without such a tool, ask in plain text with the same options
+  numbered, and wait for the reply. An open question (no options) is always asked in
+  plain text.
+- **Act only on a clear answer.** Act on a reply only when it maps to one option or gives
+  the requested input (such as a new change name); otherwise do not guess, ask again.
+- **Only the driving session asks.** Phases never ask the user or call a question tool:
+  a choice a phase cannot make comes back as its `blocker`, and you ask it here, also
+  when running phases inline. Questions another skill asks under its own rules (such as
+  `ep-stack split`'s plan approval) stay with that skill.
+
 ## Usage
 
 ```
@@ -53,7 +70,9 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
 3. **Input.** The argument names an active change (`openspec list --json`): use it.
    Otherwise it is a description: derive a kebab-case name of 2-5 words with a verb
    prefix such as `add-`, `fix-`, `update-`, `rename-`, or `remove-`. If that name matches an existing
-   change, ask whether to continue that change or pick a different name.
+   change, ask (see "Asking the user") with the options `Continue <change>` and
+   `Use a different name`; take the new name from the reply or a follow-up plain
+   question.
 4. **State.** If `.git/ep-orchestrate/<change>.json` exists, this is a resume: go to
    "Resume" below.
 5. **Clean tree.** Any staged, unstaged, or untracked path outside
@@ -61,7 +80,9 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
 6. **Branch.** On the default branch (or detached HEAD), create and switch to
    `<type>/<change>` (`git switch -c`), where `<type>` comes from the change name's
    prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If that branch exists,
-   ask. On any other branch, stay on it.
+   create nothing and ask (see "Asking the user") with the options `Continue on <branch>`
+   (`git switch <branch>`, no new branch) and `Stop` (the run ends; no state file). On any
+   other branch, stay on it.
 7. **Base.** `base` = `<ref>@<sha>`, where `<ref>` is the default branch and `<sha>` is
    `git rev-parse HEAD` now, before the run's first commit. On a new branch that is the
    default branch's tip; on an existing branch it keeps the user's earlier commits out
@@ -139,7 +160,9 @@ the `tasks.md` headings and task ids) are fine.
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
 yours to do. After every phase (plan, gate, each apply group, dead code, each review
 and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
-suggest clearing or compacting context before continuing.
+suggest clearing or compacting context before continuing. Questions still come only at
+this file's question points (see "Asking the user"), never mid-phase: a phase's open
+choice ends it with a `blocker`, as with subagents.
 
 If a summary block is missing or malformed, re-derive its facts from git and `tasks.md`
 (commits and `Task:` lines since base, ticks, `git rev-parse HEAD`). Do not ask the
@@ -147,8 +170,10 @@ phase to resend.
 
 ## 4. Plan
 
-- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the user
-  the question and re-run. Record `plan_commit`.
+- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the
+  planner's question as written (see "Asking the user"): when the blocker names 2 to 4
+  choices, they are the options; otherwise it is an open question. Re-run the plan phase
+  with the answer. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
   `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
   write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
@@ -163,18 +188,29 @@ Run the `gate` phase, then decide with the table in `references/confidence.md`
 - Print the score report: each item met or not with its weight, the total, the
   hard-to-undo result with what was counted, and the size (`large: stacked delivery will
   be offered` when predicted large).
-- **Hard to undo found:** pause and name each element, even at score 100 and even with
-  `--yes`, then offer the same three options as below.
-- **Score < 85 without `--yes`:** pause, list the unmet items, and offer: approve,
-  revise (run `openspec-update-change` or edit the artifacts, commit them as
-  `docs(<change>)`, then re-run the gate), or stop.
+- **Hard to undo found:** pause and name each element in the printed text, even at
+  score 100 and even with `--yes`, then ask as below.
+- **Score < 85 without `--yes`:** pause, list the unmet items in the printed text, and
+  ask as below.
 - **Otherwise:** proceed and state the score proceeded on (and "proceeding on --yes"
   when that is why).
 
 Record `score`, `unmet`, `hard_to_undo`, `decision`, and `artifacts` (the "Plan
 fingerprint" from `references/confidence.md`, computed now) under `gate`, so a resume can
-keep the decision. A paused run records `decision: paused`, ends with outcome `paused_at_gate`, and makes
-no code change. The user's approval sets `decision: approved` and continues to apply.
+keep the decision.
+
+**At a pause** (either kind), first write `decision: paused` with those fields and
+`outcome: paused_at_gate` to the state file, and print the report (step 10) with its
+summary block, so a session that ends unanswered has already recorded the pause and the
+next run resumes at the same question. Then ask (see "Asking the user"); the question
+carries only the decision, with the options:
+
+- `Approve`: set `decision: approved`, clear `outcome` to `null`, and continue to apply.
+- `Revise`: clear `outcome` to `null`, run `openspec-update-change` or edit the
+  artifacts, commit them as `docs(<change>)`, then re-run the gate.
+- `Stop`: the run ends; the outcome stays `paused_at_gate`.
+
+Make no code change before the answer.
 
 ## 6. Apply
 
@@ -246,9 +282,12 @@ Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
   push nothing. Report the change as large, name the missing piece, and recommend
   installing it (`npx skills add emmpaul/skills --skill <name>`) or splitting by hand.
   The outcome stays what step 8 gave (`reviewed` or `review_limit`).
-- Otherwise offer stacked delivery and follow `briefs.md#stack`. Layers are task groups
-  (adjacent small groups may share one, so each layer stays under the diff thresholds);
-  the plan commit, when it is on the branch, goes in layer 1. Gates:
+- Otherwise ask (see "Asking the user") with the options `Deliver as a stack` and
+  `Keep the local branch`, and push nothing before the answer. `Keep the local branch`
+  ends the run as regular (outcome from step 8). `Deliver as a stack` follows
+  `briefs.md#stack`, where `ep-stack split`'s own plan approval still applies. Layers
+  are task groups (adjacent small groups may share one, so each layer stays under the
+  diff thresholds); the plan commit, when it is on the branch, goes in layer 1. Gates:
 
 | Action | Gate |
 |---|---|
