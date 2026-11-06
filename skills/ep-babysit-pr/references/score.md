@@ -142,7 +142,8 @@ gh api -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/
 ```
 
 A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
-UUID it returns. Read the result:
+UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;
+it has no UUID, so do not request the merge again (SKILL.md step 7). Otherwise read the result:
 
 ```bash
 gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"

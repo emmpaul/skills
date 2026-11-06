@@ -328,6 +328,9 @@ bottom layer merges:
 2. When this PR is the lowest open PR, request the async merge pinned to
    `last_review.head`, with the repository's method and `bypass_rules=false`. Save the
    UUID in `merge_async` (a 409 answer returns the UUID of the merge already pending).
+   A 200 answer has no UUID: the PR is already merged or already in the merge queue. Do
+   not request the merge again. Confirm with `gh pr view <n> --json state`: `MERGED` means
+   the PR is merged; otherwise wait as on `BLOCKED`.
 3. Read the result once per tick:
    - `pending`: next tick.
    - `enqueued`: the merge queue holds it. Wait as on `BLOCKED`.
