@@ -572,6 +572,8 @@ def cmd_update(args):
                 old = json.loads(mf.read_text(encoding="utf-8"))
             except ValueError:
                 old = {}
+            if not isinstance(old, dict):
+                old = {}
             if old.get("source_sha256") == sha256(raw) and old.get("wcag_version") == dotted(ver):
                 print(f"up to date: {source} matches {rel(mf)}")
                 return 0
@@ -649,8 +651,19 @@ def parse_index(text):
 
 
 HEADING = re.compile(r"^## (\d+\.\d+\.\d+)\b\s*(.*?)\s*$")
-# any criterion-shaped number, bare or after "SC"; a following capitalised name is checked too
-CITE = re.compile(r"(?<![\d.])(\d+\.\d+\.\d+)(?![\d.]*\d)(?: ([A-Z][^|\n]*))?")
+# any criterion-shaped number, bare or after "SC"; a capitalised name right after it is checked too
+NUM = re.compile(r"(?<![\d.])(\d+\.\d+\.\d+)(?![\d.]*\d)")
+
+
+def citations(text):
+    """Yield (num, name) for each criterion number in text; name is the capitalised text
+    after it, up to the next number or table cell, or None."""
+    found = list(NUM.finditer(text))
+    for i, m in enumerate(found):
+        end = found[i + 1].start() if i + 1 < len(found) else len(text)
+        after = text[m.end():end].split("|", 1)[0]
+        name = after[1:] if after[:1] == " " and after[1:2].isupper() else None
+        yield m.group(1), name
 
 
 def check_guidance(path, index):
@@ -662,7 +675,7 @@ def check_guidance(path, index):
         m = HEADING.match(line)
         cites = [(m.group(1), m.group(2), True)] if m else []
         rest = line[m.end(1):] if m else line
-        cites += [(n, name, False) for n, name in CITE.findall(rest)]
+        cites += [(n, name, False) for n, name in citations(rest)]
         for num, name, is_heading in cites:
             where = f"{path.name}:{no} (section '{section}')"
             row = index.get(num)

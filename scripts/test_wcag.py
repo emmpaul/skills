@@ -402,6 +402,108 @@ class CheckTest(Base):
         self.assertEqual(r.stdout.count("FAIL"), 1)  # the heading is reported once
 
 
+class ReviewGapTest(Base):
+    def test_empty_criteria_source_rejected_end_to_end(self):
+        self.generate()
+        before = snapshot(self.out)
+        data = mini()
+        criteria(data).clear()
+        r = self.update(self.write_source(data))
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("no success criteria found", r.stderr)
+        self.assertEqual(snapshot(self.out), before)
+
+    def test_validate_tree_rejects_empty_and_dangling_index(self):
+        self.generate()
+        idx = self.out / "index.md"
+        rows = idx.read_text()
+        idx.write_text("# empty\n")
+        with self.assertRaisesRegex(wcag.SourceError, "no criteria"):
+            wcag.validate_tree(self.out)
+        idx.write_text(rows)
+        (self.out / "sc/4.1.2-name-role-value.md").unlink()
+        with self.assertRaisesRegex(wcag.SourceError, "4.1.2 has no file"):
+            wcag.validate_tree(self.out)
+
+    def test_unreadable_source_is_reported(self):
+        r = self.update(self.tmp / "missing.json")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("cannot read", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_unreachable_url_is_reported(self):
+        with mock.patch.object(wcag.urllib.request, "urlopen", side_effect=OSError("offline")):
+            with self.assertRaisesRegex(wcag.SourceError, "cannot fetch .*offline"):
+                wcag.read_source("https://www.w3.org/WAI/WCAG22/wcag.json")
+
+    def test_source_label(self):
+        url = "https://www.w3.org/WAI/WCAG22/wcag.json"
+        self.assertEqual(wcag.source_label(url), url)
+        self.assertEqual(wcag.source_label("/home/x/Downloads/draft.json"),
+                         "local file draft.json")
+
+    def test_dry_run_with_corrupt_or_non_object_manifest(self):
+        for body in ("{not json", "[]"):
+            self.generate()
+            (self.out / "manifest.json").write_text(body)
+            r = self.update(MINI, "--dry-run")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn("Traceback", r.stderr)
+            self.assertIn("dry run:", r.stdout)
+
+    def test_removed_lists_name_and_add_only_has_no_hint(self):
+        self.generate()
+        before = snapshot(self.out)
+        data = mini()
+        crit = criteria(data)
+        crit[:] = [crit[1]]
+        r = self.update(self.write_source(data), "--dry-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("removed: 4.1.1 Parsing (Obsolete and removed) (obsolete)", r.stdout)
+        self.assertEqual(snapshot(self.out), before)
+        shutil.rmtree(self.out)
+        r = self.update()
+        self.assertIn("added: 2", r.stdout)
+        self.assertNotIn("review the matching sections", r.stdout)
+
+    def test_manifest_without_files_fails(self):
+        (self.generate(), (self.out / "manifest.json").write_text("{}"))
+        r = self.check()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("cannot read", r.stderr)
+
+    def test_index_without_rows_fails(self):
+        self.generate()
+        (self.out / "index.md").write_text("# no rows\n")
+        mf = self.out / "manifest.json"
+        m = json.loads(mf.read_text())
+        m["files"]["index.md"] = wcag.sha256(b"# no rows\n")
+        mf.write_text(json.dumps(m))
+        r = self.check()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("has no criteria rows", r.stdout)
+
+
+class CitationTest(unittest.TestCase):
+    INDEX = {"4.1.2": {"handle": "Name, Role, Value", "level": "A", "obsolete": False, "file": ""},
+             "4.1.1": {"handle": "Parsing", "level": "", "obsolete": True, "file": ""}}
+
+    def problems(self, text):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "checks.md"
+            p.write_text(text)
+            return wcag.check_guidance(p, self.INDEX)
+
+    def test_every_citation_on_a_line_is_checked(self):
+        out = self.problems("See 4.1.2 Name, Role, Value and 9.9.9 Bogus, or 4.1.1 Parsing.\n")
+        self.assertEqual(len(out), 2, out)
+        self.assertIn("cites 9.9.9", out[0])
+        self.assertIn("cites 4.1.1, which is obsolete", out[1])
+
+    def test_longer_dotted_numbers_are_not_citations(self):
+        self.assertEqual(self.problems("Version 1.4.3.2 and NVDA 2024.1 are not criteria.\n"), [])
+
+
 class IndexTest(unittest.TestCase):
     def test_pipe_in_handle_round_trips(self):
         row = (f"| 1.2.3 | {wcag.cell('A | B')} | AA | 2.2 |  | "
