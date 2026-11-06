@@ -170,8 +170,13 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    inside the change folder. When `question` is set, uncommitted changes in exactly the
    paths in `question.files` are accepted too; any other path stops the run with outcome
    `dirty_tree`, listing those paths.
-4. **Open question first.** When `question` is set, ask it again at the phase question
-   point ("Phase questions") before running any phase, then continue at the recorded
+4. **Open question first.** When `question` is set, first check whether the user has
+   resolved it since: for apply, its task is done (step 1); for fix, a commit in
+   `<base-sha>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
+   `Finding:` line naming the finding's `<dimension> <file>:<line>`. If so, set `question`
+   to `null` without asking (for fix, append `commits: <finding id>=<sha>` to
+   `<change>.findings`) and continue at the recorded phase. Otherwise ask it again at the
+   phase question point ("Phase questions") before running any phase, then continue at the recorded
    phase with the answer. When none of `question.files` still has changes (the user
    discarded them), leave `partial:` out: the task or finding starts fresh, and the
    answer still applies. For a fix question, re-run the fix phase of the round in
