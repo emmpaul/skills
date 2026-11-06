@@ -2,7 +2,7 @@
 
 ## 1. ep-orchestrate questions
 
-- [ ] 1.1 In `skills/ep-orchestrate/SKILL.md`, add an "Asking the user" subsection after
+- [x] 1.1 In `skills/ep-orchestrate/SKILL.md`, add an "Asking the user" subsection after
   "Hard rules" (D1): structured question tool when the host offers one (`AskUserQuestion`
   in Claude Code), one question per decision, options as short label plus one-line
   description; plain text with numbered options otherwise; open questions in plain text;

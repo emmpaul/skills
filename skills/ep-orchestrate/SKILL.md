@@ -28,6 +28,23 @@ artifacts, editing code, running tests, reading diffs) happens inside a phase.
   `design.md`, or `specs/`; a plan conflict becomes a blocker and the run stops.
 - Never run `openspec init` and never create `openspec/` files outside a change folder.
 
+## Asking the user
+
+Every question in this skill follows these rules:
+
+- **Structured tool when the host has one.** Ask through the host's structured question
+  tool (`AskUserQuestion` in Claude Code), one question per decision, with the options
+  named at that question point, each a short label plus a one-line description.
+- **Plain text otherwise.** Without such a tool, ask in plain text with the same options
+  numbered, and wait for the reply. An open question (no options) is always asked in
+  plain text.
+- **Act only on a clear answer.** Act on a reply only when it maps to one option or gives
+  the requested input (such as a new change name); otherwise do not guess, ask again.
+- **Only the driving session asks.** Phases never ask the user or call a question tool:
+  a choice a phase cannot make comes back as its `blocker`, and you ask it here, also
+  when running phases inline. Questions another skill asks under its own rules (such as
+  `ep-stack split`'s plan approval) stay with that skill.
+
 ## Usage
 
 ```
