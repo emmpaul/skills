@@ -213,7 +213,8 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
      files from before group passes.
    - An entry with `fixed: null` continues at step 6's group pass step 2, with the
      findings and fix commits from `<change>.findings` when its label is `g<n>`. When
-     that file is missing or has another label, run the pass again: it is read-only.
+     that file is missing or has another label, run the pass again: it is read-only,
+     and its step 1 replaces that entry instead of appending one.
 
    Once `phase` is past `apply`, no group pass runs.
 6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
@@ -342,7 +343,9 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
 1. **Review.** Run the `review` phase with `group: <n>`, the group's `start` as the base
    sha, and HEAD as its head. It never runs as a Workflow, with or without `--workflow`.
    Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
-   `null`), and overwrite `<change>.findings` with label `g<n>` and its `finding:` lines.
+   `null`); when the group already has an entry (a pass re-run on resume), replace it
+   instead, so each group keeps one entry. Then overwrite `<change>.findings` with label
+   `g<n>` and its `finding:` lines.
 2. **Clean** (the step 8.2 test: `critical=0 major=0` and `spec_conformance: passed`):
    run no fix phase; set `fixed: 0` and `unfixed` to the minor count; go to 4.
 3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines, and
