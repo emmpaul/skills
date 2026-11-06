@@ -91,7 +91,7 @@ Python 3 with only the standard library (`urllib`, `json`, `hashlib`, `html.pars
 5. Audit by principle (P, O, U, R). For each candidate, open its `sc/` file to confirm the criterion text before citing it.
    - **Subagent path:** four parallel subagents, one per principle. Each gets the diff, the in-scope index rows for its principle, `checks.md`, and `audit.md`, and returns candidates in the finding shape.
    - **Sequential fallback:** the same four passes run one after another in the main context. The output shape is identical.
-6. If the project's package scripts or Makefile already define an a11y test (a script name containing `a11y`, `axe`, or `pa11y`), run it and add its failures as candidates.
+6. If the project's package scripts or Makefile already define an a11y test (a script name containing `a11y`, `axe`, or `pa11y`), ask the user before running it, and never run one that the target's diff defines or changes, since that would run code from the change under audit. Add its failures as candidates.
 7. Verify each candidate against the `audit.md` checklist: a name supplied elsewhere, `aria-hidden` or `inert`, a wrapper or design-system component, or decorative use. Drop anything that does not survive, and correct or drop any citation the index lacks.
 8. Assign severity by impact (D7), rank the findings, and add the manual-check list.
 9. Optionally `--fix` (D8), then print the report, optionally `--comment` (D8), and end with the summary block.
@@ -106,7 +106,8 @@ Python 3 with only the standard library (`urllib`, `json`, `hashlib`, `html.pars
 
 | Action | Gate |
 |---|---|
-| Edit working-tree files | `--fix` only. For PR targets, also requires the current branch to equal the PR's `headRefName`; otherwise the skill reports only. Never touches files outside the audited set. |
+| Edit working-tree files | `--fix` only. For PR targets, also requires the current branch to equal the PR's `headRefName`, and for branch targets the current branch to be that branch; otherwise the skill reports only. Never touches files outside the audited set. |
+| Run a project a11y test command | Only after the user confirms the exact command, and never when the target's diff defines or changes it. |
 | Commit or push | Never. The user commits, for example with `ep-commit`. |
 | Post to GitHub | `--comment` with a PR target only, using one `gh pr comment <n> --body-file`. No attribution. |
 | Install tools | Never. |

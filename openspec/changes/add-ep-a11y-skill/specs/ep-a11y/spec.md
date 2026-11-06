@@ -70,11 +70,15 @@ The report SHALL list, as "needs manual check", the in-scope criteria that the c
 - **THEN** the report says no issues were found in the code, lists the manual checks, and does not say the target is conformant
 
 ### Requirement: Existing accessibility tests
-The skill SHALL run an accessibility test command only when the target project already defines one, SHALL include its results in the report, and SHALL NOT install any tool or dependency.
+The skill SHALL run an accessibility test command only when the target project already defines one and the user confirms the exact command, SHALL NOT run one that the audited change defines or modifies, SHALL include its results in the report, and SHALL NOT install any tool or dependency.
 
 #### Scenario: Project has an a11y test script
-- **WHEN** the project's package scripts define an accessibility test, such as one running axe or pa11y
-- **THEN** the skill runs it and adds its failures as candidate findings, which then go through verification
+- **WHEN** the project's package scripts define an accessibility test, such as one running axe or pa11y, and the user confirms the command
+- **THEN** the skill runs it, lists any files it created, and adds its failures as candidate findings, which then go through verification
+
+#### Scenario: Test script defined by the audited change
+- **WHEN** the target's diff adds or changes the accessibility test command's definition
+- **THEN** the skill does not run it and says why in the report
 
 #### Scenario: No a11y tooling
 - **WHEN** the project defines no accessibility test command
@@ -94,6 +98,10 @@ With `--fix`, the skill SHALL apply fixes for verified findings to the working t
 #### Scenario: PR target with fix
 - **WHEN** the user runs `ep-a11y 42 --fix` and the current branch is not PR #42's head branch
 - **THEN** the skill reports the findings without editing files and says that fixes need the PR's branch checked out
+
+#### Scenario: Branch target with fix
+- **WHEN** the user runs `ep-a11y feature --fix` and the current branch is not `feature`
+- **THEN** the skill reports the findings without editing files and says that fixes need that branch checked out
 
 ### Requirement: Output modes
 The skill SHALL print findings ranked most severe first by default. Only when the user passes `--comment` with a PR target SHALL it post the report as a single PR comment, and that comment SHALL carry no model or tool attribution.
