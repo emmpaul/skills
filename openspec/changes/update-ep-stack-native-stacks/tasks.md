@@ -2,7 +2,7 @@
 
 ## 1. ep-stack native mode
 
-- [ ] 1.1 In `skills/ep-stack/SKILL.md`:
+- [x] 1.1 In `skills/ep-stack/SKILL.md`:
   - Update the frontmatter description and Usage: native stacks when available, plain-branch
     fallback, the `link` subcommand, and `--no-native`.
   - Add a "Native mode" section. It covers the probe and fallback (D2), the

@@ -1,6 +1,6 @@
 ---
 name: ep-stack
-description: Manage a stack of dependent GitHub PRs built from one branch with plain branches and gh. `split` proposes ordered layers and creates branches and PRs only after approval; `status` rebuilds the stack from PR bodies; `sync` merges each layer into the next, bottom up (through ep-sync when installed); `retarget` moves the next PR onto the merged parent's base. Confirms before creating PRs, changing bases, or pushing several branches; no model attribution. Use when the user asks to split a branch into stacked PRs or to update, sync, or retarget a stack.
+description: Manage a stack of dependent GitHub PRs built from one branch, linked as a native GitHub stack when the repository supports it and as plain branches otherwise (`--no-native` forces plain). `split` proposes ordered layers and creates branches, PRs, and the GitHub stack only after approval; `link` turns an existing plain stack into a GitHub stack; `status` rebuilds the stack from GitHub; `sync` merges each layer into the next, bottom up (through ep-sync when installed); `retarget` moves or checks the next PR's base after its parent merges. Confirms before creating PRs or stacks, changing bases, or pushing several branches; no model attribution. Use when the user asks to split a branch into stacked PRs, link PRs as a stack, or update, sync, or retarget a stack.
 ---
 
 # ep-stack
@@ -24,10 +24,13 @@ it moves.
 
 ```
 ep-stack split [<base>]      # propose layers for the current branch, then create them
+ep-stack link                # link an existing plain stack as a GitHub stack
 ep-stack status              # show the stack; changes nothing
 ep-stack sync [--rebase]     # bring every layer up to date with the one below
 ep-stack retarget            # after a layer's PR merged, move the next one down
 ```
+
+Every subcommand takes `--no-native`, which forces plain-branch mode.
 
 ## 1. Gather context
 
@@ -49,6 +52,49 @@ openspec list --json                     # optional; root null = no OpenSpec
 
 A dirty working tree stops every subcommand except `status`: ask the user to commit
 (offer `ep-commit`) or stash first.
+
+## Native mode
+
+GitHub native stacked PRs link two or more PRs of one repository as a stack object: the
+merge box shows a stack map, and when a lower PR merges, GitHub retargets the PR above to
+the merged PR's base and rebases the remaining layer branches server-side. Merging a PR
+also merges every open PR below it. The skill talks to this through the REST API with
+`gh api`; the `gh stack` extension is not needed. Pass the API version on every call:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" ...
+```
+
+**Probe.** Before every subcommand, unless the user passed `--no-native`, run:
+
+```bash
+gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
+```
+
+- Exit 0: the repository supports native stacks. Say `Mode: native` in the plan or report.
+- Any error (404, another status, `gh` cannot reach GitHub): plain-branch mode. Tell the
+  user why in one line (endpoint and status), then run every step as written for plain
+  branches.
+- `--no-native`: plain-branch mode without probing.
+
+A stack that has no GitHub stack object (for example one made before this repository had
+native stacks) runs in plain-branch mode even when the probe succeeds; `link` converts it.
+
+**Endpoints** (all under `repos/{owner}/{repo}/`):
+
+| Call | Use |
+| --- | --- |
+| `GET stacks?pull_request=<n>` | the stack that contains PR `<n>` (empty list: none) |
+| `GET stacks/<number>` | the stack's `pull_requests`, bottom to top |
+| `POST stacks` with `pull_requests` bottom to top | create a stack; 422 when the PRs cannot form one |
+| `POST stacks/<number>/add` with `pull_requests` | add PRs on top of an existing stack |
+
+Each PR's base must be the head branch of the PR below it. When a stack call fails, fall
+back to plain-branch behaviour, or stop before the outward action it was part of, and
+name the endpoint and status in the report.
+
+Native stacks pair best with few syncs: GitHub's cascading rebase may handle the merge
+commits `sync` adds less cleanly. Report GitHub's state as `status` sees it.
 
 ## Stack record
 
