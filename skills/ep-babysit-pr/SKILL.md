@@ -340,7 +340,11 @@ bottom layer merges:
    it), report it, set `merge_async` to `null`, set `outcome: stopped: left merge queue`
    and stop. Do not request the merge again in this run. Otherwise read the result of the UUID once per tick:
    - `pending`: next tick.
-   - `enqueued`: the merge queue holds it. Wait as on `BLOCKED`.
+   - `enqueued`: the merge queue holds it. This result is final and does not change when
+     the queue merges or ejects the PR, so set `merge_async` to `"queued"` and check the
+     PR from the next tick on, as above.
+   - 404 (results are kept for 24 hours after their last update): set `merge_async` to
+     `"queued"` and check the PR as above.
    - `merged`: confirm with `gh pr view <n> --json state` (`MERGED`). Then the PR is merged.
    - `failed`: report the response details, set `merge_async` to `null`, set
      `outcome: stopped: merge failed` and stop. Do not retry, with or without a bypass,

@@ -160,5 +160,7 @@ With a UUID, read the result:
 gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"
 ```
 
-`status` is `pending`, `merged`, `enqueued`, or `failed`. SKILL.md step 7 says what each one
-leads to. The head branch is left in place: GitHub rebases the PRs above onto it.
+`status` is `pending`, `merged`, `enqueued`, or `failed`. `enqueued` is final: it does not
+change when the queue later merges or ejects the PR, so from then on check the PR with the
+query above. A 404 means the result expired (24 hours after its last update); check the PR
+the same way. SKILL.md step 7 says what each one leads to. The head branch is left in place: GitHub rebases the PRs above onto it.
