@@ -81,9 +81,8 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
    `<type>/<change>` (`git switch -c`), where `<type>` comes from the change name's
    prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If that branch exists,
    create nothing and ask (see "Asking the user") with the options `Continue on <branch>`
-   (`git switch <branch>`, no new branch) and `Stop` (the run ends; no state file). A
-   different branch name given as free text is created with `git switch -c`. On any other
-   branch, stay on it.
+   (`git switch <branch>`, no new branch) and `Stop` (the run ends; no state file). On any
+   other branch, stay on it.
 7. **Base.** `base` = `<ref>@<sha>`, where `<ref>` is the default branch and `<sha>` is
    `git rev-parse HEAD` now, before the run's first commit. On a new branch that is the
    default branch's tip; on an existing branch it keeps the user's earlier commits out
