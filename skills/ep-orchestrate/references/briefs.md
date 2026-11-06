@@ -36,7 +36,13 @@ Rules for every phase:
 ## plan
 
 **Inputs:** change name, `mode: new` with the user's description, or `mode: complete`
-(an existing change missing some artifacts), branch, path of this file.
+(an existing change missing some artifacts), branch, path of this file. On a re-run after
+a question, also `answers:` lines of `<change>: <question> => <answer>`.
+
+On a re-run with `answers:`, the change already exists: skip `openspec new change` and
+`openspec-propose`, treat each answer as the decision the question asked for, revise the
+existing artifacts in `openspec/changes/<change>/` where the answer changes them, and
+finish the CLI loop below for the artifacts that are not `done`.
 
 With `mode: complete`, skip creating the change and `openspec-propose`: run only the CLI
 loop below for the artifacts that are not `done`, leaving existing ones untouched. With

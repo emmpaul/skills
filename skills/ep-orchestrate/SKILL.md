@@ -55,7 +55,8 @@ options. Any other `blocker:` value is a stop, never a question. At this questio
 1. **Limit.** When `answers` already holds 2 entries for `<id>`, do not ask: stop with
    outcome `blocked`, and report the question and the earlier answers.
 2. **Record first.** Write `question` to the state file (phase, id, text, options, and
-   the phase's `files:` paths) before asking, so a session that ends unanswered resumes
+   the phase's `files:` paths; `[]` for plan, whose work stays in the change folder)
+   before asking, so a session that ends unanswered resumes
    at the same question.
 3. **Ask** (as above): the phase's options plus `Stop`, at most 4 in all; with no
    options, an open question in plain text that says replying `Stop` ends the run.
