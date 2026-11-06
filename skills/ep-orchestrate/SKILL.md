@@ -227,7 +227,9 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
      another label, step 4 records the label `g<n>` with the note `findings lost`
      instead of its `finding:` lines.
 
-   Once `phase` is past `apply`, no group pass runs.
+   When step 2 rebuilds `phase` with every task done and no `deadcode` recorded, the
+   rebuilt phase stays `apply` while the last group still gets its pass, or finishes it,
+   under the rules above. Once `phase` is past `apply`, no group pass runs.
 6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
