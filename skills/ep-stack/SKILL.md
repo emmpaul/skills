@@ -296,13 +296,27 @@ merged), and other people may have pushed to it. After `git fetch origin`:
 1. **Same or behind.** When `git merge-base --is-ancestor <layer> origin/<layer>` succeeds,
    fast-forward: `git merge --ff-only origin/<layer>` when the layer is checked out, else
    `git branch -f <layer> origin/<layer>`.
-2. **Diverged or ahead.** Otherwise run `git cherry origin/<layer> <layer>`.
-   - No `+` line: every local commit has an equivalent patch on the remote, so the local
+2. **Diverged or ahead.** Otherwise list the local commits that have no equivalent patch
+   on the remote and do not come from a merged layer:
+
+   ```bash
+   git rev-list --right-only --cherry-pick --no-merges origin/<layer>...<layer> \
+     ^<merged-head> ...
+   ```
+
+   Add one `^<merged-head>` for each merged layer below this one: the merged PR's
+   `headRefOid` (`gh pr view <m> --json headRefOid`; run `git fetch origin
+   refs/pull/<m>/head` when the commit is not local, since GitHub may have deleted the
+   branch) and, when it still exists, that layer's local branch. After a squash merge the
+   merged layer's own commits are not on the rebased remote branch in any form, so without
+   these exclusions they would look local-only. With no merged layer below (as in `sync`)
+   the list has no `^` arguments and matches `git cherry origin/<layer> <layer>`.
+   - Empty output: every local commit is on the remote or in a merged layer, so the local
      branch has no work of its own. Move it to the remote copy: `git branch -f <layer>
      origin/<layer>` when it is not checked out, or `git reset --keep origin/<layer>` when
      it is checked out and the tree is clean.
-   - Any `+` line: those commits exist only locally (for example a merge an earlier run
-     left unpushed after `needs_attention`). List them and stop for this layer and every
+   - Any commit listed: it exists only locally (for example a merge an earlier run left
+     unpushed after `needs_attention`). List the commits and stop for this layer and every
      layer above it: sync, retarget, and push nothing there until the user pushes or
      discards them.
 
