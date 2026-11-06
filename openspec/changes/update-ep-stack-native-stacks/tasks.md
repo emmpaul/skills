@@ -24,7 +24,7 @@
 - [x] 1.3 Update `status` to read the stack from `GET .../stacks?pull_request=<n>`, then
   `GET .../stacks/{number}`, in native mode, and fall back to the body section. Show the mode
   and stack number. Verify: the "Stack status and summary block" scenarios map to text.
-- [ ] 1.4 Add the refresh rule for layers that GitHub rewrote (D5) and use it in `sync`
+- [x] 1.4 Add the refresh rule for layers that GitHub rewrote (D5) and use it in `sync`
   and `retarget` where `git pull --ff-only` is today. Keep merge-default sync and the gated
   rebase unchanged (D6). Verify: the "Refresh layers rewritten by GitHub" and "Stack sync"
   scenarios map to text. Also verify in a scratch local repo that `git cherry` shows no `+`

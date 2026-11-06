@@ -245,18 +245,39 @@ when the probe or the stack read failed), then one row per layer: index, branch,
 has merged (needs `retarget`) and a layer behind its parent (needs `sync`). Change nothing.
 Outcome `status`.
 
+## Refresh a layer
+
+`sync` and `retarget` refresh each local layer branch from `origin/<layer>` before using
+it. GitHub may have rewritten the remote branch (its cascading rebase after a lower PR
+merged), and other people may have pushed to it. After `git fetch origin`:
+
+1. **Same or behind.** When `git merge-base --is-ancestor <layer> origin/<layer>` succeeds,
+   fast-forward: `git merge --ff-only origin/<layer>` when the layer is checked out, else
+   `git branch -f <layer> origin/<layer>`.
+2. **Diverged or ahead.** Otherwise run `git cherry origin/<layer> <layer>`.
+   - No `+` line: every local commit has an equivalent patch on the remote, so the local
+     branch has no work of its own. Move it to the remote copy: `git branch -f <layer>
+     origin/<layer>` when it is not checked out, or `git reset --keep origin/<layer>` when
+     it is checked out and the tree is clean.
+   - Any `+` line: those commits exist only locally (for example a merge an earlier run
+     left unpushed after `needs_attention`). List them and stop for this layer and every
+     layer above it: sync, retarget, and push nothing there until the user pushes or
+     discards them.
+
+This moves a local pointer to a commit already on GitHub; nothing is pushed and no pushed
+history is rewritten.
+
 ## sync
 
 Bring every open layer up to date with the one below it, bottom-up: layer 1 with the base,
-layer 2 with layer 1, and so on.
+layer 2 with layer 1, and so on. Sync is the same in native and plain-branch mode: merging
+the parent into a layer keeps the base chain GitHub expects.
 
 1. Run `status`. Show the layers that are behind and the branches that will be pushed;
    confirm when more than one branch will be pushed.
 2. For each layer in order:
-   - `git checkout <layer>` and `git pull --ff-only`. If the layer has local commits the
-     remote lacks (`git rev-list --count origin/<layer>..<layer>` above 0, for example a
-     merge an earlier run left unpushed after `needs_attention`), list them and stop: do
-     not sync or push that layer until the user pushes or discards them.
+   - `git checkout <layer>` and refresh it (Refresh a layer). When the refresh stops,
+     stop the stack sync there.
    - **If `ep-sync` is available to you**, invoke it for this layer with the parent as the
      base, in caller mode (`ep-sync <parent> --caller ep-stack`), so its merge audit
      applies to each layer. Read its `ep-sync-summary`. On `needs_decision` or
@@ -270,8 +291,8 @@ layer 2 with layer 1, and so on.
    (`ep-sync` never rebases for another skill; use merge mode to get the audit). Before
    rebasing, record each layer's current parent tip (`old_parent=$(git rev-parse
    origin/<parent>)`). Then, bottom-up, for each layer:
-   - `git checkout <layer>` and `git pull --ff-only`, so commits added on GitHub (for
-     example committed review suggestions) are not lost; record
+   - `git checkout <layer>` and refresh it (Refresh a layer), so commits added on GitHub
+     (for example committed review suggestions) are not lost; record
      the literal sha of `git rev-parse origin/<layer>` (write it down; shell variables may
      not persist).
    - Move only the layer's own commits onto the updated parent:
