@@ -148,6 +148,11 @@ paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers
 per id, every question asked and its answer, in order; the length of an id's list is its
 question count. Both hold short user-facing text, not diffs, logs, or finding text.
 
+Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review
+round's number and `finding:` lines, unchanged, then the `commits:` line of each fix block
+of that round. Overwrite it when a review round returns and append to it after each fix
+block, so a fix question can be resumed in the same round.
+
 ### Resume
 
 Run again on a change with a state file, `tasks.md` and git win over the file:
@@ -168,7 +173,11 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    point ("Phase questions") before running any phase, then continue at the recorded
    phase with the answer. When none of `question.files` still has changes (the user
    discarded them), leave `partial:` out: the task or finding starts fresh, and the
-   answer still applies.
+   answer still applies. For a fix question, re-run the fix phase of the round in
+   `<change>.findings` (step 8.4), taking the findings and their fix commits from that
+   file; never run a new review for it. When that file is missing, set `question` to `null`
+   and stop with outcome `blocked`: say the round's findings are lost and list
+   `question.files`, which the user commits or discards before running again.
 5. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
@@ -292,20 +301,22 @@ they never stop the run.
 
 When every task is done, run up to 3 rounds. Round *k*:
 
-1. Run the `review` phase on the branch against `base`. Record its counts and `head`.
+1. Run the `review` phase on the branch against `base`. Record its counts and `head`,
+   and write its `finding:` lines to `<change>.findings` (see "State file").
 2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; the review phase is
    always told the change name, so `not_applicable` counts as not clean): stop
    the rounds; its minor findings go in the report.
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
 4. Otherwise run the `fix` phase with that round's `finding:` lines (and the task groups
-   when large is predicted, as in `briefs.md#fix`). Then, by its `blocker`:
+   when large is predicted, as in `briefs.md#fix`). Append its `commits:` line to
+   `<change>.findings`. Then, by its `blocker`:
    - **Question blocker** (`blocker: needs input: <finding id>: ...`): fixes of other
      findings stay committed and only that finding's work is uncommitted. Ask it at the
      phase question point ("Phase questions"), with the block's `files:` as the blocked
      paths. On an answer other than `Stop`, run the fix phase of the same round again,
      only for the round's findings with no fix commit yet (from the `commits:` of the
-     earlier fix blocks), with `answers:` and `partial: <finding id>: <files>`. With
+     earlier fix blocks, kept in `<change>.findings`), with `answers:` and `partial: <finding id>: <files>`. With
      subagents that is a fresh subagent; without, the fix phase runs inline again. The
      re-run is not a new review round; repeat this step on its block.
    - **`Stop` at that question**, or any other blocker (such as `spec:` for a finding
