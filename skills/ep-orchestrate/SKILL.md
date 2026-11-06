@@ -477,5 +477,5 @@ blocker: none | <one line>
 One `layer:` line per stack layer, bottom-up; omit `layer:` lines when there is no stack.
 Any value not known yet is written `na` (for example `gate: score=na decision=none
 hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`). `group_reviews:` counts
-the `group_reviews` entries, and sums `fixed` and `unfixed` over the entries whose fix
-phase ended; it is `passes=0 fixed=0 unfixed=0` before any pass, never `na`.
+the `group_reviews` entries, and sums `fixed` and `unfixed` over the entries where they
+are set (not `null`), clean passes with no fix phase included; it is `passes=0 fixed=0 unfixed=0` before any pass, never `na`.
