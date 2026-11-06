@@ -45,6 +45,33 @@ Every question in this skill follows these rules:
   when running phases inline. Questions another skill asks under its own rules (such as
   `ep-stack split`'s plan approval) stay with that skill.
 
+### Phase questions
+
+A plan, apply, or fix phase that needs a choice ends with a question blocker, on one line:
+`blocker: needs input: <id>: <question> | <option> ; <option>`. `<id>` is the task id
+(apply), the finding id (fix), or the change name (plan), and there are 0, 2 or 3
+options. Any other `blocker:` value is a stop, never a question. At this question point:
+
+1. **Limit.** When `answers` already holds 2 entries for `<id>`, do not ask: stop with
+   outcome `blocked`, and report the question and the earlier answers.
+2. **Record first.** Write `question` to the state file (phase, id, text, options, and
+   the phase's `files:` paths; `[]` for plan, whose work stays in the change folder)
+   before asking, so a session that ends unanswered resumes
+   at the same question.
+3. **Ask** (as above): the phase's options plus `Stop`, at most 4 in all; with no
+   options, an open question in plain text that says replying `Stop` ends the run.
+4. **Answer.** Append `{ "q": <question>, "a": <answer> }` to `answers.<id>` and set
+   `question` to `null`. Then re-run the phase as its step says (4, 6, or 8), passing every
+   recorded answer as `answers:` lines (`<id>: <question> => <answer>`) and, for apply and
+   fix, the blocked paths as `partial: <id>: <path>,<path>`. Every later run of a phase
+   that covers an id with recorded answers (a group or fix run again after a stop, on
+   resume, or for another question) gets that id's `answers:` lines too.
+5. **`Stop`** ends the run with outcome `blocked`, reported as the phase's step says.
+   `question` stays set, so the next run asks it again.
+
+With subagents, the re-run is a fresh subagent; without them, the phase runs inline
+again. Either way the question is asked here, between phases, never mid-phase.
+
 ## Usage
 
 ```
@@ -112,8 +139,22 @@ whose artifacts were already committed before `base`.
                  "fixed": 1, "deferred": 0 } ],
   "size": { "groups": 4, "tasks": 14, "lines": null, "files": null, "large": false },
   "stack": [ { "layer": 1, "branch": "...", "pr": 12, "state": "open" } ],
+  "question": { "phase": "apply|fix|plan", "id": "2.3", "text": "<question>",
+                "options": ["<option>", "<option>"], "files": ["<path>"] },
+  "answers": { "2.3": [ { "q": "<question>", "a": "<answer>" } ] },
   "blocker": null, "outcome": null }
 ```
+
+`question` is the open phase question, or `null` when none is open: the phase, the task
+id, finding id, or change name, the question text, its options (`[]` when open), and the
+paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers` keeps,
+per id, every question asked and its answer, in order; the length of an id's list is its
+question count. Both hold short user-facing text, not diffs, logs, or finding text.
+
+Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review
+round's number and `finding:` lines, unchanged, then the `commits:` line of each fix block
+of that round. Overwrite it when a review round returns and append to it after each fix
+block, so a fix question can be resumed in the same round.
 
 ### Resume
 
@@ -128,8 +169,24 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    unticked, or ticked tasks lack a commit), say exactly what differed and rebuild
    `tasks`, `groups`, and `phase` from `tasks.md` and git.
 3. The clean-tree check (step 1.5) still applies; the only acceptable leftovers are
-   inside the change folder.
-4. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
+   inside the change folder. When `question` is set, uncommitted changes in exactly the
+   paths in `question.files` are accepted too; any other path stops the run with outcome
+   `dirty_tree`, listing those paths.
+4. **Open question first.** When `question` is set, first check whether the user has
+   resolved it since: for apply, its task is done (step 1); for fix, a commit in
+   `<base-sha>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
+   `Finding:` line naming the finding's `<dimension> <file>:<line>`. If so, set `question`
+   to `null` without asking (for fix, append `commits: <finding id>=<sha>` to
+   `<change>.findings`) and continue at the recorded phase. Otherwise ask it again at the
+   phase question point ("Phase questions") before running any phase, then continue at the recorded
+   phase with the answer. When none of `question.files` still has changes (the user
+   discarded them), leave `partial:` out: the task or finding starts fresh, and the
+   answer still applies. For a fix question, re-run the fix phase of the round in
+   `<change>.findings` (step 8.4), taking the findings and their fix commits from that
+   file; never run a new review for it. When that file is missing, set `question` to `null`
+   and stop with outcome `blocked`: say the round's findings are lost and list
+   `question.files`, which the user commits or discards before running again.
+5. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
    ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
@@ -170,10 +227,10 @@ phase to resend.
 
 ## 4. Plan
 
-- **Description given:** run the `plan` phase. On `blocker: needs input`, ask the
-  planner's question as written (see "Asking the user"): when the blocker names 2 to 4
-  choices, they are the options; otherwise it is an open question. Re-run the plan phase
-  with the answer. Record `plan_commit`.
+- **Description given:** run the `plan` phase. On a question blocker (its id is the
+  change name), ask it at the phase question point ("Phase questions" under "Asking the
+  user") and re-run the plan phase with the answer. `Stop` ends the run with outcome
+  `blocked`. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
   `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
   write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
@@ -226,11 +283,18 @@ the group finished before the next one starts. Then:
 - `blocker: none` but `done` below `total` (the phase ended early): run the group again
   in a fresh phase, once; it skips the tasks already done. Still short: stop as
   `blocked` naming the unfinished tasks.
-- `verification: failed` or any blocker: stop. The task stays unticked and its work
+- **Question blocker** (`blocker: needs input: <id>: ...`): the task stays unticked and
+  its work uncommitted. Ask it at the phase question point ("Phase questions"), with the
+  block's `files:` as the blocked paths. On an answer other than `Stop`, run the same
+  group again with `answers:` and `partial: <id>: <files>`; it skips the tasks already
+  done and continues the blocked task from its uncommitted work. With subagents that is a
+  fresh subagent; without, the group runs inline again. This does not stop the run.
+- **`Stop` at that question**, `verification: failed`, or any other blocker (`plan:`,
+  `<id>: ticked but not done`, a failure): stop. The task stays unticked and its work
   uncommitted; record the blocker and report it, and tell the user that the next run
   needs that work finished and committed (with `Task: <id>` in the commit body), or
-  discarded, by them (the clean-tree check
-  stops otherwise). Outcome `blocked`.
+  discarded, by them (the clean-tree check stops otherwise; after `Stop` it accepts the
+  recorded paths and asks the question again, see "Resume"). Outcome `blocked`.
 
 ## 7. Dead code
 
@@ -245,15 +309,28 @@ they never stop the run.
 
 When every task is done, run up to 3 rounds. Round *k*:
 
-1. Run the `review` phase on the branch against `base`. Record its counts and `head`.
+1. Run the `review` phase on the branch against `base`. Record its counts and `head`,
+   and write its `finding:` lines to `<change>.findings` (see "State file").
 2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; the review phase is
    always told the change name, so `not_applicable` counts as not clean): stop
    the rounds; its minor findings go in the report.
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
 4. Otherwise run the `fix` phase with that round's `finding:` lines (and the task groups
-   when large is predicted, as in `briefs.md#fix`). A `blocker` (for example a finding needing a spec change)
-   stops the run with outcome `blocked`. Then start round *k+1* on the new head.
+   when large is predicted, as in `briefs.md#fix`). Append its `commits:` line to
+   `<change>.findings`. Then, by its `blocker`:
+   - **Question blocker** (`blocker: needs input: <finding id>: ...`): fixes of other
+     findings stay committed and only that finding's work is uncommitted. Ask it at the
+     phase question point ("Phase questions"), with the block's `files:` as the blocked
+     paths. On an answer other than `Stop`, run the fix phase of the same round again,
+     only for the round's findings with no fix commit yet (from the `commits:` of the
+     earlier fix blocks, kept in `<change>.findings`), with `answers:` and `partial: <finding id>: <files>`. With
+     subagents that is a fresh subagent; without, the fix phase runs inline again. The
+     re-run is not a new review round; repeat this step on its block.
+   - **`Stop` at that question**, or any other blocker (such as `spec:` for a finding
+     that needs a spec change, which is never asked): stop the run with outcome
+     `blocked`, reporting the blocker and any uncommitted paths.
+   - **`blocker: none`:** start round *k+1* on the new head.
 
 **Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
 `--workflow` is the opt-in: run each review round's step 1 as one Workflow, a `pipeline`

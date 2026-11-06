@@ -24,12 +24,26 @@ Rules for every phase:
 - Never edit the change's `proposal.md`, `design.md`, or `specs/` after the plan phase.
   When they turn out wrong, stop and report it as the `blocker`.
 - Never ask the user or call a question tool, and never wait for a reply. A choice you
-  cannot make becomes your `blocker`, naming the question; the orchestrator asks it.
+  cannot make ends the phase with a question blocker, on one line:
+  `blocker: needs input: <id>: <question> | <option> ; <option>`. `<id>` is the task id
+  (apply), the finding id (fix), or the change name (plan). Give 0, 2 or 3 options; with
+  0, drop the ` | ` part and the question is asked open. The orchestrator asks it and
+  re-runs the phase with the answer.
+- A conflict with the specs or design is never a question: it is a `plan:` blocker
+  (plan, apply) or a `spec:` blocker (fix). Any `blocker:` value other than
+  `needs input:` stops the run.
 
 ## plan
 
 **Inputs:** change name, `mode: new` with the user's description, or `mode: complete`
-(an existing change missing some artifacts), branch, path of this file.
+(an existing change missing some artifacts), branch, path of this file. On a re-run after
+a question, also `answers:` lines of `<change>: <question> => <answer>`.
+
+On a re-run with `answers:`, treat each answer as the decision the question asked for.
+When `openspec/changes/<change>/` exists, skip `openspec new change` and
+`openspec-propose`, revise the existing artifacts there where the answer changes them, and
+finish the CLI loop below for the artifacts that are not `done`. When it does not exist
+yet (the plan stopped before creating it), plan as for `mode: new`, using the answers.
 
 With `mode: complete`, skip creating the change and `openspec-propose`: run only the CLI
 loop below for the artifacts that are not `done`, leaving existing ones untouched. With
@@ -91,7 +105,15 @@ size: groups=<n> tasks=<n> large=yes|no   (predicted from tasks.md; no diff yet)
 
 **Inputs:** change name, group number, the group's task ids (in order), branch, base sha,
 path of this file. Artifact paths: `openspec/changes/<change>/{proposal,design,tasks}.md`
-and `specs/**/spec.md`.
+and `specs/**/spec.md`. On a re-run after a question, or when a task of the group has
+recorded answers, also:
+
+- `answers:` lines of `<id>: <question> => <answer>`. Treat each answer as the decision
+  for that task. An answer never overrides the specs or design: when one conflicts with
+  them, stop with the `plan:` blocker below.
+- `partial: <id>: <path>,<path>` (only on a re-run after a question): the working tree
+  holds that task's uncommitted work in those paths. Continue from it rather than
+  starting over; when those paths have no changes, start the task fresh.
 
 Read the change's proposal, design, specs, and `tasks.md` first. Then, for each task of
 the group, in order, finish the task before starting the next:
@@ -117,6 +139,10 @@ Stop the group at the first of:
   uncommitted; `verification: failed`, `blocker: <id>: <failure in one line>`
 - the specs or design are wrong or incomplete for this task: change nothing in them;
   leave the task's work uncommitted; `blocker: plan: <what conflicts>`
+- the task needs a choice you cannot make and the specs, design, and `answers` do not
+  settle it: leave the task unticked and its work uncommitted;
+  `blocker: needs input: <id>: <question> | <option> ; <option>` (the form in the rules
+  above), and list in `files:` every path you changed for that task
 
 ### Commit rhythm
 
@@ -143,9 +169,13 @@ tasks: <id>,<id>,<id> done=<n> total=<n>
 verification: passed | failed
 commits: <id>=<sha>,<id>=<sha>
 head: <sha>
+files: <path>,<path> | none
 blocker: none | <one line>
 -->
 ```
+
+`files:` lists the paths with the blocked task's uncommitted work; `none` when nothing
+was left uncommitted.
 
 ## deadcode
 
@@ -223,7 +253,14 @@ finding: r<round>.<n> <dimension> <severity> <file>:<line> | <summary> | <scenar
 
 **Inputs:** change name, branch, round number, the verified findings (the `finding:`
 lines from review, unchanged), `large_predicted: yes|no`, and when yes, the group of each
-task id (`groups: 1=1.1-1.3,2=2.1-2.4`).
+task id (`groups: 1=1.1-1.3,2=2.1-2.4`). On a re-run after a question, the findings are
+only those with no fix commit yet, plus:
+
+- `answers:` lines of `<id>: <question> => <answer>`, where `<id>` is a finding id. Treat
+  each answer as the decision for that finding. An answer never overrides the specs or
+  design: when one would need a spec change, use the `spec:` blocker below.
+- `partial: <id>: <path>,<path>`: the working tree holds that finding's uncommitted work
+  in those paths. Continue from it; when those paths have no changes, start fresh.
 
 For each critical or major finding, and each minor one that is cheap to fix:
 
@@ -232,6 +269,11 @@ For each critical or major finding, and each minor one that is cheap to fix:
 2. Never weaken tests to pass, and never edit specs, design, or proposal to match the
    code. A finding whose fix needs a spec change is not fixed: count it as deferred and
    set `blocker: spec: <finding id> <one line>`.
+   A finding with an open choice that the specs, design, and `answers` do not settle,
+   and that is not a spec change, is not deferred: leave its work uncommitted, set
+   `blocker: needs input: <finding id>: <question> | <option> ; <option>` (the form in
+   the rules above), list its changed paths in `files:`, and end the phase. Fixes of
+   other findings stay committed; leave only that finding's work uncommitted.
 3. Run the tests that cover the fix (and the suite when cheap). A fix whose tests fail
    after 3 attempts is reverted from the working tree (`git checkout -- <its files>`,
    only files you changed for it) and deferred.
@@ -254,9 +296,13 @@ fixed: <n>
 deferred: <n>
 commits: <finding-id>=<sha>,<finding-id>=<sha>
 head: <sha>
+files: <path>,<path> | none
 blocker: none | <one line>
 -->
 ```
+
+`files:` lists the paths with the blocked finding's uncommitted work; `none` when nothing
+was left uncommitted.
 
 ## stack
 
