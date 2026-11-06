@@ -65,6 +65,10 @@ The skill SHALL keep run state in `.git/ep-orchestrate/<change>.json`, updated a
 - **WHEN** a resume with an open question finds uncommitted changes outside the recorded paths and the change folder
 - **THEN** the skill stops with outcome `dirty_tree` and lists those paths
 
+#### Scenario: Resume at a fix question
+- **WHEN** the skill is run again on a change whose state file records an unanswered fix question
+- **THEN** it takes that round's findings and fix commits from `.git/ep-orchestrate/<change>.findings`, which keeps finding text out of the state file, and re-runs the fix phase of the same round with the recorded finding ids instead of starting a new review; when that file is missing, it stops with outcome `blocked` and says the round's findings are lost
+
 ### Requirement: Questions only from the driving session
 Only the driving session SHALL ask the user questions. Phase workers SHALL NOT call the question tool or wait for the user; a phase that needs an answer SHALL end with a question blocker (`blocker: needs input: <id>: <question>`, optionally followed by 2 or 3 options), and the driving session SHALL ask it and pass the answer into a re-run of that phase. Blockers that are not questions (failed verification, plan conflicts, findings that need a spec change) SHALL stop the run without a question. A task or finding SHALL come back with a question at most twice; a third question stops the run with outcome `blocked`. Questions that another skill asks under its own rules (such as `ep-stack`'s plan approval) SHALL stay with that skill.
 
