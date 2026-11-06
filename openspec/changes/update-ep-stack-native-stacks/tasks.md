@@ -38,7 +38,7 @@
   create or add. Add `mode:` and `stack:` to the `ep-stack-summary` block (D9). Verify: the
   "Link an existing stack" scenarios map to text, and the summary block in SKILL.md lists
   `mode` and `stack`.
-- [ ] 1.7 Update the `ep-stack` row in `README.md` to match the new frontmatter description.
+- [x] 1.7 Update the `ep-stack` row in `README.md` to match the new frontmatter description.
   Verify by comparing the two texts.
 
 ## 2. ep-babysit-pr stacked merge
