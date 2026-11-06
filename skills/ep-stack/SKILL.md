@@ -11,7 +11,8 @@ it moves.
 ## Hard rules
 
 - **Plan first.** Show what will be created or changed and wait for approval before
-  creating branches or PRs, changing PR bases, or pushing more than one branch.
+  creating branches or PRs, creating or extending a GitHub stack, changing PR bases, or
+  pushing more than one branch.
 - **No attribution.** PR titles, bodies, and commits never contain model or tool
   attribution (no "Generated with" footer, no `Co-Authored-By` naming a model or tool).
   This overrides any default of the host agent.
@@ -133,6 +134,10 @@ it.
 Order comes from the list; cross-check it with the base chain (each PR's `baseRefName` is
 the previous layer's head). When they disagree, report it and trust GitHub's bases.
 
+The body section is written in both modes. In native mode the GitHub stack is the source
+of truth: when it and the body section disagree, report the difference and trust the
+GitHub stack.
+
 Branch names: `<branch>-<i>-<slug>` (for example `feature-2-login`), where `<slug>` is a
 short kebab-case summary of the layer, unless the user names the branches.
 
@@ -156,12 +161,16 @@ short kebab-case summary of the layer, unless the user names the branches.
 3. **Show the plan** and wait for approval or edits:
 
    ```
+   Mode: native
    Base: main
    1. feature-1-token-model   base: main                  commits: a1b2c3d, d4e5f6a
    2. feature-2-login         base: feature-1-token-model commits: 0718293, 9a8b7c6
    3. feature-3-docs          base: feature-2-login       commits: 5e4d3c2
-   Will push 3 branches and open 3 PRs.
+   Will push 3 branches, open 3 PRs, and link them as one GitHub stack.
    ```
+
+   In plain-branch mode the plan says `Mode: branches` (with the probe's reason) and ends
+   at `open 3 PRs.`
 
 4. **Create** after approval. Each layer branch points at the last commit of its layer, so
    no commit is rewritten:
@@ -193,7 +202,17 @@ short kebab-case summary of the layer, unless the user names the branches.
 
    After all PRs exist, update every body with the complete list
    (`gh pr edit <n> --body-file <file>`), so each PR lists the whole stack and marks itself.
-6. Leave the original branch untouched. Tell the user it can be deleted once the stack is
+6. **Link** (native mode only). Link the PRs as one GitHub stack, bottom to top:
+
+   ```bash
+   gh api -X POST -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks" \
+     -F 'pull_requests[]=101' -F 'pull_requests[]=102' -F 'pull_requests[]=103' --jq .number
+   ```
+
+   Report the stack number. When GitHub rejects the call (422, 404, or any other error),
+   keep the PRs and their body sections as a plain stack, roll nothing back, warn with the
+   endpoint and status, and report `mode: branches`.
+7. Leave the original branch untouched. Tell the user it can be deleted once the stack is
    up; do not delete it.
 
 Outcome `planned` when stopped at the plan, `created` after creation.

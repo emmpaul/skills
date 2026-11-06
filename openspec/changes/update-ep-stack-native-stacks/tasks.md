@@ -12,7 +12,7 @@
   Verify: every scenario of "Native stack detection" in
   `openspec/changes/update-ep-stack-native-stacks/specs/ep-stack/spec.md` maps to text, and
   `grep -n "gh extension install" skills/ep-stack/SKILL.md` finds nothing.
-- [ ] 1.2 Update `split`:
+- [x] 1.2 Update `split`:
   - The plan line names the GitHub stack, and the PRs are linked bottom-up through
     `POST .../stacks` after they are opened.
   - On a rejected link, the PRs stay a plain stack and the skill warns.
