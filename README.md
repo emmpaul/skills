@@ -17,6 +17,7 @@ comments.
 | `ep-fixup` | Attaches fixes to the branch commits they correct as `fixup!` commits, and autosquashes only on request: unpushed commits freely, pushed ones after confirmation with `--force-with-lease`. |
 | `ep-ci-debug` | Diagnoses failing CI checks from their logs, classifies the cause (code, test, flaky-infra, config, secret), reproduces locally, and fixes it without weakening tests; re-runs infra failures once. |
 | `ep-stack` | Splits a branch into a stack of dependent PRs after you approve the plan, shows stack status, syncs layers bottom up with merges, and retargets the next PR when a parent merges. |
+| `ep-orchestrate` | Runs one OpenSpec change end to end: plans it, scores the plan and implements without asking only at 85 or more with nothing hard to undo, commits each task on its own, removes dead code the branch added, and runs up to 3 review and fix rounds, each phase in a fresh subagent with a resumable state file. Offers large changes as a stack of PRs landed with `ep-stack` and `ep-babysit-pr` after approval. |
 
 ## Install
 
@@ -26,17 +27,17 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 # Interactive: pick from the skills found in the repo
 npx skills add emmpaul/skills
 
-# All eight ep-* skills
-npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
+# All nine ep-* skills
+npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
 
 # A single skill
 npx skills add emmpaul/skills --skill ep-commit
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
+npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack
+npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
@@ -48,7 +49,7 @@ Remove with `npx skills remove ep-<name>`.
 
 - `git`
 - `gh`, authenticated (`gh auth login`)
-- Optional: `openspec` CLI, for OpenSpec-aware behavior
+- Optional: `openspec` CLI, for OpenSpec-aware behavior (required by `ep-orchestrate`)
 - Optional: `bash`, to run the bundled context probe (`scripts/context.sh`); without it, skills run the equivalent commands inline
 
 ## Safety: `ep-babysit-pr` auto-merge
