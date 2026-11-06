@@ -59,7 +59,7 @@
 
 ## 3. Integration
 
-- [ ] 3.1 Run `scripts/check-shared.sh` and verify that it passes. No shared file changes,
+- [x] 3.1 Run `scripts/check-shared.sh` and verify that it passes. No shared file changes,
   but the skill folders must stay in sync.
 
 ## Manual check (run by the user after review; not a tracked task)
