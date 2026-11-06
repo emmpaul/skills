@@ -81,8 +81,9 @@ write it after every action.
 
 `last_review.head` is the commit the latest review round ran on and `last_review.summary`
 the raw `ep-review-summary` block, so a later run can score without re-reviewing.
-`merge_async` is the UUID of a requested async merge of a stacked PR (step 7), so later
-ticks read its result instead of requesting another merge.
+`merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
+`"queued"` when GitHub answered that the PR was already merged or queued, so later ticks
+read its result or check the PR instead of requesting another merge.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
 state file missing fields, add them with defaults; when own post ids are unknown, treat
 posts that reference commits you pushed as your own.
@@ -325,13 +326,17 @@ bottom layer merges:
    open PR sits below this one, do not merge: report the lower open PRs, in order, as the
    ones that must merge first, set `outcome: stopped: mid-stack` and stop. Never merge a
    PR below this one.
-2. When this PR is the lowest open PR, request the async merge pinned to
-   `last_review.head`, with the repository's method and `bypass_rules=false`. Save the
-   UUID in `merge_async` (a 409 answer returns the UUID of the merge already pending).
-   A 200 answer has no UUID: the PR is already merged or already in the merge queue. Do
-   not request the merge again. Confirm with `gh pr view <n> --json state`: `MERGED` means
-   the PR is merged; otherwise wait as on `BLOCKED`.
-3. Read the result once per tick:
+2. When this PR is the lowest open PR and `merge_async` is null, request the async merge
+   pinned to `last_review.head`, with the repository's method and `bypass_rules=false`.
+   Save the UUID in `merge_async` (a 409 answer returns the UUID of the merge already
+   pending). A 200 answer has no UUID: the PR is already merged or already in the merge
+   queue. Save `"queued"` in `merge_async`, so no later tick requests the merge again.
+   When `merge_async` is already set, skip the request and go to step 3.
+3. When `merge_async` is `"queued"`, check the PR once per tick instead
+   (`references/score.md`, "Stacked PRs"): `MERGED` means the PR is merged; still in the
+   merge queue, wait as on `BLOCKED`; open and no longer in the queue (the queue ejected
+   it), report it, set `outcome: stopped: left merge queue` and stop. Do not request the
+   merge again. Otherwise read the result of the UUID once per tick:
    - `pending`: next tick.
    - `enqueued`: the merge queue holds it. Wait as on `BLOCKED`.
    - `merged`: confirm with `gh pr view <n> --json state` (`MERGED`). Then the PR is merged.
@@ -357,7 +362,7 @@ Otherwise:
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; the PR is mid-stack or its async merge failed (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; the PR is mid-stack, its async merge failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 

@@ -143,7 +143,18 @@ gh api -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/
 
 A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
 UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;
-it has no UUID, so do not request the merge again (SKILL.md step 7). Otherwise read the result:
+it has no UUID, so save `"queued"` in `merge_async` and never request the merge again
+(SKILL.md step 7). On later ticks, check the PR instead:
+
+```bash
+gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
+  pullRequest(number:$n){state mergeQueueEntry{state}}}}' -F o=<owner> -F r=<repo> -F n=<n>
+```
+
+`state: MERGED` means merged. A non-null `mergeQueueEntry` means it is still queued. An
+open PR with a null `mergeQueueEntry` has left the queue.
+
+With a UUID, read the result:
 
 ```bash
 gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"
