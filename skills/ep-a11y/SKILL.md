@@ -83,7 +83,8 @@ For a PR whose head branch is not checked out, read files at the PR head without
 the working tree: `git fetch origin pull/<n>/head` (or the head branch), then
 `git show <headRefOid>:<path>`, `git ls-tree` and `git grep <headRefOid>`. Look for the
 project's a11y tests (step 5) in the PR head too, and run them only when that head is
-checked out.
+checked out. The same holds for a branch target: run the project's tests only when that
+branch is checked out, since otherwise they would test other code.
 
 Label the target by what was audited, in both the report heading and the summary:
 `diff` for uncommitted changes, `branch:<name>` for a branch (including the clean-tree
@@ -189,9 +190,9 @@ settle, filtered to what the audited files touch, plus candidates moved there in
 
 Without `--fix`, skip this step.
 
-- **PR target:** fix only when the current branch equals the PR's `headRefName` and
-  `HEAD` equals its `headRefOid` (a fork's `main` or a stale local branch fails this).
-  Otherwise edit nothing, and say: "fixes need PR #<n>'s head `<headRefName>` at
+- **PR target:** fix only when `HEAD` equals the PR's `headRefOid`, whatever the local
+  branch is called (`gh pr checkout <n>` may name it `<owner>/<branch>`; a local `main` or
+  a stale branch fails this). Otherwise edit nothing, and say: "fixes need PR #<n>'s head
   `<headRefOid>` checked out" (for example with `gh pr checkout <n>`).
 - **Branch target:** fix only when the current branch is that branch. Otherwise edit
   nothing, and say: "fixes need branch `<name>` checked out".
