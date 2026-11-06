@@ -212,7 +212,8 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
      line. Earlier groups are never reviewed after the fact, which also covers state
      files from before group passes.
    - An entry with `fixed: null` continues at step 6's group pass step 2, with the
-     findings and fix commits from `<change>.findings` when its label is `g<n>`. When
+     findings and fix commits from `<change>.findings` when its label is `g<n>`; its
+     step 3 then fixes only findings with no fix commit yet. When
      that file is missing or has another label, run the pass again: it is read-only,
      and its step 1 replaces that entry instead of appending one.
 
@@ -348,9 +349,11 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
    `g<n>` and its `finding:` lines.
 2. **Clean** (the step 8.2 test: `critical=0 major=0` and `spec_conformance: passed`):
    run no fix phase; set `fixed: 0` and `unfixed` to the minor count; go to 4.
-3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines, and
-   `large_predicted` and `groups:` as in step 8. Append its `commits:` line to
-   `<change>.findings`. Then, by its `blocker`, as in step 8.4:
+3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines with
+   no fix commit yet (all of them on a fresh pass; on resume, those not named in the
+   `commits:` lines of `<change>.findings`), and `large_predicted` and `groups:` as in
+   step 8. When every finding already has a fix commit, run no fix phase and go to
+   `blocker: none` below. Append its `commits:` line to `<change>.findings`. Then, by its `blocker`, as in step 8.4:
    - **Question blocker** (`blocker: needs input: g<n>.<m>: ...`): ask it at the phase
      question point and, on an answer other than `Stop`, run the fix phase again for the
      pass's findings with no fix commit yet, with `answers:` and `partial:`. The re-run
