@@ -371,7 +371,8 @@ they never stop the run.
 
 ## 8. Review rounds
 
-When every task is done, run up to 3 rounds. Round *k*:
+When every task is done, its group passes are finished, and the dead-code phase has run,
+run up to 3 rounds over the whole branch; group passes never replace them. Round *k*:
 
 1. Run the `review` phase on the branch against `base`. Record its counts and `head`,
    and write its `finding:` lines to `<change>.findings` (see "State file").
@@ -402,8 +403,9 @@ over the four dimensions (each agent gets its checklist from `briefs.md#review-f
 the change name, and the base and head shas), feeding each dimension's findings to verify
 agents that try to disprove them: at most 5 verify agents in total, each taking a batch
 of findings across dimensions, so the Workflow has at most 9 agents. It returns the confirmed findings and counts; build the
-`finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan
-and apply never run as a Workflow. With `--workflow` but no Workflow tool, say so and use
+`finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan,
+apply, and group passes and their fixes never run as a Workflow; `--workflow` applies
+only to these rounds. With `--workflow` but no Workflow tool, say so and use
 the subagent or inline path.
 
 ## 9. Size and delivery
@@ -446,7 +448,8 @@ all layers merged gives `stacked_merged`.
 
 On every stop, print: change, branch, outcome, the gate result, every commit made this
 run (`git log --format='%h %s' <base-sha>..HEAD`, once `base` exists), the dead-code
-removals and reported items, review rounds with counts, remaining or deferred findings, the size classification, stack layers if any, what the user should
+removals and reported items, each group pass (group, counts, `fixed`, `unfixed`) with the
+lines of `<change>.group-findings`, review rounds with counts, remaining or deferred findings, the size classification, stack layers if any, what the user should
 do next, and the resume command when the run is unfinished. Set `outcome` in the state
 file when it exists (early stops in step 1 create none). Then end with:
 
@@ -459,6 +462,7 @@ outcome: needs_openspec | dirty_tree | paused_at_gate | blocked | reviewed | rev
 gate: score=<n> decision=<auto|approved|paused|none> hard_to_undo=<none|element ; element>
 tasks: done=<n> total=<n>
 deadcode: removed=<n> reported=<n>
+group_reviews: passes=<n> fixed=<n> unfixed=<n>
 reviews: rounds=<n> last=critical=<n>,major=<n>,minor=<n> spec=<passed|failed|not_applicable>
 remaining: <ids of unfixed critical or major findings, or none>
 size: groups=<n> tasks=<n> lines=<n|na> files=<n|na> large=<yes|no>
@@ -469,4 +473,6 @@ blocker: none | <one line>
 
 One `layer:` line per stack layer, bottom-up; omit `layer:` lines when there is no stack.
 Any value not known yet is written `na` (for example `gate: score=na decision=none
-hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`).
+hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`). `group_reviews:` counts
+the `group_reviews` entries, and sums `fixed` and `unfixed` over the entries whose fix
+phase ended; it is `passes=0 fixed=0 unfixed=0` before any pass, never `na`.

@@ -53,7 +53,7 @@
 
   Verify: the "Interrupted before the pass", "Resume at a group fix question", and "State
   file from before group passes" scenarios map to the text.
-- [ ] 2.4 In `SKILL.md`, edit two places (D1, D10, D12):
+- [x] 2.4 In `SKILL.md`, edit two places (D1, D10, D12):
   - step 8 and its Workflow path: state that the end-of-run rounds still run after the
     dead-code phase, and that group passes never run as a Workflow
   - step 10: add the group passes and the `<change>.group-findings` lines to the report,
