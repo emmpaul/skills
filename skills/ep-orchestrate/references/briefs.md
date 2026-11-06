@@ -26,7 +26,12 @@ Rules for every phase:
 
 ## plan
 
-**Inputs:** change name, the user's description, branch, path of this file.
+**Inputs:** change name, `mode: new` with the user's description, or `mode: complete`
+(an existing change missing some artifacts), branch, path of this file.
+
+With `mode: complete`, skip creating the change and `openspec-propose`: run only the CLI
+loop below for the artifacts that are not `done`, leaving existing ones untouched. With
+`mode: new`:
 
 1. Create the change and every artifact apply needs:
    - **If the skill `openspec-propose` is available to you**, follow it for this change
@@ -191,8 +196,10 @@ head: <sha>
 Review the branch against its base. Post nothing to GitHub.
 
 - **If the skill `ep-review` is available to you** and the base sha equals
-  `git merge-base <branch> <default>` (what `ep-review <branch>` diffs against), invoke
-  `ep-review <branch>` (no `--comment`).
+  `git merge-base <branch> origin/<default>` (`<default>` when there is no remote; this
+  is what `ep-review <branch>` diffs against), invoke
+  `ep-review <branch>` (no `--comment`) and tell it the change name, so spec conformance
+  runs against it.
 - **Otherwise** (not installed, or the base sha differs, for example a run started on a
   branch that already had commits) follow [review](#review-fallback) with the base
   sha.
@@ -347,7 +354,9 @@ you**. Read-only: change no files and post nothing.
    - **spec:** each requirement implemented (missing: critical if core, else major); no
      code path contradicts a scenario's THEN (major); outward behavior no requirement
      describes is out-of-spec; each scenario tested or covered by a documented
-     verification (an untested scenario belongs here, not under tests); removed
+     verification (an untested scenario belongs here, not under tests); out-of-spec
+     behavior is major when it has outward effects, else minor; an untested scenario is
+     major when it guards a destructive or outward action, else minor; removed
      requirements really gone; ticked tasks really done (major if not).
    - **tests:** changed behavior has tests that would fail without the change;
      assertions check outcomes; bug fixes have a regression test; edge and error paths

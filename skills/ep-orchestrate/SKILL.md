@@ -82,7 +82,7 @@ whose artifacts were already committed before `base`.
   "started_at": "<iso>", "updated_at": "<iso>",
   "flags": { "yes": false, "workflow": false },
   "gate": { "score": 90, "unmet": [], "hard_to_undo": [], "decision": "auto|approved|paused",
-            "artifacts": "<tree sha of openspec/changes/<change> when scored>" },
+            "artifacts": "<plan fingerprint when scored>" },
   "plan_commit": "<sha|null>",
   "deadcode": { "removed": 0, "reported": 0, "head": "<sha>" },
   "tasks": { "1.1": "<sha>" },
@@ -109,9 +109,9 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
 3. The clean-tree check (step 1.5) still applies; the only acceptable leftovers are
    inside the change folder.
 4. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
-   a gate decision of `auto` or `approved` only while the change folder is unchanged
-   since it was scored (`git rev-parse HEAD:openspec/changes/<change>` equals
-   `gate.artifacts`; otherwise re-run the gate), re-ask a `paused` one, continue apply at
+   a gate decision of `auto` or `approved` only while the plan is unchanged since it was
+   scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
+   ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
    the first task that is not done, and run the dead-code check unless `deadcode` is
    recorded. Stack runs continue at the first unmerged layer.
 
@@ -150,8 +150,8 @@ phase to resend.
 - **Description given:** run the `plan` phase. On `blocker: needs input`, ask the user
   the question and re-run. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
-  `applyRequires` artifact done; otherwise run the `plan` phase to complete the missing
-  ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
+  `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
+  write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
   are committed on their own as `docs(<change>): propose <change>` (briefs `#commit`
   rules) before any code changes.
 
@@ -185,6 +185,9 @@ under `tasks`, then check: every done task has a commit whose `Task:` line names
 the group finished before the next one starts. Then:
 
 - `blocker: none` and all done: mark the group done; next group.
+- `blocker: none` but `done` below `total` (the phase ended early): run the group again
+  in a fresh phase, once; it skips the tasks already done. Still short: stop as
+  `blocked` naming the unfinished tasks.
 - `verification: failed` or any blocker: stop. The task stays unticked and its work
   uncommitted; record the blocker and report it, and tell the user that the next run
   needs that work finished and committed, or discarded, by them (the clean-tree check
@@ -204,8 +207,8 @@ they never stop the run.
 When every task is done, run up to 3 rounds. Round *k*:
 
 1. Run the `review` phase on the branch against `base`. Record its counts and `head`.
-2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; `not_applicable`
-   means the review did not link the change, so re-run it naming the change): stop
+2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; the review phase is
+   always told the change name, so `not_applicable` counts as not clean): stop
    the rounds; its minor findings go in the report.
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
@@ -239,14 +242,14 @@ Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
 - `gh` missing or unauthenticated, or `ep-stack` or `ep-babysit-pr` not available to you:
   push nothing. Report the change as large, name the missing piece, and recommend
   installing it (`npx skills add emmpaul/skills --skill <name>`) or splitting by hand.
-  Outcome `reviewed`.
+  The outcome stays what step 8 gave (`reviewed` or `review_limit`).
 - Otherwise offer stacked delivery and follow `briefs.md#stack`. Layers are task groups
   (adjacent small groups may share one, so each layer stays under the diff thresholds);
   the plan commit, when it is on the branch, goes in layer 1. Gates:
 
 | Action | Gate |
 |---|---|
-| create stack branches and PRs | the user approves the plan `ep-stack split` shows; declining pushes nothing and the run ends as regular (`reviewed`) |
+| create stack branches and PRs | the user approves the plan `ep-stack split` shows; declining pushes nothing and the run ends as regular (outcome from step 8) |
 | babysit | only the bottom open layer, one at a time |
 | retarget the next PR | after `gh pr view` shows the parent `MERGED`; `ep-stack retarget`'s own confirmation applies |
 | merge a layer | only `ep-babysit-pr`, under its hard gates and score ≥ 85 |

@@ -131,15 +131,28 @@ One place for the numbers stacked delivery uses:
   git diff --numstat <base-sha>...HEAD -- . ':(exclude,glob)openspec/**' \
     ':(exclude,glob)**/*.lock' ':(exclude,glob)**/package-lock.json' \
     ':(exclude,glob)**/pnpm-lock.yaml' ':(exclude,glob)**/go.sum'
+  ```
 
   (`glob` magic makes `**/` match the repository root too, so root lockfiles are
   excluded.)
-  ```
 
   Sum the first two columns for lines; count rows for files.
 
 A change is large when either holds. Report the classification with the four numbers
 (groups, tasks, lines, files).
+
+## Plan fingerprint
+
+The gate decision belongs to the plan it scored. Its fingerprint hashes the change's
+artifacts with every task checkbox reset, so ticks made by apply do not change it but
+any edit to the plan does:
+
+```bash
+c=openspec/changes/<change>
+{ git ls-tree -r HEAD -- "$c" | grep -v "$c/tasks.md"
+  git show "HEAD:$c/tasks.md" | sed 's/^\([[:space:]]*\)- \[[xX]\]/\1- [ ]/'
+} | git hash-object --stdin
+```
 
 ## Report format
 
