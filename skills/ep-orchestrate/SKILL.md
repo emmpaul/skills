@@ -134,7 +134,9 @@ whose artifacts were already committed before `base`.
   "plan_commit": "<sha|null>",
   "deadcode": { "removed": 0, "reported": 0, "head": "<sha>" },
   "tasks": { "1.1": "<sha>" },
-  "groups": [ { "n": 1, "status": "done|in_progress|pending" } ],
+  "groups": [ { "n": 1, "status": "done|reviewing|in_progress|pending", "start": "<sha>" } ],
+  "group_reviews": [ { "group": 1, "critical": 0, "major": 1, "minor": 2, "spec": "passed",
+                       "head": "<sha>", "fixed": 1, "unfixed": 2 } ],
   "reviews": [ { "round": 1, "critical": 0, "major": 1, "minor": 2, "spec": "passed", "head": "<sha>",
                  "fixed": 1, "deferred": 0 } ],
   "size": { "groups": 4, "tasks": 14, "lines": null, "files": null, "large": false },
@@ -145,16 +147,29 @@ whose artifacts were already committed before `base`.
   "blocker": null, "outcome": null }
 ```
 
+`groups[].start` is `git rev-parse HEAD` just before the group's first apply phase. A
+group is `reviewing` once its tasks are all done and until its review pass, and its fix
+phase when one runs, finish; only then is it `done`. `group_reviews` holds one entry per
+group pass (step 6): its counts and `head`, then `fixed` and `unfixed`, both `null` until
+the pass's fix phase ends (with no fix phase, `fixed` is 0 and `unfixed` the minor count).
+`phase` stays `apply` while group passes run.
+
 `question` is the open phase question, or `null` when none is open: the phase, the task
 id, finding id, or change name, the question text, its options (`[]` when open), and the
 paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers` keeps,
 per id, every question asked and its answer, in order; the length of an id's list is its
 question count. Both hold short user-facing text, not diffs, logs, or finding text.
 
-Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review
-round's number and `finding:` lines, unchanged, then the `commits:` line of each fix block
-of that round. Overwrite it when a review round returns and append to it after each fix
-block, so a fix question can be resumed in the same round.
+Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review's
+label (the round number `<k>`, or `g<n>` for the pass after group `<n>`) and its
+`finding:` lines, unchanged, then the `commits:` line of each fix block of that review.
+Overwrite it when a review round or a group pass returns and append to it after each fix
+block, so a fix question can be resumed in the same review. Step 8's first round
+overwrites the last group pass's file.
+
+`.git/ep-orchestrate/<change>.group-findings` keeps the group passes' findings for the
+report: when a group pass ends (after its fix phase, when one runs), append its label and
+the `finding:` lines that have no fix commit, which are its minor and deferred findings.
 
 ### Resume
 

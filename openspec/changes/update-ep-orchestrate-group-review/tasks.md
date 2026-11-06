@@ -21,7 +21,7 @@
 
 ## 2. Orchestrator
 
-- [ ] 2.1 In `skills/ep-orchestrate/SKILL.md`, "State file", make three changes (D7, D8):
+- [x] 2.1 In `skills/ep-orchestrate/SKILL.md`, "State file", make three changes (D7, D8):
   - add `start` and the `reviewing` status to `groups[]`
   - add the `group_reviews` array to the JSON example
   - describe `.git/ep-orchestrate/<change>.group-findings`, and note that a group pass
