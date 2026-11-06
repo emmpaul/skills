@@ -523,9 +523,13 @@ def diff_trees(old, new):
     return added, removed, changed
 
 
-def md_files(tree):
-    return {p.relative_to(tree).as_posix(): p.read_bytes()
-            for p in sorted(Path(tree).rglob("*.md"))} if Path(tree).is_dir() else {}
+def md_files(tree, label):
+    """Generated Markdown by path, with the source label (which only names the input)
+    replaced, so a renamed but identical source compares equal."""
+    if not Path(tree).is_dir():
+        return {}
+    return {p.relative_to(tree).as_posix(): p.read_bytes().replace(label.encode(), b"<source>")
+            for p in sorted(Path(tree).rglob("*.md"))}
 
 
 def numkey(n):
@@ -591,7 +595,8 @@ def cmd_update(args):
             old_idx = parse_index((out / "index.md").read_text(encoding="utf-8")) if (out / "index.md").is_file() else {}
             added, removed, changed = diff_trees(out, tmp)
             # also catches generator changes that alter output for an unchanged source
-            same_output = md_files(out) == md_files(tmp)
+            same_output = (md_files(out, str(old.get("source", "")) or "<none>")
+                           == md_files(tmp, source))
             if same_source and same_output:
                 print(f"up to date: {source} matches {rel(mf)}")
                 return 0
@@ -719,7 +724,9 @@ def cmd_check(args):
     try:
         manifest = json.loads(mf.read_text(encoding="utf-8"))
         files = manifest["files"]
-    except (OSError, ValueError, KeyError) as e:
+        if not isinstance(files, dict):
+            raise ValueError("'files' is not an object")
+    except (OSError, ValueError, KeyError, TypeError) as e:
         print(f"error: cannot read {rel(mf)}: {e}; run {GENERATOR} update", file=sys.stderr)
         return 1
 

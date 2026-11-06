@@ -561,6 +561,26 @@ class ReviewRound2Test(Base):
                 wcag.read_source("https://www.w3.org/WAI/WCAG22/wcag.json")
 
 
+class ReviewRound3Test(Base):
+    def test_check_rejects_malformed_manifest_without_traceback(self):
+        self.generate()
+        for body in ("[]", '"x"', '{"files": []}', '{"files": null}'):
+            (self.out / "manifest.json").write_text(body)
+            with self.subTest(body=body):
+                r = self.check()
+                self.assertEqual(r.returncode, 1)
+                self.assertIn("cannot read", r.stderr)
+                self.assertNotIn("Traceback", r.stderr)
+
+    def test_renamed_identical_source_is_up_to_date(self):
+        self.generate()
+        copy = self.tmp / "copy-of-wcag.json"
+        copy.write_bytes(MINI.read_bytes())
+        r = self.update(copy, "--dry-run")
+        self.assertIn("up to date", r.stdout)
+        self.assertNotIn("generator changed", r.stdout)
+
+
 class CitationTest(unittest.TestCase):
     INDEX = {"4.1.2": {"handle": "Name, Role, Value", "level": "A", "obsolete": False, "file": ""},
              "4.1.1": {"handle": "Parsing", "level": "", "obsolete": True, "file": ""}}
