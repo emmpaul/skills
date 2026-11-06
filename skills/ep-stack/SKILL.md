@@ -307,7 +307,8 @@ Outcome `synced`.
 
 ## retarget
 
-When a layer's PR has merged:
+When a layer's PR has merged. In native mode, follow **Native retarget** below; the steps
+here are the plain-branch retarget.
 
 1. Run `status`. Find each merged layer and the next open layer above it.
 2. Show the change, including every branch that will be pushed by the sync in step 3, and
@@ -331,6 +332,25 @@ When a layer's PR has merged:
    history looks doubled.
 4. Update the stack section in every remaining PR body: mark merged layers as merged and
    keep the order.
+
+### Native retarget
+
+GitHub retargets and rebases the layers above a merged PR itself, so the skill checks
+that work and changes no base.
+
+1. Run `status`. Find each merged layer and the next open layer above it.
+2. Check that the next PR's `baseRefName` is now the merged PR's `baseRefName`
+   (`gh pr view <n> --json baseRefName`). When it still names the merged branch, wait
+   about 30 seconds and check once more.
+3. **GitHub retargeted:** refresh every remaining local layer branch, bottom-up (Refresh a
+   layer), and run no merge-sync: GitHub has already rebased the layer onto its new base.
+   No confirmation is needed, since nothing is pushed and no base is edited.
+4. **GitHub did not retarget:** report the PR and the base it still has, then offer the
+   plain retarget (steps 2 to 4 above), which changes the base only after the user
+   confirms.
+5. Update the stack section in every remaining PR body, as in step 4 above (this edits
+   only the bodies). Report each next PR's new base, for example `#102 base: main (set by
+   GitHub)`.
 
 Outcome `retargeted`.
 

@@ -30,7 +30,7 @@
   scenarios map to text. Also verify in a scratch local repo that `git cherry` shows no `+`
   line after the remote branch is rebased with identical patches, and shows a `+` line after
   a local-only commit is added.
-- [ ] 1.5 Update `retarget` for native mode (D4): check the retarget GitHub made, re-check
+- [x] 1.5 Update `retarget` for native mode (D4): check the retarget GitHub made, re-check
   once, offer the gated plain retarget when GitHub did not retarget, refresh local branches,
   update the body sections, and run no merge-sync. Verify: the "Retarget on parent merge"
   scenarios map to text.
