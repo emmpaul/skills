@@ -104,14 +104,15 @@ size: groups=<n> tasks=<n> large=yes|no   (predicted from tasks.md; no diff yet)
 
 **Inputs:** change name, group number, the group's task ids (in order), branch, base sha,
 path of this file. Artifact paths: `openspec/changes/<change>/{proposal,design,tasks}.md`
-and `specs/**/spec.md`. On a re-run after a question, also:
+and `specs/**/spec.md`. On a re-run after a question, or when a task of the group has
+recorded answers, also:
 
 - `answers:` lines of `<id>: <question> => <answer>`. Treat each answer as the decision
   for that task. An answer never overrides the specs or design: when one conflicts with
   them, stop with the `plan:` blocker below.
-- `partial: <id>: <path>,<path>`: the working tree holds that task's uncommitted work in
-  those paths. Continue from it rather than starting over; when those paths have no
-  changes, start the task fresh.
+- `partial: <id>: <path>,<path>` (only on a re-run after a question): the working tree
+  holds that task's uncommitted work in those paths. Continue from it rather than
+  starting over; when those paths have no changes, start the task fresh.
 
 Read the change's proposal, design, specs, and `tasks.md` first. Then, for each task of
 the group, in order, finish the task before starting the next:
