@@ -11,7 +11,7 @@
   rules, and the "Phase subagent needs an answer" scenario in
   `openspec/changes/update-ep-orchestrate-blocker-questions/specs/ep-orchestrate/spec.md`
   maps to it.
-- [ ] 1.2 In `briefs.md#apply`, make three changes (D2, D3):
+- [x] 1.2 In `briefs.md#apply`, make three changes (D2, D3):
   - add the inputs `answers:` (lines of `<id>: <question> => <answer>`) and the
     partial-work paths for a task being re-run
   - add a stop condition: a choice the task cannot make, which leaves the task unticked

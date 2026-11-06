@@ -98,7 +98,14 @@ size: groups=<n> tasks=<n> large=yes|no   (predicted from tasks.md; no diff yet)
 
 **Inputs:** change name, group number, the group's task ids (in order), branch, base sha,
 path of this file. Artifact paths: `openspec/changes/<change>/{proposal,design,tasks}.md`
-and `specs/**/spec.md`.
+and `specs/**/spec.md`. On a re-run after a question, also:
+
+- `answers:` lines of `<id>: <question> => <answer>`. Treat each answer as the decision
+  for that task. An answer never overrides the specs or design: when one conflicts with
+  them, stop with the `plan:` blocker below.
+- `partial: <id>: <path>,<path>`: the working tree holds that task's uncommitted work in
+  those paths. Continue from it rather than starting over; when those paths have no
+  changes, start the task fresh.
 
 Read the change's proposal, design, specs, and `tasks.md` first. Then, for each task of
 the group, in order, finish the task before starting the next:
@@ -124,6 +131,10 @@ Stop the group at the first of:
   uncommitted; `verification: failed`, `blocker: <id>: <failure in one line>`
 - the specs or design are wrong or incomplete for this task: change nothing in them;
   leave the task's work uncommitted; `blocker: plan: <what conflicts>`
+- the task needs a choice you cannot make and the specs, design, and `answers` do not
+  settle it: leave the task unticked and its work uncommitted;
+  `blocker: needs input: <id>: <question> | <option> ; <option>` (the form in the rules
+  above), and list in `files:` every path you changed for that task
 
 ### Commit rhythm
 
@@ -150,9 +161,13 @@ tasks: <id>,<id>,<id> done=<n> total=<n>
 verification: passed | failed
 commits: <id>=<sha>,<id>=<sha>
 head: <sha>
+files: <path>,<path> | none
 blocker: none | <one line>
 -->
 ```
+
+`files:` lists the paths with the blocked task's uncommitted work; `none` when nothing
+was left uncommitted.
 
 ## deadcode
 
