@@ -1,0 +1,17 @@
+{
+  "principles": [
+    {
+      "id": "robust",
+      "num": "4",
+      "content": "<p>Content must be robust enough that it can be interpreted by a wide variety of user agents, including assistive technologies.</p>",
+      "handle": "Robust",
+      "title": "Content must be robust enough that it can be interpreted by a wide variety of user agents, including assistive technologies.",
+      "versions": [
+        "2.0",
+        "2.1",
+        "2.2"
+      ]
+    }
+  ],
+  "terms": []
+}
