@@ -1,6 +1,6 @@
 ---
 name: ep-orchestrate
-description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch. Plans the change, scores the plan from evidence and implements without asking only when it scores at least 85 and nothing is hard to undo, applies one task group at a time with one commit per task, removes dead code the branch added, then runs up to 3 ep-review fix rounds. Each phase runs in a fresh subagent and the run resumes from a state file. Large changes are offered as a stack of PRs, landed with ep-stack and ep-babysit-pr after approval. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
+description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch. Plans the change, scores the plan from evidence and implements without asking only when it scores at least 85 and nothing is hard to undo, applies one task group at a time with one commit per task, reviews each group once and fixes its findings before the next group, removes dead code the branch added, then still runs up to 3 ep-review fix rounds. Each phase runs in a fresh subagent and the run resumes from a state file. Large changes are offered as a stack of PRs, landed with ep-stack and ep-babysit-pr after approval. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
 ---
 
 # ep-orchestrate
@@ -134,7 +134,9 @@ whose artifacts were already committed before `base`.
   "plan_commit": "<sha|null>",
   "deadcode": { "removed": 0, "reported": 0, "head": "<sha>" },
   "tasks": { "1.1": "<sha>" },
-  "groups": [ { "n": 1, "status": "done|in_progress|pending" } ],
+  "groups": [ { "n": 1, "status": "done|reviewing|in_progress|pending", "start": "<sha>" } ],
+  "group_reviews": [ { "group": 1, "critical": 0, "major": 1, "minor": 2, "spec": "passed",
+                       "head": "<sha>", "fixed": 1, "unfixed": 2 } ],
   "reviews": [ { "round": 1, "critical": 0, "major": 1, "minor": 2, "spec": "passed", "head": "<sha>",
                  "fixed": 1, "deferred": 0 } ],
   "size": { "groups": 4, "tasks": 14, "lines": null, "files": null, "large": false },
@@ -145,16 +147,29 @@ whose artifacts were already committed before `base`.
   "blocker": null, "outcome": null }
 ```
 
+`groups[].start` is `git rev-parse HEAD` just before the group's first apply phase. A
+group is `reviewing` once its tasks are all done and until its review pass, and its fix
+phase when one runs, finish; only then is it `done`. `group_reviews` holds one entry per
+group pass (step 6): its counts and `head`, then `fixed` and `unfixed`, both `null` until
+the pass's fix phase ends (with no fix phase, `fixed` is 0 and `unfixed` the minor count).
+`phase` stays `apply` while group passes run.
+
 `question` is the open phase question, or `null` when none is open: the phase, the task
 id, finding id, or change name, the question text, its options (`[]` when open), and the
 paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers` keeps,
 per id, every question asked and its answer, in order; the length of an id's list is its
 question count. Both hold short user-facing text, not diffs, logs, or finding text.
 
-Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review
-round's number and `finding:` lines, unchanged, then the `commits:` line of each fix block
-of that round. Overwrite it when a review round returns and append to it after each fix
-block, so a fix question can be resumed in the same round.
+Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review's
+label (the round number `<k>`, or `g<n>` for the pass after group `<n>`) and its
+`finding:` lines, unchanged, then the `commits:` line of each fix block of that review.
+Overwrite it when a review round or a group pass returns and append to it after each fix
+block, so a fix question can be resumed in the same review. Step 8's first round
+overwrites the last group pass's file.
+
+`.git/ep-orchestrate/<change>.group-findings` keeps the group passes' findings for the
+report: when a group pass ends (after its fix phase, when one runs), append its label and
+the `finding:` lines that have no fix commit, which are its minor and deferred findings.
 
 ### Resume
 
@@ -174,8 +189,11 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    `dirty_tree`, listing those paths.
 4. **Open question first.** When `question` is set, first check whether the user has
    resolved it since: for apply, its task is done (step 1); for fix, a commit in
-   `<base-sha>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
-   `Finding:` line naming the finding's `<dimension> <file>:<line>`. If so, set `question`
+   `<head>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
+   `Finding:` line naming the finding's `<dimension> <file>:<line>`, where `<head>` is
+   the `head` of the review that file holds (the `reviews` entry of round `<k>`, or the
+   `group_reviews` entry of group `<n>` for `g<n>`), so earlier reviews' fix commits
+   never match. If so, set `question`
    to `null` without asking (for fix, append `commits: <finding id>=<sha>` to
    `<change>.findings`) and continue at the recorded phase. Otherwise ask it again at the
    phase question point ("Phase questions") before running any phase, then continue at the recorded
@@ -185,8 +203,34 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
    `<change>.findings` (step 8.4), taking the findings and their fix commits from that
    file; never run a new review for it. When that file is missing, set `question` to `null`
    and stop with outcome `blocked`: say the round's findings are lost and list
-   `question.files`, which the user commits or discards before running again.
-5. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
+   `question.files`, which the user commits or discards before running again. An open
+   fix question while `phase` is `apply` is a group fix question: the same rules apply,
+   with the pass's findings from `<change>.findings` labelled `g<n>`, re-run as step 6's
+   group pass step 3; never a new pass.
+5. **Group passes.** Rebuild each group's `start` from git: the parent of the earliest
+   commit in `<base-sha>..HEAD` whose `Task:` line names a task of the group. While
+   `phase` is `apply`:
+   - A group with every task done and no `group_reviews` entry gets its pass (step 6)
+     before the next group starts, only when no later group has a commit with a `Task:`
+     line. Earlier groups are never reviewed after the fact, which also covers state
+     files from before group passes.
+   - An entry with `fixed: null` continues at step 6's group pass step 2, with the
+     findings and fix commits from `<change>.findings` when its label is `g<n>`; its
+     step 3 then fixes only findings with no fix commit yet. When
+     that file is missing or has another label, run the pass again: it is read-only,
+     and its step 1 replaces that entry instead of appending one.
+   - A group whose entry has `fixed` set and no `g<n>` block in
+     `<change>.group-findings` continues at step 6's group pass step 4 when no later
+     group has a commit with a `Task:` line, whatever its status (a step-2 rebuild
+     cannot tell `reviewing` from `done`), with the findings and fix commits from
+     `<change>.findings` when its label is `g<n>`. When that file is missing or has
+     another label, step 4 records the label `g<n>` with the note `findings lost`
+     instead of its `finding:` lines.
+
+   When step 2 rebuilds `phase` with every task done and no `deadcode` recorded, the
+   rebuilt phase stays `apply` while the last group still gets its pass, or finishes it,
+   under the rules above. Once `phase` is past `apply`, no group pass runs.
+6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
    a gate decision of `auto` or `approved` only while the plan is unchanged since it was
    scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
    ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
@@ -202,6 +246,8 @@ Each phase follows its section of `references/briefs.md` and ends with a summary
 | plan | 1 fresh subagent, brief `#plan` | inline, same section |
 | gate | 1 fresh subagent, brief `#gate` (read-only) | inline |
 | apply group *n* | 1 fresh subagent per group, brief `#apply` | inline, one group at a time |
+| group pass *n* | 1 fresh subagent, brief `#review` with `group: <n>` | inline, after the group |
+| group fix *n* | 1 fresh subagent, brief `#fix` with round `g<n>` | inline, after the pass |
 | dead code | 1 fresh subagent, brief `#deadcode` | inline |
 | review round *k* | 1 fresh subagent, brief `#review` | inline |
 | fix round *k* | 1 fresh subagent, brief `#fix` | inline |
@@ -215,8 +261,8 @@ the `tasks.md` headings and task ids) are fine.
 
 **Without subagents:** run the same sections yourself, in the same order, with the same
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
-yours to do. After every phase (plan, gate, each apply group, dead code, each review
-and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
+yours to do. After every phase (plan, gate, each apply group, each group pass and its
+fix, dead code, each review and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
 suggest clearing or compacting context before continuing. Questions still come only at
 this file's question points (see "Asking the user"), never mid-phase: a phase's open
 choice ends it with a `blocker`, as with subagents.
@@ -272,14 +318,16 @@ Make no code change before the answer.
 ## 6. Apply
 
 Groups are the `## ` headings of `tasks.md` holding tracked tasks, in file order. For each
-group with tasks not done, start one `apply` phase (one fresh subagent per group). Never
-run groups in parallel: they commit in order.
+group with tasks not done, record its `start` (`git rev-parse HEAD`) and set it
+`in_progress` before its first apply phase, then start one `apply` phase (one fresh
+subagent per group). Never run groups in parallel: they commit in order.
 
 After each group, read the `ep-orchestrate-apply` block and record each `commits` sha
 under `tasks`, then check: every done task has a commit whose `Task:` line names it, and
 the group finished before the next one starts. Then:
 
-- `blocker: none` and all done: mark the group done; next group.
+- `blocker: none` and all done: set the group `reviewing` and run its group pass (below);
+  the next group starts after it.
 - `blocker: none` but `done` below `total` (the phase ended early): run the group again
   in a fresh phase, once; it skips the tasks already done. Still short: stop as
   `blocked` naming the unfinished tasks.
@@ -296,6 +344,41 @@ the group finished before the next one starts. Then:
   discarded, by them (the clean-tree check stops otherwise; after `Stop` it accepts the
   recorded paths and asks the question again, see "Resume"). Outcome `blocked`.
 
+A group that stops with tasks not done gets no pass until it finishes, including after a
+re-run with an answer.
+
+### Group pass
+
+Each group gets exactly one review pass, once every task of it is done (after any apply
+re-run) and before the next group starts; for the last group, before step 7. A group is
+never reviewed twice: the next group's pass and step 8 cover its fix commits.
+
+1. **Review.** Run the `review` phase with `group: <n>`, the group's `start` as the base
+   sha, and HEAD as its head. It never runs as a Workflow, with or without `--workflow`.
+   Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
+   `null`); when the group already has an entry (a pass re-run on resume), replace it
+   instead, so each group keeps one entry. Then overwrite `<change>.findings` with label
+   `g<n>` and its `finding:` lines.
+2. **Clean** (the step 8.2 test: `critical=0 major=0` and `spec_conformance: passed`):
+   run no fix phase; set `fixed: 0` and `unfixed` to the minor count; go to 4.
+3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines with
+   no fix commit yet (all of them on a fresh pass; on resume, those not named in the
+   `commits:` lines of `<change>.findings`), and `large_predicted` and `groups:` as in
+   step 8. When every finding already has a fix commit, run no fix phase and go to
+   `blocker: none` below. Append its `commits:` line to `<change>.findings`. Then, by its `blocker`, as in step 8.4:
+   - **Question blocker** (`blocker: needs input: g<n>.<m>: ...`): ask it at the phase
+     question point and, on an answer other than `Stop`, run the fix phase again for the
+     pass's findings with no fix commit yet, with `answers:` and `partial:`. The re-run
+     is never a new pass; repeat this step on its block.
+   - **`Stop` at that question**, a `spec:` blocker (never asked), or any other blocker:
+     stop the run with outcome `blocked`, reporting the blocker and any uncommitted paths.
+   - **`blocker: none`:** set `fixed` to the findings with a fix commit and `unfixed` to
+     the rest.
+4. **Finish.** Append the label `g<n>` and the pass's `finding:` lines with no fix commit
+   to `<change>.group-findings`; when the file already holds a `g<n>` block (a finish
+   re-run on resume), replace that block instead, so each group appears once. Set the
+   group `done`, write the state file, and start the next group.
+
 ## 7. Dead code
 
 When every task is done, run the `deadcode` phase once, before any review, so review
@@ -307,7 +390,8 @@ they never stop the run.
 
 ## 8. Review rounds
 
-When every task is done, run up to 3 rounds. Round *k*:
+When every task is done, its group passes are finished, and the dead-code phase has run,
+run up to 3 rounds over the whole branch; group passes never replace them. Round *k*:
 
 1. Run the `review` phase on the branch against `base`. Record its counts and `head`,
    and write its `finding:` lines to `<change>.findings` (see "State file").
@@ -338,8 +422,9 @@ over the four dimensions (each agent gets its checklist from `briefs.md#review-f
 the change name, and the base and head shas), feeding each dimension's findings to verify
 agents that try to disprove them: at most 5 verify agents in total, each taking a batch
 of findings across dimensions, so the Workflow has at most 9 agents. It returns the confirmed findings and counts; build the
-`finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan
-and apply never run as a Workflow. With `--workflow` but no Workflow tool, say so and use
+`finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan,
+apply, and group passes and their fixes never run as a Workflow; `--workflow` applies
+only to these rounds. With `--workflow` but no Workflow tool, say so and use
 the subagent or inline path.
 
 ## 9. Size and delivery
@@ -382,7 +467,8 @@ all layers merged gives `stacked_merged`.
 
 On every stop, print: change, branch, outcome, the gate result, every commit made this
 run (`git log --format='%h %s' <base-sha>..HEAD`, once `base` exists), the dead-code
-removals and reported items, review rounds with counts, remaining or deferred findings, the size classification, stack layers if any, what the user should
+removals and reported items, each group pass (group, counts, `fixed`, `unfixed`) with the
+lines of `<change>.group-findings`, review rounds with counts, remaining or deferred findings, the size classification, stack layers if any, what the user should
 do next, and the resume command when the run is unfinished. Set `outcome` in the state
 file when it exists (early stops in step 1 create none). Then end with:
 
@@ -395,6 +481,7 @@ outcome: needs_openspec | dirty_tree | paused_at_gate | blocked | reviewed | rev
 gate: score=<n> decision=<auto|approved|paused|none> hard_to_undo=<none|element ; element>
 tasks: done=<n> total=<n>
 deadcode: removed=<n> reported=<n>
+group_reviews: passes=<n> fixed=<n> unfixed=<n>
 reviews: rounds=<n> last=critical=<n>,major=<n>,minor=<n> spec=<passed|failed|not_applicable>
 remaining: <ids of unfixed critical or major findings, or none>
 size: groups=<n> tasks=<n> lines=<n|na> files=<n|na> large=<yes|no>
@@ -405,4 +492,6 @@ blocker: none | <one line>
 
 One `layer:` line per stack layer, bottom-up; omit `layer:` lines when there is no stack.
 Any value not known yet is written `na` (for example `gate: score=na decision=none
-hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`).
+hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`). `group_reviews:` counts
+the `group_reviews` entries, and sums `fixed` and `unfixed` over the entries where they
+are set (not `null`), clean passes with no fix phase included; it is `passes=0 fixed=0 unfixed=0` before any pass, never `na`.
