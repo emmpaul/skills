@@ -31,7 +31,7 @@
 
 ## 2. Orchestrator
 
-- [ ] 2.1 In `skills/ep-orchestrate/SKILL.md`, "State file": add `question` (phase, id,
+- [x] 2.1 In `skills/ep-orchestrate/SKILL.md`, "State file": add `question` (phase, id,
   text, options, files, or `null`) and `answers` (per id, a list of question and answer
   pairs) to the JSON example (D5). Verify: the example is valid JSON once its `<...>`
   placeholders are replaced, which you can check by pasting it into

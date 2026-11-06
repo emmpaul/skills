@@ -112,8 +112,17 @@ whose artifacts were already committed before `base`.
                  "fixed": 1, "deferred": 0 } ],
   "size": { "groups": 4, "tasks": 14, "lines": null, "files": null, "large": false },
   "stack": [ { "layer": 1, "branch": "...", "pr": 12, "state": "open" } ],
+  "question": { "phase": "apply|fix|plan", "id": "2.3", "text": "<question>",
+                "options": ["<option>", "<option>"], "files": ["<path>"] },
+  "answers": { "2.3": [ { "q": "<question>", "a": "<answer>" } ] },
   "blocker": null, "outcome": null }
 ```
+
+`question` is the open phase question, or `null` when none is open: the phase, the task
+id, finding id, or change name, the question text, its options (`[]` when open), and the
+paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers` keeps,
+per id, every question asked and its answer, in order; the length of an id's list is its
+question count. Both hold short user-facing text, not diffs, logs, or finding text.
 
 ### Resume
 
