@@ -216,6 +216,10 @@ Run again on a change with a state file, `tasks.md` and git win over the file:
      step 3 then fixes only findings with no fix commit yet. When
      that file is missing or has another label, run the pass again: it is read-only,
      and its step 1 replaces that entry instead of appending one.
+   - A `reviewing` group whose entry has `fixed` set continues at step 6's group pass
+     step 4, with the findings and fix commits from `<change>.findings` when its label
+     is `g<n>`. When that file is missing or has another label, step 4 records the
+     label `g<n>` with the note `findings lost` instead of its `finding:` lines.
 
    Once `phase` is past `apply`, no group pass runs.
 6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
@@ -363,8 +367,9 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
    - **`blocker: none`:** set `fixed` to the findings with a fix commit and `unfixed` to
      the rest.
 4. **Finish.** Append the label `g<n>` and the pass's `finding:` lines with no fix commit
-   to `<change>.group-findings`, set the group `done`, write the state file, and start
-   the next group.
+   to `<change>.group-findings`; when the file already holds a `g<n>` block (a finish
+   re-run on resume), replace that block instead, so each group appears once. Set the
+   group `done`, write the state file, and start the next group.
 
 ## 7. Dead code
 
