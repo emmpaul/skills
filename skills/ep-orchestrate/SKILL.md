@@ -199,17 +199,18 @@ Record `score`, `unmet`, `hard_to_undo`, `decision`, and `artifacts` (the "Plan
 fingerprint" from `references/confidence.md`, computed now) under `gate`, so a resume can
 keep the decision.
 
-**At a pause** (either kind), write `decision: paused` with those fields to the state
-file first, so an interrupted session resumes at the same question. Then ask (see
-"Asking the user"); the question carries only the decision, with the options:
+**At a pause** (either kind), first write `decision: paused` with those fields and
+`outcome: paused_at_gate` to the state file, and print the report (step 10) with its
+summary block, so a session that ends unanswered has already recorded the pause and the
+next run resumes at the same question. Then ask (see "Asking the user"); the question
+carries only the decision, with the options:
 
-- `Approve`: set `decision: approved` and continue to apply.
-- `Revise`: run `openspec-update-change` or edit the artifacts, commit them as
-  `docs(<change>)`, then re-run the gate.
-- `Stop`: the run ends with outcome `paused_at_gate`.
+- `Approve`: set `decision: approved`, clear `outcome` to `null`, and continue to apply.
+- `Revise`: clear `outcome` to `null`, run `openspec-update-change` or edit the
+  artifacts, commit them as `docs(<change>)`, then re-run the gate.
+- `Stop`: the run ends; the outcome stays `paused_at_gate`.
 
-Make no code change before the answer. The outcome is `paused_at_gate` only when the run
-ends at the pause (`Stop`, or the session ends unanswered).
+Make no code change before the answer.
 
 ## 6. Apply
 
