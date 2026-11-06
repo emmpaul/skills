@@ -25,5 +25,11 @@ jobs:
       - name: Probe prints valid JSON
         run: shared/context.sh | jq -e '.git and has("pr") and has("openspec")'
 
+      - name: WCAG references match their manifest
+        run: python3 scripts/wcag.py check
+
+      - name: WCAG generator unit tests
+        run: python3 -m unittest scripts/test_wcag.py
+
       - name: OpenSpec specs and changes validate
         run: npx -y @fission-ai/openspec@1.16.0 validate --all --strict

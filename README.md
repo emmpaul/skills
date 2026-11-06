@@ -18,6 +18,7 @@ comments.
 | `ep-ci-debug` | Diagnoses failing CI checks from their logs, classifies the cause (code, test, flaky-infra, config, secret), reproduces locally, and fixes it without weakening tests; re-runs infra failures once. |
 | `ep-stack` | Splits a branch into a stack of dependent PRs after you approve the plan, linked as a native GitHub stack when the repository supports it and as plain branches otherwise (`--no-native` forces plain). Links an existing plain stack as a GitHub stack, shows stack status, syncs layers bottom up with merges, and moves or checks the next PR's base when a parent merges. |
 | `ep-orchestrate` | Runs one OpenSpec change end to end: plans it, scores the plan and implements without asking only at 85 or more with nothing hard to undo, commits each task on its own, removes dead code the branch added, and runs up to 3 review and fix rounds, each phase in a fresh subagent with a resumable state file. Offers large changes as a stack of PRs landed with `ep-stack` and `ep-babysit-pr` after approval. |
+| `ep-a11y` | Audits UI changes (diff, branch, PR, or paths) against WCAG 2.2 at Level AA by default, cites each verified finding by exact success criterion from bundled W3C references, lists what needs a manual check, and never claims conformance. Fixes findings in the working tree with `--fix` and posts one PR comment with `--comment`. |
 
 ## Install
 
@@ -27,17 +28,17 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 # Interactive: pick from the skills found in the repo
 npx skills add emmpaul/skills
 
-# All nine ep-* skills
-npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
+# All ten ep-* skills
+npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y
 
 # A single skill
 npx skills add emmpaul/skills --skill ep-commit
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
+npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate
+npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
@@ -74,3 +75,23 @@ its own copy because skills are installed folder by folder.
 scripts/sync-shared.sh    # copy shared/context.sh into every skill
 scripts/check-shared.sh   # fail if any copy differs (run before committing)
 ```
+
+### WCAG references
+
+`ep-a11y` cites WCAG from files generated from W3C's published `wcag.json` into
+`skills/ep-a11y/references/wcag/`. Never edit them by hand; `scripts/wcag.py` (Python 3,
+standard library only) regenerates and checks them. The WCAG version is the `VERSION`
+setting at the top of the script (`--version` overrides it once).
+
+```bash
+python3 scripts/wcag.py update --dry-run   # list added, removed, and changed criteria; writes nothing
+python3 scripts/wcag.py update             # fetch from www.w3.org and regenerate (atomic; a bad source changes nothing)
+python3 scripts/wcag.py check              # offline: hashes, index vs files, guidance citations (CI runs this)
+```
+
+After an update, read the `git diff` of `references/wcag/`, and for every changed or
+removed criterion review its section in `skills/ep-a11y/references/checks.md` (and any
+mention in `audit.md`), since `check` catches removed or obsolete criteria but not a
+change in meaning. `checks.md` and `audit.md` are hand-written; the generator never
+touches them. Run `python3 -m unittest scripts/test_wcag.py` after changing the
+generator.
