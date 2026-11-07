@@ -199,9 +199,10 @@ In triage, the body file holds the author's body unchanged followed by the addit
 comment on a duplicate is the text the user confirmed in step 5; it gives
 `outcome: duplicate`.
 
-Read the result back with `gh issue view <n> --json number,title,body,labels,url`. Done
-when the title, body, and comment contain no "Generated with" or model attribution line
-and the labels match the draft. If one does, remove it with
+Read the result back with `gh issue view <n> --json number,title,body,labels,url`, or for
+a comment, `gh issue view <m> --json comments` and its last comment. Done when the title
+matches the draft, the title, body, and comment contain no "Generated with" or model
+attribution line, and the labels match the draft. If one has attribution, remove it with
 `gh issue edit <n> --body-file <file>` (or `gh issue comment <m> --edit-last --body-file
 <file>`) and read it back again.
 
