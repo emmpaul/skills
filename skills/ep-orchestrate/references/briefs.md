@@ -18,8 +18,9 @@ Rules for every phase:
   from your own unpushed commit ([commit](#commit) step 6).
 - Commit only on the input branch, never on the default branch: before every commit,
   check `git rev-parse --abbrev-ref HEAD` equals the input branch.
-- When a phase commits through `ep-commit`, tell it the intended commit and to just
-  commit, so it skips its plan prompt and does not regroup.
+- When a phase commits through `ep-commit-and-push`, tell it the intended commit, to
+  just commit, and `--no-push`, so it skips its plan prompt, does not regroup, and
+  pushes nothing.
 - Commit messages carry no model or tool attribution (no `Co-Authored-By` naming a model
   or tool, no "Generated with" line). This overrides any host default.
 - After the plan phase, the change's `proposal.md`, `design.md`, and `specs/` are fixed:
@@ -67,8 +68,8 @@ loop below for the artifacts that are not `done`, leaving existing ones untouche
    stop with a question blocker (the form in the rules above) naming the question.
 4. Run `openspec validate <change> --strict`. Fix what it reports in the artifacts; record
    the final result.
-5. Commit the artifacts on their own, through `ep-commit` when it is available to you
-   (as in apply), otherwise [commit](#commit): `git add -- openspec/changes/<change>/`,
+5. Commit the artifacts on their own, through `ep-commit-and-push` when it is available to
+   you (as in apply), otherwise [commit](#commit): `git add -- openspec/changes/<change>/`,
    subject `docs(<change>): propose <change>`, body one or two sentences from the
    proposal's Why.
 
@@ -155,9 +156,10 @@ The group is done when every task is ticked and committed. Stop the group at the
 - Subject `<type>(<change>): <what the task did>`, where type is `feat`, `fix`,
   `refactor`, `test`, `docs`, `build`, `ci`, or `chore` per what the task changed. Body
   ends with `Task: <id>`.
-- **If the skill `ep-commit` is available to you**, invoke it and tell it the intended
-  single commit (files, subject, the `Task:` line), that the tick is already made, and
-  to just commit, so it skips its plan prompt and does not regroup. If it splits the task into
+- **If the skill `ep-commit-and-push` is available to you**, invoke it with `--no-push`
+  and tell it the intended single commit (files, subject, the `Task:` line), that the
+  tick is already made, and to just commit, so it skips its plan prompt and does not
+  regroup. If it splits the task into
   several logical commits (for example a refactor, then the feature), allow it: more
   commits, never fewer. Each one carries the `Task:` line. **Otherwise** follow
   [commit](#commit).
@@ -212,7 +214,7 @@ Runs once, after every task is done and before the first review round.
 4. **Per removal** (or per group of removals sharing one cause): remove it, run the
    tests, then commit, staging by path: subject `refactor(<change>): remove unused
    <what>`, body ends with `Dead-code: <file>:<symbol>` (one line per item). Through
-   `ep-commit` when available, as in apply; otherwise [commit](#commit). When the tests
+   `ep-commit-and-push` when available, as in apply; otherwise [commit](#commit). When the tests
    fail, restore the removed code (`git checkout -- <its files>`, only files you changed
    for it), commit nothing for it, and report it.
 5. **When `large_predicted: yes`:** split removals per task group, as in fix step 5, so
@@ -330,7 +332,7 @@ For each critical or major finding, and each minor one that is cheap to fix:
    only files you changed for it) and deferred.
 4. **Commit** each fix on its own, staging by path: subject `fix(<change>): <what was
    wrong>`, body ends with `Finding: <dimension> <file>:<line>` (one line per finding the
-   commit fixes). Through `ep-commit` when available, as in apply; otherwise
+   commit fixes). Through `ep-commit-and-push` when available, as in apply; otherwise
    [commit](#commit). Normal commits, never `fixup!`.
 5. **When `large_predicted: yes`:** a fix that touches code from several task groups is
    split into one commit per group (files from one group each), each with the same
@@ -426,8 +428,8 @@ stopped_reason: none | <one line>
 
 ## commit
 
-Condensed `ep-commit` steps, used **only when the skill `ep-commit` is not available to
-you**. Commit without a plan prompt: the phase already decided what one commit holds.
+Condensed `ep-commit-and-push` steps, used **only when the skill `ep-commit-and-push` is
+not available to you**. Commit without a plan prompt: the phase already decided what one commit holds.
 
 ### Committing
 
@@ -453,7 +455,7 @@ you**. Commit without a plan prompt: the phase already decided what one commit h
    message with `git commit --amend -F <file>` (your unpushed commit, removing
    attribution only) and check again.
 
-**Rules that must match** (`ep-commit/SKILL.md`):
+**Rules that must match** (`ep-commit-and-push/SKILL.md`):
 
 - Conventional Commits `type(scope): subject`, types `feat`, `fix`, `docs`, `style`,
   `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`; `!` and a
@@ -467,6 +469,8 @@ you**. Commit without a plan prompt: the phase already decided what one commit h
   "Generated with" footer); human `Co-Authored-By` lines the user asks for are fine.
 - Published history stays as it is: no amend, rebase, reset, or squash of pushed
   commits; amend an unpushed commit only to remove attribution or when the user asks.
+- The skill pushes after committing by default; phases always run it with `--no-push`,
+  so it pushes nothing, as this fallback never pushes.
 - Never push unless the user asks; hooks run, so never `--no-verify` unless the user
   asks; on hook failure fix the cause and commit again.
 - Tick a task only when the commit fully implements it, inside that commit.
