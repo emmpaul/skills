@@ -204,10 +204,12 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   tells the user what is still running. When `docker compose ps -a -q` (or `pm2 jlist`)
   already listed containers (or processes of that name) before the start, stop with
   `docker compose stop` (or `pm2 stop <name>`) instead, so what existed before stays.
-  **PM2 daemon:** before a `pm2 start`, record whether a PM2 daemon already runs, without
-  starting one: `pm2 jlist` and most `pm2` commands spawn the daemon, so check its pid
-  file instead (`$PM2_HOME/pm2.pid`, default `~/.pm2/pm2.pid`, and that PID is alive).
-  Run `pm2 jlist` only when it does. When no daemon ran before, this run launched it:
+  **PM2 daemon:** before the run's first `pm2` command (the pm2 version item included),
+  record whether a PM2 daemon already runs, without starting one: `pm2 jlist`, and even
+  `pm2 --version`, spawn the daemon, so check its pid file instead (`$PM2_HOME/pm2.pid`,
+  default `~/.pm2/pm2.pid`, and that PID is alive; a pid file whose PID is dead means no
+  daemon). At the `pm2 start`, use that record: run `pm2 jlist` only when a daemon ran
+  before. When no daemon ran before, this run launched it:
   the stop also runs `pm2 kill`. Confirm the port is free afterwards, by the same check
   as before the start.
 - **One server at a time:** each start of the same app is its own start item with its own

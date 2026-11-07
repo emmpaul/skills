@@ -178,7 +178,7 @@ started process still runs, or after it exited 0 (a detached start such as
 `docker compose up -d`, `pm2 start`, or a daemonizing script); a non-zero exit is a failed
 start, whatever the port answers. Each start has a stop item in the plan (`docker compose
 down`, `pm2 delete <name>`, or killing the recorded session and process group; "Running"
-in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the start). A
+in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the run's first `pm2` command). A
 start's stop item runs only after that start's window: its probes (step 6), then the
 verification of the candidates they raised and the re-check items that need it
 ("Running", Start window, in `plan.md`). Every
