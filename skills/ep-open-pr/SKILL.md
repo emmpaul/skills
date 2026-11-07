@@ -112,6 +112,8 @@ take `tasks_done` / `tasks_total` from the probe (or count `- [x]` / `- [ ]` lin
 
 <2-4 sentences: what the branch does and why.>
 
+<only when the branch has a linked issue: `Closes #<n>` or `Refs #<n>`>
+
 ## Changes
 
 - <notable change, grouped by area; reference commit subjects>
@@ -162,6 +164,22 @@ the `## OpenSpec` section and every mention of OpenSpec. The body ends at `## Te
 with no footer.
 
 Done when the title and every section are filled from the subsections below.
+
+### Linked issue
+
+Find the issue this branch was started from:
+
+```bash
+git config --get branch.<branch>.ep-issue
+```
+
+`ep-start` records the issue number there. When the key is unset, parse the branch name:
+a name matching `<type>/<digits>-<slug>` (regex `^[a-z]+/([0-9]+)-`) links issue
+`<digits>`; any other name links none. The config value wins over the name.
+
+With a linked issue `<n>`, end `## Summary` with one line: `Closes #<n>` when the title
+type is `feat` or `fix`, else `Refs #<n>`. With none, drop that line and leave the rest of
+the body as the template gives it.
 
 ### Classifying the door
 
