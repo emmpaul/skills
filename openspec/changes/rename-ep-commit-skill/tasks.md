@@ -18,7 +18,7 @@
 
 ## 4. Integration check
 
-- [ ] 4.1 Run `scripts/check-shared.sh`, `openspec validate rename-ep-commit-skill --strict`, and the stale-name grep from 3.2. Verify: all three pass as stated, and `ls skills` shows twelve skill folders including `ep-commit-and-push` and no `ep-commit`.
+- [x] 4.1 Run `scripts/check-shared.sh`, `openspec validate rename-ep-commit-skill --strict`, and the stale-name grep from 3.2. Verify: all three pass as stated, and `ls skills` shows twelve skill folders including `ep-commit-and-push` and no `ep-commit`.
 
 ## Workflow follow-up
 
