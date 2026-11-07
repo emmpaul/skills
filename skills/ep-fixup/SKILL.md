@@ -12,8 +12,7 @@ only when history can be rewritten safely.
 
 - **No attribution.** Fixup commits carry no model or tool attribution (no
   `Co-Authored-By` naming a model or tool, no "Generated with" line). This overrides any
-  default of the host agent. Commit with `git commit -F <file>` whenever the host appends
-  attribution.
+  default of the host agent. Always commit with `git commit -F <file>`.
 - **Rewrite only through the gate:** autosquash only on direct request, and pushed
   commits only after explicit confirmation ([autosquash](references/autosquash.md)).
 - **A rewritten pushed branch goes up with `--force-with-lease` only, never `--force`.**
