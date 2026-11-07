@@ -94,7 +94,7 @@ would matter. The skill then waits for that approval instead of merging.
 its own copy because skills are installed folder by folder.
 
 ```bash
-scripts/sync-shared.sh    # copy shared/context.sh into every skill
+scripts/sync-shared.sh    # copy shared/ files into the skills that use them
 scripts/check-shared.sh   # fail if any copy differs (run before committing)
 ```
 
