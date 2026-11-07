@@ -117,8 +117,10 @@ done | sha256sum
 ```
 
 Add the `git hash-object` of each env file the item reads (`.env` and similar), even when
-it is ignored: its hash only, never its contents. Exclude the audit file and the record
-themselves.
+it is ignored: its hash only, never its contents. Exclude the record and every audit
+file: the requested audit path and any file whose first line starts with
+`<!-- ep-qa audit:`, such as a dated fallback (`qa-audit-<YYYY-MM-DD-HHMM>.md`) an earlier
+run wrote, so a new report does not change the fingerprint of every `docs` check.
 
 Also exclude files the audit itself creates, so a run does not invalidate the next one:
 leave out every untracked path that is under the record's `generated` list, or that is
