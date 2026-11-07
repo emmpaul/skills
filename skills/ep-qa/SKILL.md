@@ -206,10 +206,10 @@ step 8 says, and run the re-check items that need that start; then run the stop 
 Never restart a stopped server to verify, except once for a crash: when the started
 process dies during its window, the crash is a candidate (the probe, the exit code or last
 log lines); send nothing more to the dead port, run the stop item, then re-run the same
-confirmed start once (port check, start, the crashing probe alone; if that does not
-crash, the window's earlier probes in order and then the crashing probe; the same stop).
-A crash in the re-start is reproduced, its steps the probes that led to it; none is flaky,
-and the window's blocked items run in that second window, else they stay `not covered: blocked by crash (P<n>)` ("Running", Crash in
+confirmed start once (port check, start, the window's probes exactly as first sent up to
+and including the crashing probe, the same stop). A crash on that same probe is
+reproduced, its steps that sequence; no crash, or a crash on an earlier probe, is flaky;
+after no crash the window's blocked items run in that second window, else they stay `not covered: blocked by crash (P<n>)` ("Running", Crash in
 a window, in `plan.md`). Read `references/audit.md` before the first such window.
 
 ## 7. Docs check
