@@ -12,7 +12,7 @@ comments.
 | `ep-commit` | Splits working-tree changes into logical Conventional Commits that match the repo's style. |
 | `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door. |
 | `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, and verifies each finding before reporting it. |
-| `ep-babysit-pr` | Watches a PR: fixes CI failures, answers review comments, runs up to 3 review rounds, and merges when gates pass and the confidence score is at least 85. |
+| `ep-babysit-pr` | Watches a PR: fixes CI failures, answers review comments, runs up to 3 review rounds (later ones only on new commits), and merges when gates pass and the confidence score is at least 85; medium-risk PRs wait for your yes and high-risk ones also for a human approval. |
 | `ep-sync` | Merges the base branch into the current branch (rebase only on request, gated), then audits semantic interactions with no textual conflict (renamed or re-signatured symbols, behaviour and contract changes, new base callers, base tests), adapts the branch in separate commits, and runs tests. |
 | `ep-fixup` | Attaches fixes to the branch commits they correct as `fixup!` commits, and autosquashes only on request: unpushed commits freely, pushed ones after confirmation with `--force-with-lease`. |
 | `ep-ci-debug` | Diagnoses failing CI checks from their logs, classifies the cause (code, test, flaky-infra, config, secret), reproduces locally, and fixes it without weakening tests; re-runs infra failures once. |
@@ -83,6 +83,35 @@ no-rewrite caller modes when they are installed, and uses bundled fallback steps
 never uses `--admin` or other protection bypasses, never resolves review threads,
 and refuses to merge when checks fail, conflicts exist, threads are unresolved, or
 changes are requested. It also defers to GitHub's merge state.
+
+It also gates every merge on the change's **risk tier**, which `ep-review` reports from
+the rules in `shared/risk.md`:
+
+- **low** (every changed path is documentation, or matches a `low:` glob in your
+  `REVIEW.md`, and the author is trusted): merges without asking.
+- **medium** (the default for code changes): asks you first, showing the tier reasons,
+  score, and head sha, and merges only after your yes for that exact head. A new push
+  needs a new yes. In an unattended run it notifies you once and waits.
+- **high** (CI workflows, `CODEOWNERS`, installers and release scripts, auth, billing,
+  migrations, secret config, `high:` globs, or a one-way door): needs your yes and an
+  approving GitHub review of the current head from a human other than the PR author. Bot
+  and app approvals never count.
+
+To let chosen paths merge without asking, add a `REVIEW.md` (at the root or in
+`.github/`) with `low:` globs under `## Risk` and, for authors other than the
+authenticated `gh` user, their logins under `## Trusted authors`:
+
+```markdown
+## Risk
+
+- low: examples/**
+
+## Trusted authors
+
+- octocat
+```
+
+A `low:` glob never lowers a built-in high match.
 
 Because the reviewer it relies on is also an agent, **enable branch protection
 requiring at least one human approval** on any repo where an unreviewed merge

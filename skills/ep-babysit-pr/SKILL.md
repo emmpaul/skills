@@ -1,6 +1,6 @@
 ---
 name: ep-babysit-pr
-description: Shepherd a GitHub PR to merge. Watches checks, reviews, comments, and merge state; fixes CI failures (max 3 attempts per check); fixes or replies to review comments and flags scope changes; runs up to 3 ep-review rounds; merges only when hard gates pass, an evidence-based score is at least 85, and GitHub reports the PR mergeable without bypass. Use when the user asks to babysit, shepherd, watch, or land a PR.
+description: Shepherd a GitHub PR to merge. Watches checks, reviews, comments, and merge state; fixes CI failures (max 3 attempts per check); fixes or replies to review comments and flags scope changes; runs up to 3 ep-review rounds (later rounds review only new commits and re-check earlier findings; pre-existing bugs are listed, not fixed); merges only when hard gates pass, an evidence-based score is at least 85, the risk gate passes (low risk merges, medium risk needs the user's yes for the exact head, high risk also a human GitHub approval of it; REVIEW.md low globs and trusted authors allow merges without asking), and GitHub reports the PR mergeable without bypass. Use when the user asks to babysit, shepherd, watch, or land a PR.
 ---
 
 # ep-babysit-pr
