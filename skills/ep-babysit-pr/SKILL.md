@@ -372,7 +372,7 @@ Merge only when **all** hold:
     `headRefOid`, ask one structured question showing the tier, its reasons, the score
     breakdown, and the head sha, with the options **Merge**, **Wait**, and **Stop**. Merge
     records `human_ok: { "head": "<headRefOid>" }`; Wait keeps waiting and asks again
-    later; Stop sets `outcome: stopped: user declined merge`. `human_ok` is cleared
+    on the next attended run; Stop sets `outcome: stopped: user declined merge`. `human_ok` is cleared
     whenever `headRefOid` changes, so a new push needs a new yes.
   - **high:** the same yes, and an `APPROVED` review whose `commit_id` equals `headRefOid`,
     from a login other than the PR author whose `user.type` is `User`. Bot and app
@@ -382,7 +382,8 @@ Merge only when **all** hold:
   - **Unattended** (test in [`references/score.md`](references/score.md#risk-gate),
     "Unattended runs"): do not ask and do not merge; unless `risk_notified` equals
     `headRefOid`, notify the user with the tier, reasons, and head sha and set
-    `risk_notified` to `headRefOid`; then wait. Ask on the next attended run.
+    `risk_notified` to `headRefOid`; then wait. Ask on the next attended run. A `/loop`
+    tick or wakeup that no user message started is unattended.
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR

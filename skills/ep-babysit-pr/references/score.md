@@ -97,7 +97,7 @@ the tier the review reported.
 `risk_reasons`, the score breakdown, and the head sha, with three options:
 
 - **Merge:** set `human_ok` to `{ "head": "<headRefOid>" }` and continue to the merge.
-- **Wait:** do not merge; keep the loop running and ask again on a later tick.
+- **Wait:** do not merge; keep the loop running and ask again on the next attended run.
 - **Stop:** do not merge; set `outcome: stopped: user declined merge` and stop.
 
 Risk-gate notices use their own flag, `risk_notified` (the head sha last notified), not
@@ -126,13 +126,19 @@ set `risk_notified` to `headRefOid`), and wait as on `BLOCKED`.
 - no way to ask exists: the host has no question tool and the session takes no reply
   from the user (a headless or non-interactive run, such as `claude -p` or CI); or
 - the run was started by a schedule rather than a session the user has open: a cloud
-  routine, a cron job, or a scheduled agent.
+  routine, a cron job, or a scheduled agent; or
+- the run is a `/loop` tick or wakeup that no user message started, even in an
+  interactive session: the user may have walked away, so it cannot assume anyone will
+  answer.
 
-Everything else is **attended**, including each `/loop` tick or wakeup in an interactive
-session the user started: there, ask the question (it waits for the answer, which is
+A run is **attended** only when the user's own message started it in this session: an
+invocation they typed (including the first pass of `/loop ep-babysit-pr <n>`), or their
+reply to a risk-gate notice. There, ask the question (it waits for the answer, which is
 safe, because nothing merges meanwhile). An unattended run does not ask and does not
 merge: it notifies the user with the tier, reasons, and head sha, once per head
-(`risk_notified`, as above), and waits. The next attended run asks the question.
+(`risk_notified`, as above), and waits; later ticks on the same head stay silent. The next
+attended run asks the question, and a user reply to the notice naming Merge, Wait, or
+Stop counts as the answer.
 
 The gate adds no GitHub write; it only removes merges.
 
