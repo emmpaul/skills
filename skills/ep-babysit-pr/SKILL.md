@@ -380,7 +380,9 @@ Merge only when **all** hold:
     on the next attended run; Stop sets `outcome: stopped: user declined merge`. `human_ok` is cleared
     whenever `headRefOid` changes, so a new push needs a new yes.
   - **high:** the same yes, and an `APPROVED` review whose `commit_id` equals `headRefOid`,
-    from a login other than the PR author whose `user.type` is `User`. Bot and app
+    from a login other than the PR author whose `user.type` is `User` and whose
+    `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` (an account with no
+    standing on the repository never counts). Bot and app
     approvals never count. Without one, do not merge: unless `risk_notified` equals
     `headRefOid`, notify the user that a human approval of this head is needed and set
     `risk_notified` to `headRefOid`; then wait as on `BLOCKED`.

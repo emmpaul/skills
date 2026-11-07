@@ -117,11 +117,13 @@ reviewer's commit), clear `human_ok` to `null`, so the new head needs a new yes.
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<n>/reviews --paginate \
-  --jq '.[] | {id, state, commit_id, login: .user.login, type: .user.type}'
+  --jq '.[] | {id, state, commit_id, login: .user.login, type: .user.type, association: .author_association}'
 ```
 
 An approval counts only when `state` is `APPROVED`, `commit_id` equals `headRefOid`,
-`login` is not the PR author, and `type` is `User` (an account of type `Bot`, or an app,
+`login` is not the PR author, `association` is `OWNER`, `MEMBER`, or `COLLABORATOR` (an
+account with no standing on the repository, such as a drive-by approval on a public
+repository, never counts), and `type` is `User` (an account of type `Bot`, or an app,
 never counts, nor does any review this skill could post, since it never approves). With
 no counting approval, do not merge: notify the user that a human approval of this head is
 needed, once per head (skip it when `risk_notified` equals `headRefOid`, else send it and
