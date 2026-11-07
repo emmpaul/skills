@@ -17,8 +17,10 @@ Two sources give the merged PRs and their commits:
 - **Local** (no GitHub remote, `gh` missing or unauthenticated, or any other remote such
   as a bare repository): every first-parent commit of the default branch
   (`git log --first-parent --format='%H %P %ct %s' origin/<default>`, or `<default>`
-  without a remote) is one merged change. For a merge commit, `base` is its first parent
-  and `head` its second parent; for any other commit, `base` is `<sha>^` and `head` is
+  without a remote) is one merged change. For a merge commit `<m>`, `head` is its second
+  parent and `base` is `git merge-base <m>^1 <m>^2` (not the first parent itself, which
+  is not an ancestor of `head` when the default branch moved on before the merge); for
+  any other commit, `base` is `<sha>^` and `head` is
   `<sha>`. Its `pr` is the number in the subject (`Merge pull request #<n>`, or a
   trailing `(#<n>)`), else `null`, and the case is then identified by its `merge` sha.
   A commit maps to the first-parent commit that brought it in:
