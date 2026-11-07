@@ -117,9 +117,26 @@ For the matched change, read `proposal.md` (Why, Capabilities) and take `tasks_d
 
 - <for a one-way door: each irreversible element, and how to mitigate or roll forward>
 
-## How to test
+**How to revert:** `git revert -m 1 <merge commit>` (or `git revert <squash sha>` for a
+squash merge). <for a one-way door: what stays after the revert>
 
-1. <concrete steps or commands: test commands found in the repo, manual checks>
+## Risk
+
+**<low | medium | high>**
+
+- <one reason per line, from references/risk.md>
+
+## Testing
+
+**Run:**
+
+- `<command>` on `<short sha>`: <passed | failed: one-line result>
+- <or: CI run `<workflow name>` on `<short sha>`: <conclusion> (<run URL>)>
+- <or the single line: Not run>
+
+**Steps:**
+
+1. <concrete steps or commands to test: test commands found in the repo, manual checks>
 ```
 
 Omit the whole `## OpenSpec` section, and any mention of OpenSpec, when the repository has
@@ -170,6 +187,39 @@ When the door is one-way because a public interface breaks, the title carries th
 Conventional Commit breaking marker (`type(scope)!: ...`). Other one-way doors (data,
 releases, side effects) do not need `!` unless the commits already use it.
 
+**How to revert:** every PR gets this line. Name `git revert -m 1 <merge commit>`, or
+`git revert <squash sha>` when the repo squash-merges; the sha is not known yet, so keep
+the placeholder. For a one-way door, add what stays after the revert (for example "the
+dropped column and its data stay gone; restore from the backup") and what the revert does
+undo.
+
+### Risk tier
+
+Every PR gets a `## Risk` section. Classify the branch with
+[`references/risk.md`](references/risk.md): the changed paths are
+`git diff --name-only origin/<base>...HEAD`, the author is the authenticated `gh` user
+(trusted), `REVIEW.md` is read from `origin/<base>` as that file says, and a one-way door
+from the classification above makes the tier `high`. Print the tier in bold and one bullet
+per reason the rules give, for example
+`.github/workflows/ci.yml matches .github/workflows/** (CI)` or `ordinary change`. You may
+raise the tier with a stated reason as the rules allow; never lower it.
+
+### Testing evidence
+
+The `## Testing` section reports what actually ran, then how to test. **Never invent a
+command, a result, or a sha.** **Run:** lists only:
+
+- commands you saw run in this session on the branch head (tests, build, lint, type
+  check), each with the head short sha it ran on and its result as you saw it; a command
+  run before the last commit names the sha it ran on, not the head;
+- otherwise, the latest completed CI run for the head, from
+  `gh run list --commit <head sha> --json name,conclusion,url,headSha --limit 20`: name,
+  conclusion, sha, and URL, failed or green as it is.
+
+When there is neither, **Run:** is the single line `Not run`, with no claim of any result.
+**Steps:** follows as before: concrete commands from the repo (its test scripts, Makefile
+targets, CI steps) and manual checks a reviewer can repeat.
+
 ## 5. Create the PR
 
 Write the body to a temp file and create the PR:
@@ -192,8 +242,8 @@ If the title or body contains "Generated with" or a model attribution line, remo
 
 ## 6. Report
 
-Print the PR URL, title, base, whether it is a draft, and the door classification (for a
-one-way door, also its irreversible elements).
+Print the PR URL, title, base, whether it is a draft, the door classification (for a
+one-way door, also its irreversible elements), and the risk tier with its reasons.
 
 ## Without subagents
 
