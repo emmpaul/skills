@@ -64,8 +64,9 @@ area when the code is what is wrong.
 Rank findings by severity, then area in the table order above, then plan order. Ids do
 not follow the rank and are never renumbered: an earlier finding still failing keeps its
 `QA-<n>` from the run record, and each new finding takes the next number after the
-highest id in the record (fixed ones included), in ranked order. Without a usable record,
-or with `--full`, new findings are numbered `QA-1`, `QA-2`, ... in ranked order.
+highest id the record has issued (`record.md`, "Earlier findings"; fixed and dropped
+ones included), in ranked order. Without a usable record, or with `--full`, new
+findings are numbered `QA-1`, `QA-2`, ... in ranked order.
 
 ## Verification
 

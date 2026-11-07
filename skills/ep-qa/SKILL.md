@@ -166,7 +166,7 @@ reproduced, flaky, environment, or refuted, as "Verification" there describes. K
 reproduced and flaky ones as findings in the finding shape, assign severity and area,
 rank and number them `QA-<n>`. Re-run each re-check item and mark the earlier finding
 still failing, fixed, or not re-checked (`record.md`, "Earlier findings"); new findings
-take ids after the highest in the record. For each reproduced finding, draft a
+take ids after the highest the record has issued. For each reproduced finding, draft a
 regression test and run it in a scratch copy under the system temp dir to show it fails
 today for the finding's reason, or record why no test is proposed ("Regression test
 proposals" in `audit.md`); never write it into the working tree. With the plan not

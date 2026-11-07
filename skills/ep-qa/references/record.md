@@ -27,6 +27,7 @@ are left out of "Files changed by the audit". The user deletes the record to sta
   "head": "<sha>",
   "dirty": false,
   "toolchain": {"node": "v20.11.0", "python3": "Python 3.12.1"},
+  "last_id": 3,
   "checks": [
     {
       "key": "<sha256>",
@@ -60,6 +61,8 @@ are left out of "Files changed by the audit". The user deletes the record to sta
   these is a different check.
 - `sha` is the head the check last ran on. A skipped check keeps the `sha`, `result`, and
   `fingerprint` from the record.
+- `last_id` is the highest `QA-<n>` number any run of this record has issued, including
+  findings since fixed and dropped from `findings`.
 - `regression_test` is present only when a test was proposed (`references/audit.md`,
   "Regression test proposals"); it holds code with placeholders, never a secret.
 - The record holds **no command output, no env values, and no secrets**: results, shas,
@@ -159,9 +162,10 @@ fingerprints say. In step 8 it ends in one of:
 | **not re-checked** | the reproduction could not run (toolchain missing, blocked prerequisite, plan declined, item dropped) | stays `open`, listed under "Not covered" with the reason |
 
 A new candidate with the same root cause as an open finding is that finding, not a new
-one. New findings take ids after the **highest** `QA-<n>` in the record (fixed ones
-included), so an id is never reused. The findings section is still ranked by severity,
-area, and plan order; ids do not follow rank.
+one. New findings take ids after the **highest** number the record has issued: the
+larger of its `last_id` and the highest `QA-<n>` in its `findings` (fixed ones
+included), so an id is never reused, even after its finding was dropped. The findings
+section is still ranked by severity, area, and plan order; ids do not follow rank.
 
 ## Writing (step 9)
 
@@ -175,7 +179,9 @@ check:
 - Otherwise write the full record: every check of this run (skipped ones with their
   carried-over `sha`, `result`, and `fingerprint`; run ones with the fingerprint computed
   before they ran), every open finding, and the findings fixed this run with `status:
-  fixed`. Drop findings fixed in an earlier run.
+  fixed`. Drop findings fixed in an earlier run, and set `last_id` to the highest
+  number issued so far (the loaded record's, or this run's highest id when larger), so
+  a dropped id is never issued again.
 
 Write atomically: a temp file in the same folder (`<record path>.tmp-<pid>`), then rename
 it over the record path, so an interrupted run leaves the old record or the new one,
