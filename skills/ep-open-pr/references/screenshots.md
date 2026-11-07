@@ -32,10 +32,16 @@ and waits for the answer.
 List the changed paths: `git diff --name-only origin/<base>...HEAD`. The branch touches UI
 when some path matches any of:
 
-- `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.astro`, `*.html`, `*.css`, `*.scss`, `*.sass`,
-  `*.less`
-- `**/components/**`, `**/pages/**`, `**/app/**`, `**/views/**`, `**/templates/**`,
-  `**/*.stories.*`
+- anywhere: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.astro`, `*.html`, `*.htm`, `*.css`,
+  `*.scss`, `*.sass`, `*.less`, `*.stories.*`;
+- a server-side page template under a `views/` or `templates/` directory: `*.erb`,
+  `*.haml`, `*.slim`, `*.hbs`, `*.ejs`, `*.pug`, `*.njk`, `*.jinja`, `*.jinja2`, `*.twig`,
+  `*.liquid`;
+- a `*.js`, `*.mjs`, or `*.ts` file under a `components/`, `pages/`, `app/`, or `views/`
+  directory, unless it also lies under an `api/` or `server/` directory.
+
+A directory alone never makes a file UI: `app/models/user.rb`, `app/main.py`, and Helm's
+`templates/deployment.yaml` are not UI files.
 
 Ignore test files: a path whose file name contains `test` or `spec`, or that lies under a
 `__tests__/` directory. When no path is left, skip this whole step: start nothing, push
