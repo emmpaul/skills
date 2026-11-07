@@ -1,11 +1,11 @@
 ---
 name: ep-commit-and-push
-description: Turn working-tree changes into logical Conventional Commits in the repo's style, scoped to the active OpenSpec change, with no model attribution. Use when the user asks to commit, split changes into commits, or write commit messages.
+description: Turn working-tree changes into logical Conventional Commits in the repo's style, scoped to the active OpenSpec change, with no model attribution, then push the branch (plain push; `--no-push` commits only). Use when the user asks to commit, commit and push, split changes into commits, or write commit messages.
 ---
 
 # ep-commit-and-push
 
-Turn the current changes into well-scoped Conventional Commits.
+Turn the current changes into well-scoped Conventional Commits, then push the branch.
 
 ## Hard rules
 
@@ -17,9 +17,19 @@ Turn the current changes into well-scoped Conventional Commits.
 - **Published history stays as it is.** Commits on the upstream get no `--amend`, rebase,
   reset, or squash: when the last commit is pushed, make a new commit. Amend an unpushed
   commit only when the user asks, or in step 6 to remove attribution.
-- **Never push** unless the user asks.
-- **Hooks run.** On a hook failure, fix the cause and commit again. Use `--no-verify`
-  only when the user asks.
+- **Push last, with a plain push.** Push only after step 6 has verified every created
+  message, and only when this run created a commit. Push with `git push` or
+  `git push -u origin HEAD`, never `--force`, `--force-with-lease`, or a `+refspec`.
+- **The default branch asks first.** Before pushing the repository's default branch,
+  ask the user, even when told to just commit; push it only on a yes.
+- **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
+  commit again. Use `--no-verify` only when the user asks.
+
+## Flags
+
+- **`--no-push`**: commit only. Run steps 1-6, skip step 7, and report the commits as
+  local. The same applies when the user or a calling skill says to commit without
+  pushing.
 
 ## 1. Gather context
 
@@ -30,14 +40,16 @@ containing this SKILL.md):
 bash <skill-dir>/scripts/context.sh
 ```
 
-It prints JSON with `git` (branch, upstream, ahead/behind, staged/unstaged files),
-`pr`, and `openspec` (root and active changes with task counts; `null` without
+It prints JSON with `git` (branch, upstream, ahead/behind, staged/unstaged files,
+default branch), `pr`, and `openspec` (root and active changes with task counts; `null` without
 OpenSpec). Entries in `warnings` are informational. If bash is unavailable, or the probe
 exits non-zero or prints invalid JSON, run the equivalents inline:
 
 ```bash
 git status --porcelain=v1 -b
 git rev-parse --abbrev-ref --symbolic-full-name @{u}   # upstream, may fail
+git remote                                              # is there an origin?
+gh repo view --json defaultBranchRef --jq .defaultBranchRef.name   # default branch
 openspec list --json                                    # optional; root null = no OpenSpec
 ```
 
@@ -51,9 +63,10 @@ git log -n 15 --format='%s%n%b---'   # recent style
 
 and the contents of untracked files from `git status`.
 
-Done when you hold the diff, the untracked files, the recent log, and the OpenSpec
-state. With no staged, unstaged, or untracked changes, say there is nothing to commit
-and stop without committing.
+Done when you hold the diff, the untracked files, the recent log, the upstream and
+default branch, and the OpenSpec state. With no staged, unstaged, or untracked changes,
+say there is nothing to commit and stop: no commit and no push, even when the branch
+already has unpushed commits.
 
 ## 2. Decide what is in scope
 
@@ -82,7 +95,14 @@ subagents, work through the diff file by file yourself and produce the same plan
    - test/parser.test.ts
 2. docs: document --strict flag
    - README.md
+Push: feature/strict to origin, 3 commits (2 new, 1 already unpushed)
 ```
+
+Unless `--no-push` is in effect, the plan ends with the push line: the branch, the
+remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
+plus the planned commits; without an upstream, add
+`git rev-list --count HEAD --not --remotes`). On the default branch, the push line says
+it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
 Done when every changed file or hunk in scope sits in exactly one planned commit.
 Proceed when the user approves, or at once if they said to just commit.
@@ -140,7 +160,7 @@ rm -f "$msg"
 When committing only staged changes, skip `git add` and make a single commit of the
 staged set as it is, unless the user asks to restage or split it.
 
-## 6. Verify and report
+## 6. Verify
 
 ```bash
 git log -n <count> --format='%h %s%n%b---'
@@ -150,5 +170,25 @@ Done when no created message contains a `Co-Authored-By` naming a model or tool,
 "Generated with" line. If one does and the commit is unpushed, rewrite that message with
 `git commit --amend -F <file>` and check again.
 
+## 7. Push
+
+Skip this step with `--no-push`. Otherwise, on the default branch, ask first and skip
+on a no. Then:
+
+- **Upstream exists:** `git push`.
+- **No upstream, `origin` exists:** `git push -u origin HEAD`.
+- **No upstream, no `origin`:** push nothing; the commits stay local.
+- **Push rejected** (the remote branch has commits the local one lacks): stop with the
+  commits kept local, report the rejection, and suggest bringing the remote changes in
+  (for example with `ep-sync`) before pushing again. Leave pulling and rebasing to the
+  user.
+- **Pre-push hook fails:** stop with the commits kept local and report the hook output.
+
+Done when `git rev-parse HEAD` equals `git rev-parse @{u}`, or you know why nothing was
+pushed (`--no-push`, default branch declined, no remote, rejected, hook failed).
+
+## 8. Report
+
 Report the commits created (hash and subject), any tasks ticked, and anything left
-uncommitted.
+uncommitted. Then the push: the remote branch and the commits pushed, or that the
+commits are local and why.
