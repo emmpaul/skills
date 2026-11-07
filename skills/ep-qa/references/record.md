@@ -177,6 +177,10 @@ fingerprints say. In step 8 it ends in one of:
 | **fixed** | the reproduction passes (a flaky finding: passes twice) | listed under "Fixed since last run" with the current head sha; `status: fixed` and `fixed_at` in the record |
 | **not re-checked** | the reproduction could not run (toolchain missing, blocked prerequisite, plan declined, item dropped) | stays `open`, listed under "Not covered" with the reason |
 
+Judge whether a reproduction fails by the finding's own failure (its title, and its proposed
+regression test when it has one), not by the exit code alone: a probe that now exits
+non-zero with a clear error, as its finding expected, passes.
+
 A new candidate with the same root cause as an open finding is that finding, not a new
 one. New findings take ids after the **highest** number the record has issued: the
 larger of its `last_id` and the highest `QA-<n>` in its `findings` (fixed ones
