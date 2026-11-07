@@ -64,7 +64,7 @@ Stop at the first that fails:
    regenerate and update its body instead of creating a new one. Stop unless the user
    accepts; on yes, continue through checks 3-4 and steps 3-6, editing at step 6.
 3. **Uncommitted changes** (staged or unstaged files; the probe's `unstaged_files`
-   includes untracked files): offer to run `ep-commit` first. If the user declines,
+   includes untracked files): offer to run `ep-commit-and-push` first. If the user declines,
    continue with committed work only and say so; step 5 then captures no screenshots,
    since the running app would show uncommitted work.
 4. **No commits ahead of base**: `git fetch origin <base>`, then

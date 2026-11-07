@@ -130,7 +130,7 @@ Take the class's action from [`references/classes.md`](references/classes.md). O
 **Direct use:** show the diagnosis and the proposed patch, and ask before applying,
 committing, and pushing. **Caller mode:** apply, commit, and push without a prompt.
 
-Commit each cause separately, following `ep-commit` conventions: Conventional Commit
+Commit each cause separately, following `ep-commit-and-push` conventions: Conventional Commit
 (`fix`, or `test` for a test-class update), the repo's scope convention (with OpenSpec,
 the active change name), a body quoting the check name, and no attribution.
 

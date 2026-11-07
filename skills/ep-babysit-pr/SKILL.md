@@ -196,7 +196,7 @@ For each failing check (`bucket: fail`), required ones first:
 
 On either path, fix the cause and keep tests and checks as strong as they are: never skip,
 delete, or weaken tests to go green, and never disable the check. Commit fixes following
-`ep-commit` conventions (no attribution) and push with plain `git push`.
+`ep-commit-and-push` conventions (no attribution) and push with plain `git push`.
 
 **With subagents:** when several checks fail, invoke `ep-ci-debug` once for all of them
 (it diagnoses them in parallel itself and commits one fix per cause), or delegate that run
@@ -215,7 +215,7 @@ Process issue comments, inline review comments, and reviews with ids above the m
 
 | Class | When | Action |
 |---|---|---|
-| **fix** | asks for a code change within the PR's scope (bug, naming, test, edge case) | implement, commit (ep-commit conventions), push, then reply on the thread describing the fix and the commit sha |
+| **fix** | asks for a code change within the PR's scope (bug, naming, test, edge case) | implement, commit (ep-commit-and-push conventions), push, then reply on the thread describing the fix and the commit sha |
 | **reply** | question, or suggestion you disagree with for a stated reason | reply with a direct answer; no code change |
 | **no action** | approvals, thanks, or remarks that ask nothing | record as seen; do not reply |
 | **scope change** | asks for behavior outside the PR's purpose, or (with OpenSpec) behavior that contradicts or extends the active change's specs | do not implement; reply that it is out of scope for this PR and flagged to the author; tell the user, and with OpenSpec say the change's proposal/specs need updating first |
@@ -230,11 +230,11 @@ each time exactly as in [`references/score.md`](references/score.md) ("Merge com
   [`references/side-paths.md#fixup`](references/side-paths.md#fixup). Read the
   `fixups:` field and name the fixup and target shas in the reply. When the corrected lines
   come from the base, it makes a normal commit instead.
-- **Merge or rebase:** commit a normal commit following `ep-commit` conventions, so no
+- **Merge or rebase:** commit a normal commit following `ep-commit-and-push` conventions, so no
   `fixup!` subject reaches the base branch.
 
 If `ep-fixup` (or the side path) returns `needs_decision` (a change it cannot attach to one
-commit without asking), commit that remaining change as a normal ep-commit commit and push
+commit without asking), commit that remaining change as a normal ep-commit-and-push commit and push
 it. The reply names each fixup and its target from `fixups:`, and any normal commit from
 `commits:`. Fixup commits stay as they are: never autosquash, rebase, or force-push them.
 
@@ -328,7 +328,7 @@ current head commit (compare `last_review.head` with `headRefOid`):
    ```
 
    `<id>` is `r<round>.<n>`. Drop the `| instances:` part when the finding has none.
-4. Fix verified critical, major, and minor **introduced** findings (commits per ep-commit
+4. Fix verified critical, major, and minor **introduced** findings (commits per ep-commit-and-push
    conventions). A fix covers the finding's location and every one of its `instances`, in
    the same commit. A minor finding may be waived instead, with a PR comment stating the
    reason. **Pre-existing** findings (the `### pre-existing` section, counted in
