@@ -83,8 +83,10 @@ and treat an `openspec/` folder at the root as the OpenSpec root. Then record
 **before-snapshot**. Resolve the target (Usage).
 
 Read `references/record.md` and load the run record beside the requested audit path
-(`<audit-file stem>.state.json`), unless `--full` was given. A missing, corrupt, foreign,
-or other-target record counts as absent; keep the reason for the report. Record the
+(`<audit-file stem>.state.json`). With `--full`, use nothing from it, but still check a
+file there is an ep-qa record so a corrupt or foreign file is never overwritten. A
+missing, corrupt, foreign, or other-target record counts as absent; keep the reason for
+the report. Record the
 toolchain versions the record compares.
 
 ## 2. Discover

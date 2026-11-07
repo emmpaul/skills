@@ -70,9 +70,12 @@ are left out of "Files changed by the audit". The user deletes the record to sta
 
 ## Loading (step 1)
 
-With `--full`, do not read the record at all: every check runs, finding ids start at
+With `--full`, use nothing from the record: every check runs, finding ids start at
 `QA-1`, and the record is replaced at the end. The report's "Run record" line says
-`previous record ignored: --full`.
+`previous record ignored: --full`. Still run the first three checks of the table below
+on the file at the record path, only to protect it: a corrupt or foreign file is left
+untouched and no record is written this run, with the same report line and fix hint as
+without `--full`. An ep-qa record of any target is replaced.
 
 Otherwise the record is **usable** only when all hold:
 
