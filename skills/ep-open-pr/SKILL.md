@@ -1,6 +1,6 @@
 ---
 name: ep-open-pr
-description: Push the current branch and open a GitHub pull request whose title and body come from its commits and the active OpenSpec change, with risk tier, testing evidence, how to revert, UI screenshots, and no model attribution. Use when the user asks to open, create, or raise a PR.
+description: Push the current branch and open a GitHub pull request whose title and body come from its commits and the active OpenSpec change, with risk tier, testing evidence, how to revert, UI screenshots, and no model attribution. Use when the user asks to open a PR.
 ---
 
 # ep-open-pr
