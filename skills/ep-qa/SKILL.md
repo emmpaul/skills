@@ -178,8 +178,10 @@ started process still runs, or after it exited 0 (a detached start such as
 `docker compose up -d`, `pm2 start`, or a daemonizing script); a non-zero exit is a failed
 start, whatever the port answers. Each start has a stop item in the plan (`docker compose
 down`, `pm2 delete <name>`, or killing the recorded session and process group; "Running"
-in `plan.md`). Run a placeholder start (`plan.md`) only after the documented start's
-stop item ran and its port is free, never while it still runs. A server that
+in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the start). When no
+tool can find the process still holding a port, never claim it was freed: list it under
+"Not covered" and tell the user. Run a placeholder start (`plan.md`) only after the
+documented start's stop item ran and its port is free, never while it still runs. A server that
 needs a service you cannot run locally is not started: its runtime probes become not
 covered with that reason.
 

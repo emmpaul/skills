@@ -178,18 +178,28 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   non-zero during the wait (for example `Address already in use`), the start failed,
   whatever the port answers. Not ready by then: a failed item, with the last
   output lines as evidence.
-- **Stop items:** plan each start's stop right after its probes, area `runtime`, source
-  the start's source, and run it also when the start or a later step fails: for a
+- **Stop items:** plan each start's stop right after that start's probes, area `runtime`,
+  source the start's source, and run it also when the start or a later step fails: for a
   foreground start, `kill -- -<pgid>` of the recorded process group; for a detached
   start, the matching stop command, `docker compose down` (with the same `-f`/`-p`
   options as the start, never `-v`) for `docker compose up -d`, `pm2 delete <name>` for
   `pm2 start` (the names it started), and for a daemonizing script the processes still in
   the recorded session (`ps -o pid= -s <sid>`, which `nohup ... &` children keep) plus
-  the process listening on the port (`lsof -t -iTCP:<n> -sTCP:LISTEN`), each stopped with
-  its process group. When `docker compose ps -a -q` (or `pm2 jlist`) already listed
-  containers (or processes of that name) before the start, stop with `docker compose
-  stop` (or `pm2 stop <name>`) instead, so what existed before stays. Confirm the port is
-  free afterwards.
+  the process listening on the port, each stopped with its process group. Find that
+  listener with `lsof -t -iTCP:<n> -sTCP:LISTEN`, else `ss -ltnp 'sport = :<n>'` (Linux,
+  the `pid=` field), else `fuser <n>/tcp`. When no tool can name it and the port still
+  answers, never claim it was freed: the stop item fails with `environment (port <n>
+  still held, listener not found)`, the report lists the leftover port and any recorded
+  PID still running under "Not covered" (`references/audit.md`), and the final message
+  tells the user what is still running. When `docker compose ps -a -q` (or `pm2 jlist`)
+  already listed containers (or processes of that name) before the start, stop with
+  `docker compose stop` (or `pm2 stop <name>`) instead, so what existed before stays.
+  **PM2 daemon:** before a `pm2 start`, record whether a PM2 daemon already runs, without
+  starting one: `pm2 jlist` and most `pm2` commands spawn the daemon, so check its pid
+  file instead (`$PM2_HOME/pm2.pid`, default `~/.pm2/pm2.pid`, and that PID is alive).
+  Run `pm2 jlist` only when it does. When no daemon ran before, this run launched it:
+  the stop also runs `pm2 kill`. Confirm the port is free afterwards, by the same check
+  as before the start.
 - **One server at a time:** before any later start of the same app (the placeholder
   start), run the earlier start's stop item and confirm its port is free.
 
