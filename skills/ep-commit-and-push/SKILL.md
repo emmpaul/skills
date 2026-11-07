@@ -20,8 +20,9 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
 - **Push last, with a plain push.** Push only after step 6 has verified every created
   message, and only when this run created a commit. Push with `git push` or
   `git push -u origin HEAD`, never `--force`, `--force-with-lease`, or a `+refspec`.
-- **The default branch asks first.** Before pushing the repository's default branch,
-  ask the user, even when told to just commit; push it only on a yes.
+- **The default branch asks first.** Before a push whose target (step 7) is the
+  repository's default branch, ask the user, even when told to just commit; push it
+  only on a yes.
 - **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
   commit again. Use `--no-verify` only when the user asks.
 
@@ -98,10 +99,11 @@ subagents, work through the diff file by file yourself and produce the same plan
 Push: feature/strict to origin, 3 commits (2 new, 1 already unpushed)
 ```
 
-Unless `--no-push` is in effect, the plan ends with the push line: the branch, the
-remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
+Unless `--no-push` is in effect, the plan ends with the push line: the target branch
+(step 7), the remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
 plus the planned commits; without an upstream, add
-`git rev-list --count HEAD --not --remotes`). On the default branch, the push line says
+`git rev-list --count HEAD --not --remotes`). When step 7 will ask (an upstream named
+differently from the current branch, or a default-branch target), the push line says
 it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
 Done when every changed file or hunk in scope sits in exactly one planned commit.
@@ -172,8 +174,18 @@ Done when no created message contains a `Co-Authored-By` naming a model or tool,
 
 ## 7. Push
 
-Skip this step with `--no-push`. Otherwise, on the default branch, ask first and skip
-on a no. Then:
+Skip this step with `--no-push`. Otherwise gate the **target**, the remote branch the
+push writes to: the upstream's branch name (`main` for `origin/main`), or the current
+branch name when there is no upstream.
+
+- **Upstream named differently from the current branch** (for example a branch made
+  with `git switch -c fix origin/main`): ask whether to push the branch under its own
+  name with `git push -u origin HEAD`, which is then the push; on a no, keep the
+  commits local. Push only to the current branch's own name: when git suggests a
+  `HEAD:<branch>` refspec, report it and leave it unused.
+- **Target is the default branch:** ask first, and keep the commits local on a no.
+
+Then:
 
 - **Upstream exists:** `git push`.
 - **No upstream, `origin` exists:** `git push -u origin HEAD`.
@@ -184,8 +196,9 @@ on a no. Then:
   user.
 - **Pre-push hook fails:** stop with the commits kept local and report the hook output.
 
-Done when `git rev-parse HEAD` equals `git rev-parse @{u}`, or you know why nothing was
-pushed (`--no-push`, default branch declined, no remote, rejected, hook failed).
+Done when `git rev-parse HEAD` equals `git rev-parse @{u}` and the upstream's branch
+name equals the current branch name, or you know why nothing was pushed (`--no-push`,
+upstream mismatch declined, default branch declined, no remote, rejected, hook failed).
 
 ## 8. Report
 
