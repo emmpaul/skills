@@ -23,7 +23,7 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
   (`push.default`, a remote's push refspecs) cannot add branches or a force. Never
   `--force`, `--force-with-lease`, or a `+refspec`.
 - **The default branch asks first.** Before a push whose target (step 7) is the
-  repository's default branch, ask the user, even when told to just commit; push it
+  push remote's default branch, ask the user, even when told to just commit; push it
   only on a yes. An unknown default branch (step 1) counts as the target: ask.
 - **Secret-like files ask first.** Check every file the commits would add as new to
   history: each untracked file in `git status --porcelain --untracked-files=all` (which
@@ -79,18 +79,26 @@ and the contents of the untracked files that
 `git status --porcelain --untracked-files=all` lists, except secret-like files (hard
 rules), whose names are enough.
 
-Then settle the default branch. When `gh auth status` succeeds, run
-`gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`: GitHub's answer
-outranks the local `origin/HEAD` the probe read, so when it prints a name that differs
-from the probe's `default_branch`, the default branch is **unknown**. When `gh` is
-missing, unauthenticated, or prints nothing, the probe's `default_branch` stands, and the
-default branch is **unknown** when that is null or `warnings` has
-`default branch guessed as <name>`. Otherwise the default branch is **known**.
+Then settle the **push remote** as git picks it: the first that is set of
+`git config branch.<branch>.pushRemote`, `git config remote.pushDefault`, and
+`git config branch.<branch>.remote`, else `origin`. It counts only when `git remote`
+lists it; `.` (a local-branch upstream), a URL, or a missing `origin` leaves no push
+remote, and then nothing is pushed.
+
+Then settle the push remote's default branch. When `gh auth status` succeeds, run
+`gh repo view "$(git remote get-url <remote>)" --json defaultBranchRef --jq .defaultBranchRef.name`:
+GitHub's answer outranks the local `<remote>/HEAD`
+(`git symbolic-ref --short refs/remotes/<remote>/HEAD`), so when that names a different
+branch, the default branch is **unknown**. When `gh` is missing, unauthenticated, or
+prints nothing, the default branch is **unknown** for a push remote other than `origin`;
+for `origin` the probe's `default_branch` stands, and the default branch is **unknown**
+when that is null or `warnings` has `default branch guessed as <name>`. Otherwise the
+default branch is **known**.
 
 Done when you hold the diff, the untracked files, the recent log, the upstream, the
-default branch (known or unknown), and the OpenSpec state. With no staged, unstaged, or
-untracked changes, say there is nothing to commit and stop: no commit and no push, even
-when the branch already has unpushed commits.
+push remote (or none), its default branch (known or unknown), and the OpenSpec state.
+With no staged, unstaged, or untracked changes, say there is nothing to commit and stop:
+no commit and no push, even when the branch already has unpushed commits.
 
 ## 2. Decide what is in scope
 
@@ -124,8 +132,8 @@ Push: feature/strict to origin, 3 commits (2 new, 1 already unpushed)
 ```
 
 Unless `--no-push` is in effect, the plan ends with the push line: the target branch
-(step 7), the remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
-plus the planned commits; without an upstream, add
+(step 7), the push remote (step 1), and how many commits the push sends, counting earlier
+unpushed ones (`ahead` plus the planned commits; without an upstream, add
 `git rev-list --count HEAD --not --remotes`). When step 7 will ask (an upstream named
 differently from the current branch, or a default-branch target, unknown default
 branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
@@ -201,17 +209,17 @@ Done when no created message contains a `Co-Authored-By` naming a model or tool,
 ## 7. Push
 
 Skip this step with `--no-push`. Otherwise the push writes the current branch to the
-remote branch of the same name, the **target**: `<branch>` is the current branch name,
-and `<remote>` is the upstream's remote (`git config branch.<branch>.remote`), or
-`origin` when there is no upstream. On a detached `HEAD` there is no branch: push
-nothing.
+branch of the same name on the push remote (step 1), the **target**: `<branch>` is the
+current branch name and `<remote>` is the push remote. On a detached `HEAD` there is no
+branch, and with no push remote there is nowhere to push: push nothing.
 
 Ask first, even when told to just commit, and keep the commits local on a no, when
 either holds (one question covers both):
 
-- **Upstream named differently from the current branch** (for example a branch made
-  with `git switch -c fix origin/main`): ask whether to push the branch under its own
-  name, which creates `<remote>/<branch>` and points the upstream at it. When git
+- **Upstream named differently from the current branch**
+  (`git config branch.<branch>.merge` is not `refs/heads/<branch>`, for example a branch
+  made with `git switch -c fix origin/main`): ask whether to push the branch under its
+  own name, which creates `<remote>/<branch>` and points the upstream at it. When git
   suggests a `HEAD:<other>` refspec, report it and leave it unused.
 - **Target is the default branch, or the default branch is unknown** (step 1).
 
@@ -219,17 +227,17 @@ Then:
 
 - **Upstream with the current branch's name:** `git push <remote> HEAD:refs/heads/<branch>`.
 - **Upstream named differently, after a yes:** `git push -u <remote> HEAD:refs/heads/<branch>`.
-- **No upstream, `origin` exists:** `git push -u origin HEAD:refs/heads/<branch>`.
-- **No upstream, no `origin`:** push nothing; the commits stay local.
+- **No upstream:** `git push -u <remote> HEAD:refs/heads/<branch>`.
 - **Push rejected** (the remote branch has commits the local one lacks): stop with the
   commits kept local, report the rejection, and suggest bringing the remote changes in
   (for example with `ep-sync`) before pushing again. Leave pulling and rebasing to the
   user.
 - **Pre-push hook fails:** stop with the commits kept local and report the hook output.
 
-Done when `git rev-parse HEAD` equals `git rev-parse @{u}` and `@{u}` is
-`<remote>/<branch>`, or you know why nothing was pushed (`--no-push`, upstream mismatch
-declined, default branch declined, detached `HEAD`, no remote, rejected, hook failed).
+Done when `git ls-remote <remote> refs/heads/<branch>` prints the sha of
+`git rev-parse HEAD`, or you know why nothing was pushed (`--no-push`, upstream mismatch
+declined, default branch declined, detached `HEAD`, no push remote, rejected, hook
+failed).
 
 ## 8. Report
 

@@ -31,7 +31,8 @@ The user decided that `ep-commit-and-push` pushes after committing, not just com
 
 ### D2. Push rules follow `ep-open-pr` step 3, with an explicit target
 
-- The target is the remote branch with the current branch's name. No upstream and `origin` exists: `git push -u origin HEAD:refs/heads/<branch>`. Upstream with the branch's name: `git push <remote> HEAD:refs/heads/<branch>`. No upstream and no `origin`: push nothing and report it.
+- The target is the branch with the current branch's name on the push remote, picked as git picks it: `branch.<branch>.pushRemote`, else `remote.pushDefault`, else `branch.<branch>.remote`, else `origin`. Taking only `branch.<branch>.remote` would push a fork's branch to the canonical repository it tracks, and a local-branch upstream (`.`) would "push" into the local repository with exit 0. So the push remote counts only when `git remote` lists it; `.`, a URL, or a missing `origin` means push nothing and report it. No upstream: `git push -u <remote> HEAD:refs/heads/<branch>`. Upstream with the branch's name: `git push <remote> HEAD:refs/heads/<branch>`.
+- The push is confirmed with `git ls-remote <remote> refs/heads/<branch>` equal to `HEAD`, not with `@{u}`: a single-branch or shallow clone fetches no remote-tracking ref for a new branch, so `@{u}` cannot resolve after a successful push.
 - Every push names its target with the explicit refspec `HEAD:refs/heads/<branch>`, never a bare `git push`: a bare push takes its destination from git config, so `push.default=matching` would also push an unpushed local `main` past the default-branch gate, and a configured `+refs/heads/*:refs/heads/*` push refspec would force-push. The explicit refspec makes the pushed ref the gated ref.
 - Plain pushes only: never `--force`, `--force-with-lease`, or `+refspec`; hooks run, `--no-verify` only on the user's request.
 - Rejected push or failing pre-push hook: stop, keep the commits, report the cause, suggest `ep-sync` for a remote that moved ahead. No pull or rebase from this skill.
@@ -74,9 +75,9 @@ The new description front-loads the behavior and keeps one trigger per branch: c
 
 `openspec/config.yaml`'s naming example and the three active changes (`add-ep-front-door-skills`, `add-ep-hygiene-skills`, `add-ep-after-merge-skills`) name `ep-commit-and-push`, so their later implementation does not reintroduce the old name. Edits there are name swaps only.
 
-### D9. The default branch is confirmed with GitHub
+### D9. The push remote's default branch is confirmed with GitHub
 
-The probe reads the local `origin/HEAD` symref first and asks `gh` only when it is missing, so a symref left stale by a renamed default (`master` to `main`) would pass as known and let a push to the real default through without asking. The skill therefore runs `gh repo view --json defaultBranchRef` itself whenever `gh` is authenticated: GitHub's answer outranks the symref, and a disagreement makes the default branch unknown, which asks (D3). Without an answer from `gh` (missing, unauthenticated, not a GitHub remote), the probe's value stands, and a null or guessed value is unknown. `shared/context.sh` stays as it is, since every skill shares it and only this skill gates a push on it.
+The gate concerns the default branch of the remote the push goes to (D2), not always `origin`'s. The probe reads the local `origin/HEAD` symref first and asks `gh` only when it is missing, so a symref left stale by a renamed default (`master` to `main`) would pass as known and let a push to the real default through without asking. The skill therefore runs `gh repo view <remote URL> --json defaultBranchRef` itself whenever `gh` is authenticated, naming the push remote's URL, since `gh` otherwise picks its own base repository: GitHub's answer outranks the local `<remote>/HEAD` symref, and a disagreement makes the default branch unknown, which asks (D3). Without an answer from `gh` (missing, unauthenticated, not a GitHub remote), the probe's value stands for `origin`, and a null or guessed value is unknown; for any other push remote the probe knows nothing, so the default branch is unknown. `shared/context.sh` stays as it is, since every skill shares it and only this skill gates a push on it.
 
 ### D10. Secret-like files new to history need a yes
 

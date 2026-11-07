@@ -77,7 +77,7 @@ The skill SHALL NOT amend, rebase, or otherwise rewrite commits that exist on th
 - **THEN** the skill creates a new commit rather than amending
 
 ### Requirement: Push after committing
-After it has created its commits and verified them free of attribution, the skill SHALL push the current branch to the remote branch of the same name, its target: `git push -u origin HEAD:refs/heads/<branch>` when the branch has no upstream, and `git push <remote> HEAD:refs/heads/<branch>` to the upstream's remote when the upstream has the branch's name. It SHALL push only when it created at least one commit in this run.
+After it has created and verified its commits, the skill SHALL push the current branch to the same-named branch on its push remote, its target: `git push -u <remote> HEAD:refs/heads/<branch>` without an upstream, and `git push <remote> HEAD:refs/heads/<branch>` when the upstream has the branch's name. It SHALL push only when it created a commit in this run, and SHALL confirm the push with `git ls-remote`.
 
 #### Scenario: Branch without upstream
 - **WHEN** the skill has committed on a branch with no upstream and `origin` exists
@@ -87,12 +87,23 @@ After it has created its commits and verified them free of attribution, the skil
 - **WHEN** the skill has committed on a branch whose upstream has the branch's name
 - **THEN** it runs `git push <remote> HEAD:refs/heads/<branch>` and reports the commits pushed
 
+### Requirement: Push remote is picked as git picks it
+The skill SHALL take the push remote from `branch.<branch>.pushRemote`, else `remote.pushDefault`, else `branch.<branch>.remote`, else `origin`, and SHALL count it only when `git remote` lists it; otherwise it SHALL push nothing.
+
+#### Scenario: Push remote configured
+- **WHEN** `remote.pushDefault` is `fork`, the branch `feat` tracks `upstream/feat`, and both remotes exist
+- **THEN** it runs `git push fork HEAD:refs/heads/feat`, and `upstream` is unchanged
+
+#### Scenario: Single-branch clone
+- **WHEN** the clone fetches only `main`, so the pushed branch has no remote-tracking ref
+- **THEN** the skill confirms the push from `git ls-remote <remote> refs/heads/<branch>` and reports the remote branch it pushed to
+
 #### Scenario: Upstream named differently
 - **WHEN** the skill has committed on a branch whose upstream has another name (for example `fix` made with `git switch -c fix origin/main`)
 - **THEN** it asks whether to push the branch under its own name, even when told to just commit; on a yes it runs `git push -u <remote> HEAD:refs/heads/<branch>`, creating that remote branch and pointing the upstream at it, and on a no it keeps the commits local; it never pushes to the upstream's branch
 
 #### Scenario: No remote to push to
-- **WHEN** the branch has no upstream and the repository has no `origin` remote
+- **WHEN** the push remote is not a remote `git remote` lists (for example no `origin` exists, or the upstream is a local branch, remote `.`)
 - **THEN** the skill keeps the commits, pushes nothing, and reports that no remote was found
 
 ### Requirement: Plain pushes only
@@ -111,7 +122,7 @@ The skill SHALL push with a plain push only: never `--force`, `--force-with-leas
 - **THEN** the skill reports the hook output, keeps the commits local, and does not retry with `--no-verify`
 
 ### Requirement: Default branch push is gated
-When the push target is the repository's default branch, or the default branch is unknown, the skill SHALL ask before pushing, even when it was told to just commit, and SHALL push nothing unless the user confirms.
+When the push target is the push remote's default branch, or that default branch is unknown, the skill SHALL ask before pushing, even when it was told to just commit, and SHALL push nothing unless the user confirms.
 
 #### Scenario: Committing on the default branch
 - **WHEN** the skill has committed on `main`, the default branch, without `--no-push`
@@ -122,10 +133,14 @@ When the push target is the repository's default branch, or the default branch i
 - **THEN** the skill asks before pushing, whatever the branch, and on a no reports the commits as local
 
 ### Requirement: Default branch is confirmed with GitHub
-When `gh` is authenticated, the skill SHALL take the default branch from `gh repo view --json defaultBranchRef` and SHALL treat it as unknown when that differs from the local `origin/HEAD`. Without an answer from `gh`, the local `origin/HEAD` stands, and the default branch is unknown when none is found or it is only guessed.
+When `gh` is authenticated, the skill SHALL take the push remote's default branch from `gh repo view <remote URL> --json defaultBranchRef` and SHALL treat it as unknown when that differs from the local `<remote>/HEAD`. Without an answer from `gh`, the default branch is unknown for a push remote other than `origin`; for `origin` the local `origin/HEAD` stands, and the default branch is unknown when none is found or it is only guessed.
 
 #### Scenario: Stale local default branch
 - **WHEN** `origin/HEAD` points at `master` but `gh` reports `main` as the default branch
+- **THEN** the skill treats the default branch as unknown and asks before pushing, whatever the branch
+
+#### Scenario: Other push remote unconfirmed
+- **WHEN** the push remote is `fork` and `gh` gives no default branch for it
 - **THEN** the skill treats the default branch as unknown and asks before pushing
 
 ### Requirement: Secret-like files are staged only on a yes
