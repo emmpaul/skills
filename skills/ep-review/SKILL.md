@@ -141,11 +141,18 @@ the finding shape. Do not give them each other's results.
 order above, with the same checklists. Finish one dimension before starting the next.
 
 Either way, collect all candidate findings, then deduplicate **within** each dimension
-(same root cause: keep one, at the higher severity). Do not merge findings across
-dimensions: a bug that also contradicts a spec scenario is reported once under
-correctness and once under spec, so the spec status stays accurate. To avoid double
-reports on tests: an untested **spec scenario** belongs to the spec dimension only; the
-tests dimension covers test gaps for code-level behavior and weak or missing assertions.
+(same root cause: keep one, at the higher severity, with the others' locations added to
+its `instances`). Do not merge findings across dimensions: a bug that also contradicts a
+spec scenario is reported once under correctness and once under spec, so the spec status
+stays accurate. To avoid double reports on tests: an untested **spec scenario** belongs to
+the spec dimension only; the tests dimension covers test gaps for code-level behavior and
+weak or missing assertions.
+
+**Known findings (`--known`).** Each known finding becomes a verification candidate too,
+marked `known`, whatever the narrowed diff covers. Then drop every new candidate that
+duplicates a known one: same file, lines within 3 of each other, and the same defect
+(same class; when the known line names no class, judge it from the summary). The known
+finding is the one that goes to verification, so it is never reported as new.
 
 ## 5. Verify each finding
 
@@ -158,24 +165,65 @@ For every candidate, try to **disprove** it:
 - For spec findings, re-read the requirement text and search the codebase (not only the
   diff) for an implementation.
 - When cheap and safe, run the test or command that would show the failure.
+- Decide the origin (`introduced` or `pre-existing`) with the blame rule in
+  `references/dimensions.md`, and check each listed instance; drop instances that do
+  not have the defect.
+- For a `known` candidate, check it at the new head: it is `fixed` when the defect no
+  longer occurs there (moved lines count: follow the code, not the line number), and
+  `still open` otherwise.
 
 Running tests must not modify tracked files; if the runner is not installed, skip running
-and rely on reading. Drop findings that cannot occur. Downgrade severity when impact is smaller than claimed.
-Keep the rest as **verified**.
+and rely on reading. Each check ends in one verdict per candidate, with a reason:
+`confirmed`, `refuted` (it cannot occur, or a known finding is fixed), or
+`downgraded:<severity>` (real, but smaller than claimed).
 
-**With subagents:** use one verifier subagent per finding (or per batch of up to 5 findings
-when there are many), told to argue the finding is wrong and to return
-`confirmed | refuted | downgraded` with the reason. **Without subagents:** verify each
-finding inline, one at a time, using the same steps.
+### Voting (with subagents)
+
+Start **3 voter subagents in parallel**, after every dimension has finished. Each voter
+gets every candidate (new and known), the diff or how to get it, the repo path, and
+`references/dimensions.md`, plus the same brief: argue that each finding is wrong, run the
+checks above, and return one verdict per candidate with its reason. No voter sees another
+voter's verdicts. With more than 20 candidates, each voter takes them in batches of 20,
+one batch after another in its own context; that adds no agents. This is 7 agents in all
+(4 dimensions and 3 voters), for any number of findings.
+
+Combine the 3 verdicts of each candidate:
+
+- **Kept** when at least 2 verdicts are not `refuted`. A split vote, where only 1 of 3
+  confirms and 2 refute, drops the finding, and it counts toward
+  `dropped_in_verification`.
+- **Severity** is the highest severity that at least 2 non-refuting verdicts support. A
+  `confirmed` verdict supports the claimed severity and every severity below it;
+  `downgraded:<x>` supports `<x>` and below. For example, a major candidate with the
+  verdicts confirmed, downgraded:minor, downgraded:minor is reported as **minor**.
+- **Origin** and **instances** follow the majority of the kept verdicts; on a tie, the
+  origin is `introduced`.
+- A **known** candidate that is dropped is counted as `fixed`, not in
+  `dropped_in_verification`. One that is kept is `still open`: it is reported once,
+  marked `still open`, and counts in `verified:` like any introduced finding (or in
+  `pre_existing` when its origin is pre-existing).
+
+The summary records `verification: vote`.
+
+### Inline verification (without subagents)
+
+Verify each candidate **once**, inline, one at a time, with the same disproof steps. Drop
+it when the verdict is `refuted`; apply a `downgraded` severity as given. Known candidates
+are `fixed` or `still open` as above. A single context cannot vote independently, so do
+not pretend to: the summary records `verification: inline`.
+
+Whatever the path, the findings that are kept are the **verified** findings.
 
 ### Workflow path (Claude Code, high effort)
 
 When running in Claude Code with a Workflow tool available and the user asked for high
 effort (`--effort high`, "thorough", "deep review"), running this skill at that effort is
 the user's opt-in to a Workflow. Run steps 4-5 as one Workflow: a `pipeline` over the four
-dimensions where each dimension's findings go straight to per-finding verify agents, then
-collect confirmed findings. Keep it under 10 agents (batch verifications when needed).
-If no Workflow tool exists, use the subagent path above.
+dimension agents, whose deduplicated candidates (plus any known findings) go to a
+`parallel` stage of the 3 voter agents described above, then combine the verdicts with the
+voting rules. That is **at most 7 agents** (4 dimensions and 3 voters); voters batch by 20
+instead of adding agents. The summary records `verification: vote`. If no Workflow tool
+exists, use the subagent path above.
 
 ## 6. Report
 
