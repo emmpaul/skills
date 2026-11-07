@@ -96,6 +96,26 @@ The proposal: `kind: incident`, `source: {type: fix, sha: <fix>}`, `bug.file`,
 paragraph of its body. One PR revealed by several fixes or reverts gives one proposal
 per distinct bug location; the same location twice is proposed once.
 
+### Worked example: a squash or rebase merge
+
+Use this to check step 4 after editing it; the expected values are what a correct reading
+gives.
+
+1. `main` has `calc.py` with `total()` (5 lines); that commit is the PR's base.
+2. PR branch `pr`: one commit appends `mean()`, so the PR head has
+   `    return total(xs) / len(xs)` at line 9.
+3. `main` gains a two-line header comment, then the PR lands as one squash commit (or,
+   for a rebase merge, as a cherry-pick of the PR's commit). On `main` the same line is
+   now line 11.
+4. A fix commit `fix: mean of empty list` edits that line: `git diff -U0 <fix>^ <fix>`
+   gives `@@ -11 +11 @@`.
+
+Expected: step 2 blames line 11 to the squash (or rebased) commit, orig line 11. That
+commit is **not** an ancestor of the PR head, so step 4 matches by content: the text at
+the blamed commit's line 11 equals the head's added line 9, and the bug range is
+`calc.py` lines 9-9. Matching by sha (`git blame <head>` lines with the blamed sha) keeps
+no line and gives no proposal: that result is a regression.
+
 ## Clean cases
 
 Propose **up to as many clean cases as incident proposals**, so the set stays balanced
