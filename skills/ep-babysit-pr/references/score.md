@@ -44,9 +44,15 @@ final round had zero minor findings, item 2 is met.
 ### Documentation-only PRs
 
 A PR with no code has nothing to test, so item 5 counts as **met (not applicable)** when
-the PR is documentation-only: **every** changed path (`gh pr diff <n> --name-only`; for
-renames, both the old and new path) is documentation-only by the rule in
-[`risk.md`](risk.md#documentation-only-paths), the same rule the risk tier uses.
+the PR is documentation-only: **every** changed path, with both sides of each rename, is
+documentation-only by the rule in [`risk.md`](risk.md#documentation-only-paths), the same
+rule the risk tier uses. List the paths as `risk.md` does, never with
+`gh pr diff <n> --name-only` (it lists only a rename's new path):
+
+```bash
+gh api repos/{owner}/{repo}/pulls/<n>/files --paginate \
+  --jq '.[] | .filename, (.previous_filename // empty)'
+```
 
 If any path is not, item 5 needs test evidence as usual. Only item 5 changes: the
 review round, the other items, the gates, and the threshold apply unchanged.
