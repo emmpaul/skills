@@ -49,6 +49,18 @@ anyone but the reviewer that posted it. Judge the reply's meaning, not only the 
 a reply that fits no class (a question, a thank you) does not count, and the next rule
 applies. Quote each classifying reply's first line in the report.
 
+### Worked example: `fixed` versus not repeated
+
+Use this to check the `fixed` rule after editing it. A review on `<commit_id>` posts two
+findings on `app.py` (40 lines), at line 10 and at line 30, and neither gets a reply. One
+later commit changes only line 12, and a later `ep-review` review on the new head repeats
+neither finding.
+
+Expected: `git diff -U0 <commit_id> <headRefOid> -- app.py` gives `@@ -12 +12 @@`. The
+line-10 finding is `fixed` (line 12 is within 3 lines). The line-30 finding is
+`unanswered`: nothing near it changed, and the later review not repeating it is no
+evidence. Counting it `fixed` is a regression.
+
 ## `REVIEW.md` suggestions
 
 Group findings answered `wrong` or `did not matter` by class and path. A group that
