@@ -50,7 +50,7 @@ When the branch changes UI files, the skill SHALL capture screenshots of the aff
 
 #### Scenario: UI component changed
 - **WHEN** the branch changes `src/components/Button.tsx` and the repo has a `dev` script
-- **THEN** after confirmation the skill starts the app, screenshots the pages that render the change, stops the app, and the PR body has a Screenshots section with one image per page
+- **THEN** after confirmation the skill starts the app, screenshots the pages that render the change, stops the app, and the PR body has a Screenshots section with one image per page at each capture width (desktop and mobile, at most 5 pages and 10 images)
 
 #### Scenario: No UI change
 - **WHEN** the branch changes only server code and tests
