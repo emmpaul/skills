@@ -200,8 +200,12 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   Run `pm2 jlist` only when it does. When no daemon ran before, this run launched it:
   the stop also runs `pm2 kill`. Confirm the port is free afterwards, by the same check
   as before the start.
-- **One server at a time:** before any later start of the same app (the placeholder
-  start), run the earlier start's stop item and confirm its port is free.
+- **One server at a time:** each start of the same app is its own start item with its own
+  stop item: the documented start, the placeholder start, and each missing-config start
+  ("Probes per project type", Local HTTP server). Order them: the documented start, its
+  probes, its stop; then each later start, its probes, its stop, one after another. A
+  later start runs only after the previous start's stop item ran and its port is
+  confirmed free; two starts of the app never run at the same time.
 
 ## Probes per project type
 
@@ -243,7 +247,9 @@ malformed or not. The sections below say how each target lists it under "Not cov
 - Malformed bodies on documented write routes that pass the filter: invalid JSON, wrong
   types, missing required fields, the edge inputs below.
 - Start with a required env variable or config missing (one variable at a time), when the
-  docs or example env file name them, to see whether the failure is clear.
+  docs or example env file name them, to see whether the failure is clear. Each is a
+  separate start item with its own stop item, after the previous start's stop
+  ("Running", One server at a time).
 - Write requests go only to this locally started app.
 
 **Library**
