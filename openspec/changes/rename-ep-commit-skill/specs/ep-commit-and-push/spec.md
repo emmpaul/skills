@@ -121,6 +121,13 @@ When the push target is the repository's default branch, or the default branch i
 - **WHEN** the repository has no `origin/HEAD` and `gh` reports no default branch, so the default branch is guessed or not found
 - **THEN** the skill asks before pushing, whatever the branch, and on a no reports the commits as local
 
+### Requirement: Default branch is confirmed with GitHub
+When `gh` is authenticated, the skill SHALL take the default branch from `gh repo view --json defaultBranchRef` and SHALL treat it as unknown when that differs from the local `origin/HEAD`. Without an answer from `gh`, the local `origin/HEAD` stands, and the default branch is unknown when none is found or it is only guessed.
+
+#### Scenario: Stale local default branch
+- **WHEN** `origin/HEAD` points at `master` but `gh` reports `main` as the default branch
+- **THEN** the skill treats the default branch as unknown and asks before pushing
+
 ### Requirement: No-push mode
 With `--no-push`, or when the user or a calling skill says to commit without pushing, the skill SHALL create and verify its commits as usual, push nothing, and report the commits as local.
 

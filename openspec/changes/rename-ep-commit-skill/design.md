@@ -43,7 +43,7 @@ Alternative considered: delegate the push to `ep-open-pr`'s rules by reference. 
 
 The push is an outward effect, so it gets an explicit gate (config rule for design). The existing plan prompt (step 3) is that gate: the plan now names the target branch and remote and how many commits the push sends, including earlier unpushed ones. When the user says "just commit", that instruction covers the push too, since they invoked a commit-and-push skill. The exceptions ask even when the user said to just commit:
 
-- **Default branch.** Pushing straight to it is the hardest to undo, so the skill always asks before pushing the default branch. An unknown or guessed default branch also asks, whatever the current branch: without knowing the default, the skill cannot tell a feature push from a default-branch push.
+- **Default branch.** Pushing straight to it is the hardest to undo, so the skill always asks before pushing the default branch. An unknown default branch (D9) also asks, whatever the current branch: without knowing the default, the skill cannot tell a feature push from a default-branch push.
 - **Upstream named differently from the branch** (for example `fix` made with `git switch -c fix origin/main`). The skill never pushes to the upstream's branch; it asks whether to push the branch under its own name with `git push -u <remote> HEAD:refs/heads/<branch>`, which creates that remote branch and points the upstream at it, and keeps the commits local on a no.
 
 Alternative considered: always ask before every push. Rejected: it turns the skill back into `ep-commit` plus a prompt, contrary to the user's choice.
@@ -73,6 +73,10 @@ The new description front-loads the behavior and keeps one trigger per branch: c
 ### D8. In-flight changes and config name the new skill
 
 `openspec/config.yaml`'s naming example and the three active changes (`add-ep-front-door-skills`, `add-ep-hygiene-skills`, `add-ep-after-merge-skills`) name `ep-commit-and-push`, so their later implementation does not reintroduce the old name. Edits there are name swaps only.
+
+### D9. The default branch is confirmed with GitHub
+
+The probe reads the local `origin/HEAD` symref first and asks `gh` only when it is missing, so a symref left stale by a renamed default (`master` to `main`) would pass as known and let a push to the real default through without asking. The skill therefore runs `gh repo view --json defaultBranchRef` itself whenever `gh` is authenticated: GitHub's answer outranks the symref, and a disagreement makes the default branch unknown, which asks (D3). Without an answer from `gh` (missing, unauthenticated, not a GitHub remote), the probe's value stands, and a null or guessed value is unknown. `shared/context.sh` stays as it is, since every skill shares it and only this skill gates a push on it.
 
 ## Risks / Trade-offs
 

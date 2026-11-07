@@ -24,7 +24,7 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
   `--force`, `--force-with-lease`, or a `+refspec`.
 - **The default branch asks first.** Before a push whose target (step 7) is the
   repository's default branch, ask the user, even when told to just commit; push it
-  only on a yes. An unknown or guessed default branch counts as the target: ask.
+  only on a yes. An unknown default branch (step 1) counts as the target: ask.
 - **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
   commit again. Use `--no-verify` only when the user asks.
 
@@ -66,13 +66,18 @@ git log -n 15 --format='%s%n%b---'   # recent style
 
 and the contents of untracked files from `git status`.
 
-The default branch is **unknown** when `default_branch` is null or the `gh` command
-fails, and **guessed** when `warnings` has `default branch guessed as <name>`.
+Then settle the default branch. When `gh auth status` succeeds, run
+`gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`: GitHub's answer
+outranks the local `origin/HEAD` the probe read, so when it prints a name that differs
+from the probe's `default_branch`, the default branch is **unknown**. When `gh` is
+missing, unauthenticated, or prints nothing, the probe's `default_branch` stands, and the
+default branch is **unknown** when that is null or `warnings` has
+`default branch guessed as <name>`. Otherwise the default branch is **known**.
 
-Done when you hold the diff, the untracked files, the recent log, the upstream and
-default branch, and the OpenSpec state. With no staged, unstaged, or untracked changes,
-say there is nothing to commit and stop: no commit and no push, even when the branch
-already has unpushed commits.
+Done when you hold the diff, the untracked files, the recent log, the upstream, the
+default branch (known or unknown), and the OpenSpec state. With no staged, unstaged, or
+untracked changes, say there is nothing to commit and stop: no commit and no push, even
+when the branch already has unpushed commits.
 
 ## 2. Decide what is in scope
 
@@ -108,8 +113,8 @@ Unless `--no-push` is in effect, the plan ends with the push line: the target br
 (step 7), the remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
 plus the planned commits; without an upstream, add
 `git rev-list --count HEAD --not --remotes`). When step 7 will ask (an upstream named
-differently from the current branch, or a default-branch target, unknown or guessed
-default branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
+differently from the current branch, or a default-branch target, unknown default
+branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
 Done when every changed file or hunk in scope sits in exactly one planned commit.
 Proceed when the user approves, or at once if they said to just commit.
@@ -192,8 +197,7 @@ either holds (one question covers both):
   with `git switch -c fix origin/main`): ask whether to push the branch under its own
   name, which creates `<remote>/<branch>` and points the upstream at it. When git
   suggests a `HEAD:<other>` refspec, report it and leave it unused.
-- **Target is the default branch, or the default branch is unknown or guessed**
-  (step 1).
+- **Target is the default branch, or the default branch is unknown** (step 1).
 
 Then:
 
