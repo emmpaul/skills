@@ -34,10 +34,13 @@ Also list the **env variables the app requires**: from the example env file, the
 container files, and the entry point the docs or start script name (reads such as
 `os.environ["X"]`, `process.env.X`, `os.Getenv("X")`, `ENV.fetch("X")` with no default).
 Plan the documented start command as written. When it needs variables no doc or example
-env file names, also plan a second start item after it that sets each of those to a
+env file names, also plan a **placeholder start** after it that sets each of those to a
 harmless placeholder (`X=qa-placeholder`, never a real secret), so the probes can run;
-the probes depend on that item. This list only shapes the plan; whether a variable is a
-finding follows "Undocumented env variables" in `references/audit.md`.
+the probes depend on that item. The placeholder start runs only after the documented
+start's process and its process group are stopped and its port is free (checked, not
+assumed); the two starts never run at the same time. This list only shapes the plan;
+whether a variable is a finding follows "Undocumented env variables" in
+`references/audit.md`.
 
 ## Plan item shape
 
@@ -147,6 +150,8 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   2 minutes. Not ready by then: a failed item, with the last output lines as evidence.
   Stop every process you started, with its process group, before the run ends, also when
   a later step fails. Confirm the port is free afterwards.
+- **One server at a time:** before any later start of the same app (the placeholder
+  start), stop the earlier start's process group and confirm its port is free.
 
 ## Probes per project type
 
