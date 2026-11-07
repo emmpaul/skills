@@ -142,7 +142,9 @@ Propose no test, and write `No test proposed: <reason>`, when:
 - the cause is the environment or infrastructure (a service, a machine setting);
 - the finding is flaky by nature (timing, an external service);
 - it is visual only;
-- the project has no test command or test framework.
+- the project has no test command or test framework;
+- the finding is a failing test of the project: that test already encodes the expected
+  behavior (name its file and line).
 
 ## Secrets
 

@@ -155,6 +155,8 @@ run.
 - A check that failed or was flaky on its last run.
 - A `--url` probe: the remote app changes without the repository changing.
 - A re-check item for an earlier finding (below).
+- The item `run proposed regression tests in a scratch copy` (`references/plan.md`): its
+  tests encode this run's findings, so it runs whenever a finding is reproduced.
 - A **prerequisite that produces state** (install, build, a started server) of any item
   that runs: when a probe must run, the server start it needs runs too, and so does that
   start's install and build. It is shown as run, never as skipped. Walk `prereqs` down
