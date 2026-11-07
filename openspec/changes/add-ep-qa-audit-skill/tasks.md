@@ -23,7 +23,7 @@
 - [x] 3.5 Resolve review finding (a): state the single undocumented-env-variable rule from design D17 in `skills/ep-qa/references/audit.md` and replace the differing wording at `skills/ep-qa/references/plan.md:41`, `SKILL.md` step 7, and `audit.md:57` with a reference to it; verify `grep -n -i "undocumented\|env variable" skills/ep-qa -r` shows no statement that contradicts the rule
 - [x] 3.6 Resolve review finding (b): in `skills/ep-qa/references/plan.md` and `SKILL.md` step 5, the placeholder start runs only after the documented start's process group is stopped and its port is free; verify both files say so and neither allows the two starts to run at once
 - [x] 3.7 Resolve review finding (c): in `skills/ep-qa/references/plan.md`, state that the Credentials never-run rule wins over the placeholder start, list the credential-like name patterns (`*KEY`, `*TOKEN`, `*SECRET`, `*PASSWORD`, `*PASSWD`, `*CREDENTIALS`, case-insensitive), and that such a start and its probes are reported "Not covered: needs credential <NAME>" (design D17); verify the placeholder paragraph and the Credentials bullet cite each other and agree
-- [ ] 3.8 Run `scripts/check-shared.sh` and `openspec validate add-ep-qa-audit-skill --strict`; verify both pass and `git diff --stat` for this group touches only files under `skills/ep-qa/`
+- [x] 3.8 Run `scripts/check-shared.sh` and `openspec validate add-ep-qa-audit-skill --strict`; verify both pass and `git diff --stat` for this group touches only files under `skills/ep-qa/`
 
 ## 4. Scenario checks for re-runs and regression tests
 
