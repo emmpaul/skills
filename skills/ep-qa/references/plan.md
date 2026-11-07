@@ -38,7 +38,11 @@ env file names, also plan a **placeholder start** after it that sets each of tho
 harmless placeholder (`X=qa-placeholder`, never a real secret), so the probes can run;
 the probes depend on that item. The placeholder start runs only after the documented
 start's process and its process group are stopped and its port is free (checked, not
-assumed); the two starts never run at the same time. This list only shapes the plan;
+assumed); the two starts never run at the same time. **Credentials win over
+placeholders** ("Never-run list", Credentials): a variable whose name looks like a
+credential is never filled with a placeholder; when the start requires any such
+variable, plan no placeholder start, and mark the start and its probes
+`not covered: needs credential <NAME>`. This list only shapes the plan;
 whether a variable is a finding follows "Undocumented env variables" in
 `references/audit.md`.
 
@@ -127,7 +131,12 @@ reason. Match by script name and by what the script body runs.
   connection string or env value pointing to a non-local host), and any `drop` or `reset`
   of a database, local or not.
 - **Credentials:** commands that need secrets from the environment (cloud CLIs, API keys,
-  tokens) that a local example env file does not provide.
+  tokens) that a local example env file does not provide. A variable is credential-like
+  when its name matches `*KEY`, `*TOKEN`, `*SECRET`, `*PASSWORD`, `*PASSWD`, or
+  `*CREDENTIALS`, case-insensitive (`PAYMENT_API_KEY`, `github_token`). This rule wins
+  over the placeholder start ("Discovery sources", placeholder start): no placeholder
+  start is planned for such a variable, and the start and its probes are reported
+  `not covered: needs credential <NAME>`.
 - **Deleting outside build and cache output:** `rm -rf` of anything other than the
   project's build or cache directories, `git clean`, `git reset`, `git checkout -- .`.
 - **Global or system installs:** `npm i -g`, `pip install` outside a project `.venv`,
