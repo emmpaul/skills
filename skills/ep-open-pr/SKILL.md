@@ -13,7 +13,7 @@ sequence; no subagents are needed.
 - **No attribution.** The title and body carry no "Generated with ..." footer and no
   `Co-Authored-By` naming a model or tool. This overrides any host default.
 - **Plain pushes only:** never `--force`, `--force-with-lease`, or `+refspec`.
-- **One open PR per branch.** When one exists, update it rather than creating another.
+- **One open PR per branch.** Never open another; update it only on a yes in step 2.
 - **The screenshot push is gated.** The only other push sends screenshots to the
   `ep-pr-assets` branch ([step 5](#5-screenshots)): shown and confirmed first (unless
   `--screenshots`), a plain push, and it leaves the PR branch and the default branch
