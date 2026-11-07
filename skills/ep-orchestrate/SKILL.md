@@ -432,16 +432,22 @@ run up to 3 rounds over the whole branch; group passes never replace them. Round
    - **`blocker: none`:** start round *k+1* on the new head.
 
 **Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
-`--workflow` is the opt-in: run each review round's step 1 as one Workflow, a `pipeline`
-over the four dimension agents (each gets its checklist from `briefs.md#review-fallback`,
-the change name, the base and head shas, and for round *k* > 1 the `since` sha), whose
-deduplicated candidates, plus the known findings for round *k* > 1, go to a `parallel`
-stage of 3 voter agents. Each voter gets every candidate, tries to disprove each one, and
+`--workflow` is the opt-in: run each review round's step 1 as one Workflow that follows
+`briefs.md#review-fallback` with the round's base, `since`, and `known`, except that steps
+4 and 7 run as agents. Before the agents, do its steps 1 to 3 (`REVIEW.md` from the
+default branch, the diff with `## Skip` paths removed, `scope`, spec input). Then a
+`pipeline` over the four dimension agents (each gets its checklist from step 4, the
+`REVIEW.md` guidance and skipped paths, the change name, the base and head shas, and for
+round *k* > 1 the `since` sha) yields candidates; deduplicate them and drop new ones that
+duplicate a known location (step 6). Those candidates, plus the known locations for round
+*k* > 1, go to a `parallel` stage of 3 voter agents. Each voter gets every candidate, tries to disprove each one, and
 sees no other voter's verdicts; above 20 candidates it takes them in batches of 20, adding
 no agents. That is at most 7 agents (4 dimensions and 3 voters). Keep a candidate when at
 least 2 of its 3 verdicts are not `refuted`, at the highest severity that 2 non-refuting
-verdicts support, as `ep-review` votes; then build the `finding:` and
-`pre-existing:` lines and the `ep-review-summary` from the result, with
+verdicts support, as `ep-review` votes. A known location is `fixed` when 2 verdicts say
+its defect no longer occurs. Then set origin, apply the minor cap, and compute `risk`,
+`risk_reasons`, `scope`, and the `known` counts as in steps 7 to 10, and build the
+`finding:` and `pre-existing:` lines and the `ep-review-summary` from the result, with
 `verification: vote`. The fix round stays one subagent. Plan,
 apply, and group passes and their fixes never run as a Workflow; `--workflow` applies
 only to these rounds. With `--workflow` but no Workflow tool, say so and use
