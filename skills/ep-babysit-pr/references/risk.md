@@ -5,9 +5,16 @@ for the same change. The source is `shared/risk.md`; each skill ships a copy as
 `references/risk.md`. Edit the source and run `scripts/sync-shared.sh`.
 
 Every change gets one tier: `low`, `medium`, or `high`, with a list of reasons. Decide it
-from the changed paths (`git diff --name-only <base>...<head>`, or `gh pr diff <n>
---name-only`), the PR author, and the repository's `REVIEW.md`. For a rename, check both
-the old and the new path.
+from the changed paths, the PR author, and the repository's `REVIEW.md`. A rename counts
+as two changed paths, the old and the new, so moving `src/auth/session.ts` out of
+`auth/` still matches the auth rule. `--name-only` lists only the new path, so list the
+paths with both sides of each rename:
+
+- a local diff or branch: `git diff --name-status -M <base>...<head>` (or
+  `git diff --name-status -M HEAD` for an uncommitted diff), taking every path column:
+  a rename or copy line `R<score>` / `C<score>` holds the old path, then the new one;
+- a PR: `gh api repos/{owner}/{repo}/pulls/<n>/files --paginate --jq '.[] | .filename,
+  (.previous_filename // empty)'`.
 
 ## Order
 
