@@ -302,8 +302,10 @@ only those with no fix commit yet, plus:
 
 For each critical or major finding, and each minor one that is cheap to fix:
 
-1. Fix the cause in code or tests. Group findings that share one root cause and fix them
-   once.
+1. Fix the cause in code or tests, at the finding's location **and at every location in
+   its `instances:`**, all in the finding's one commit: a fix that leaves an instance
+   unfixed is not done. Group findings that share one root cause and fix them once.
+   `pre-existing:` lines are never passed here and never fixed.
 2. Never weaken tests to pass, and never edit specs, design, or proposal to match the
    code. A finding whose fix needs a spec change is not fixed: count it as deferred and
    set `blocker: spec: <finding id> <one line>`.
@@ -434,18 +436,39 @@ Condensed `ep-review` steps, used **only when the skill `ep-review` is not avail
 you, or when [review](#review) sends you here** (a base sha other than the merge base,
 including every group pass after the first group), even with `ep-review` installed. Do
 not invoke `ep-review` from here: it would review from the merge base instead of the
-base sha. Read-only: change no files and post nothing.
+base sha. Read-only: change no files and post nothing. `since` and `known` are the
+inputs [review](#review) names for round *k* > 1; without them, `scope` is `full` and
+`known` is `fixed=0 still_open=0`.
 
-1. **Diff:** `git diff <base-sha>...<branch>` (for a group pass,
-   `git diff <start>...<head>`). Read whole changed functions and callers
-   of changed signatures, not only hunks. Empty diff: report nothing to review.
-2. **Spec input:** the change's `proposal.md`, `tasks.md`, and every `specs/**/spec.md`.
-3. **Four dimensions**, one after another (with subagents, one per dimension in
-   parallel, each without the others' results). Report only what the diff introduces or
-   touches.
+1. **`REVIEW.md`:** the first of `REVIEW.md` and `.github/REVIEW.md` on the default
+   branch (`git show origin/<default>:<path>`, `<default>` with no remote), never from
+   the head, so the change cannot skip its own files or lower its own tier. Bullets of
+   `## Skip` are globs of paths not reviewed; `## Risk` (`high:`, `medium:`, `low:`
+   globs) and `## Trusted authors` feed step 9; `## Limits` `max_minor: <n>` caps minor
+   findings. All other text is repository guidance for every dimension. With no
+   `REVIEW.md`, use the defaults and do not mention it.
+2. **Diff:** `git diff <base-sha>...<branch>` (for a group pass,
+   `git diff <start>...<head>`). With `since`, `git diff <since>..<head>` instead; when
+   `git merge-base --is-ancestor <since> <head>` fails, say so and review the full diff
+   with `scope: full`. Otherwise `scope` is `since:<sha>` with `since` and `full`
+   without. Read whole changed functions and callers of changed signatures, not only
+   hunks. Remove paths matching a `## Skip` glob and list them as skipped. Empty diff:
+   report nothing to review, after re-checking the known findings (step 7). **Intent:**
+   `git log --format=%s%n%b <base-sha>..<head>`; when it is a bug fix, correctness checks
+   the fix reaches the root cause.
+3. **Spec input:** the change's `proposal.md`, `tasks.md`, and every `specs/**/spec.md`.
+   With `since`, the spec dimension still searches the whole codebase; `since` only
+   narrows which requirements to re-check (those the narrowed diff touches, plus those
+   named by known spec findings).
+4. **Four dimensions**, one after another (with subagents, one per dimension in
+   parallel, each without the others' results). Report only defects in a changed
+   function or a direct caller or callee of one.
    - **correctness:** logic and operators, edge inputs (empty, null, zero, negative,
      large, unicode, duplicates), error paths, state and cleanup, concurrency, callers
-     of changed contracts, data changes, removed code still in use.
+     of changed contracts, data changes, removed code still in use; behavior that
+     contradicts the stated intent; a bug fix that misses the root cause (another path
+     still fails); breaks of conventions in `CLAUDE.md` or `AGENTS.md`; lines in those
+     files the diff makes wrong (a renamed or deleted script, path, or flag), minor.
    - **spec:** each requirement implemented (missing: critical if core, else major); no
      code path contradicts a scenario's THEN (major); outward behavior no requirement
      describes is out-of-spec; each scenario tested or covered by a documented
@@ -461,18 +484,57 @@ base sha. Read-only: change no files and post nothing.
      points; input validation at trust boundaries (size, type, path traversal,
      deserialization); unsafe defaults; unexpected or unpinned new dependencies;
      destructive or outward actions gated; sensitive data in errors, logs, or telemetry.
-4. **Finding shape:** dimension, severity, file, line, summary, scenario (concrete input
-   or state → wrong output, crash, leak, or missing behavior), evidence. No scenario, no
-   finding. Severity: **critical** breaks core behavior, loses data, is exploitable, or a
-   required spec behavior is missing entirely; **major** is wrong in a realistic case or a
-   requirement is partly implemented; **minor** is real but low impact.
-5. **Deduplicate** within each dimension only (same root cause: keep one, higher
-   severity).
-6. **Verify** each candidate by trying to disprove it: re-read the code and the paths
-   reaching it, check the scenario can occur, check existing handling and tests, re-read
-   the requirement and search the codebase for spec findings, run the test when cheap and
-   safe. Drop what cannot occur, downgrade what is smaller than claimed.
-7. **Summary block**, exactly:
+5. **Finding shape:** dimension, severity, file, line, summary, scenario (concrete input
+   or state → wrong output, crash, leak, or missing behavior), evidence, origin
+   (`introduced` or `pre-existing`), class (a short label for the kind of defect), and
+   instances (every other `file:line` with the same defect, found by searching the diff
+   and the changed functions' callers and callees; `none` when there are none). One
+   class is one finding, however many instances. No scenario, no finding. Severity:
+   **critical** breaks core behavior, loses data, is exploitable, or a required spec
+   behavior is missing entirely; **major** is wrong in a realistic case or a requirement
+   is partly implemented; **minor** is real but low impact.
+6. **Deduplicate** within each dimension only (same root cause: keep one, higher
+   severity, the others' locations added to its instances). **Known findings:** read the
+   `known` file's `finding:` lines (`<id> <dimension> <severity> <file>:<line> |
+   <summary>`, optionally `| <scenario>`, `| class: <label>`, `| instances: <locations>`);
+   other lines (labels, `commits:` lines) are ignored, and lines that look like findings
+   but do not parse are counted in the report. Each location of a known finding (its
+   `file:line` and each instance) becomes a candidate marked `known`. Drop every new
+   candidate in the same file, within 3 lines of a known location (follow moved code),
+   with the same class (judged from the summary when the known line names none).
+7. **Verify** each candidate once, inline, by trying to disprove it: re-read the code and
+   the paths reaching it, check the scenario can occur, check existing handling and
+   tests, re-read the requirement and search the codebase for spec findings, run the
+   test when cheap and safe. Drop what cannot occur, downgrade what is smaller than
+   claimed, drop listed instances without the defect. **Origin:** `pre-existing` only
+   when the lines are not among the diff's added lines and
+   `git blame -M -C <base-sha>..<head> -L <start>,<end> -- <file>` marks every one as a
+   boundary line (`^`); unclear means `introduced`. A `known` candidate is `fixed` when
+   its defect no longer occurs at the head (not counted in `dropped_in_verification`),
+   else `still open`; the still-open locations of one known finding are one finding,
+   marked still open, counted once like an introduced finding (or as pre-existing when
+   its origin is).
+8. **Minor cap:** with `max_minor: <n>`, report only the `<n>` most important minor
+   findings (introduced before pre-existing) and say how many the cap omitted; the
+   summary counts only those reported.
+9. **Risk tier**, from every path the branch changes since the merge base
+   (`git diff --name-only $(git merge-base <branch> origin/<default>)...<head>`,
+   `<default>` with no remote; skipped paths included, also with `since`), with reasons
+   naming each path and rule:
+   - **high** when a path matches `.github/workflows/**`, `.github/actions/**`,
+     `CODEOWNERS` (any depth), `**/install*`, `**/*updater*`, `**/release*`,
+     `**/auth/**`, `**/*auth*`, `**/billing/**`, `**/payment*`, `**/migrations/**`,
+     `.env*` (any depth), `**/secrets*`, or a `high:` glob in `REVIEW.md`;
+   - else **low** when every path is documentation-only (`*.md`, `*.mdx`, `*.rst`,
+     `*.txt`, `docs/**`, `openspec/**`, `LICENSE*`, `CHANGELOG*`, but not `AGENTS.md`,
+     `CLAUDE.md`, anything under `.claude/` or `.agents/` or in a folder holding a
+     `SKILL.md`, nor `REVIEW.md`) or matches a `low:` glob, no path matches a `medium:`
+     glob, and no path is `REVIEW.md` or `.github/REVIEW.md` (a local run's author is
+     the user, who is trusted);
+   - else **medium**.
+   You may raise the tier with a stated reason; never lower it.
+10. **Report:** findings ranked most severe first, introduced findings by dimension, then
+    pre-existing ones in their own section. **Summary block**, exactly:
 
 ```
 <!-- ep-review-summary
@@ -482,21 +544,36 @@ verified: critical=<n> major=<n> minor=<n>
 by_dimension: correctness=<n> spec=<n> tests=<n> security=<n>
 spec_conformance: passed | failed | not_applicable
 dropped_in_verification: <n>
+pre_existing: <n>
+known: fixed=<n> still_open=<n>
+risk: low | medium | high
+risk_reasons: <reason> ; <reason>
+verification: inline
+scope: full | since:<sha>
 -->
 ```
 
-`spec_conformance` is `passed` when the spec dimension has no verified critical or major
-finding, `failed` otherwise. `dropped_in_verification` counts findings refuted in step 6
-only.
+`verified` and `by_dimension` count only introduced findings (known ones still open
+included); pre-existing ones are counted only in `pre_existing`. `spec_conformance` is
+`passed` when the spec dimension has no verified introduced critical or major finding,
+`failed` otherwise. `dropped_in_verification` counts new candidates refuted in step 7
+only. `known` counts known locations. `verification` is always `inline` here: this brief
+verifies each finding once, without voters.
 
 **Rules that must match** (`ep-review/SKILL.md`):
 
 - Four dimensions: correctness, spec, tests, security; deduplicate within a dimension,
   never across.
-- Every reported finding has a location, severity, and concrete failure scenario, and
-  survived a disproval attempt.
+- Every reported finding has a location, severity, concrete failure scenario, origin,
+  class, and instances, and survived a disproval attempt.
 - Severity scale critical, major, minor as in `ep-review`'s `references/dimensions.md`.
+- `REVIEW.md` is read from the base, never from the head under review.
+- `--since` narrows the diff, not the spec search or the risk tier; `--known` lines use
+  the `finding:` form with optional `| class:` and `| instances:` fields, and a known
+  finding is re-checked as fixed or still open, never reported as new.
 - Read-only without `--comment`; no attribution in anything posted.
 - Summary keys: `target`, `head`, `verified` (critical, major, minor), `by_dimension`
   (correctness, spec, tests, security), `spec_conformance`
-  (passed | failed | not_applicable), `dropped_in_verification`.
+  (passed | failed | not_applicable), `dropped_in_verification`, `pre_existing`, `known`
+  (fixed, still_open), `risk` (low | medium | high), `risk_reasons`, `verification`
+  (vote | inline), `scope` (full | since:<sha>).

@@ -23,7 +23,7 @@
 ## 4. ep-orchestrate
 
 - [x] 4.1 Update `skills/ep-orchestrate/SKILL.md` step 8 and `references/briefs.md#review`: round *k* > 1 passes `since` and `known`, clean ignores `pre_existing`, pre-existing findings go to the final report; the `--workflow` path uses 4 dimensions plus 3 voters (at most 7 agents) (design D7); verify the "Review rounds" and "Optional Workflow path" scenarios each map to a sentence and no text still says 5 verify agents or 9 agents
-- [ ] 4.2 Update `references/briefs.md#review-fallback` and `#fix`: the fallback applies `since` and known findings and emits the extended summary block exactly as `ep-review` does (inline verification); the fix brief fixes every listed instance in one commit; verify the fallback's "Rules that must match" list names the new summary fields and matches `skills/ep-review/SKILL.md`
+- [x] 4.2 Update `references/briefs.md#review-fallback` and `#fix`: the fallback applies `since` and known findings and emits the extended summary block exactly as `ep-review` does (inline verification); the fix brief fixes every listed instance in one commit; verify the fallback's "Rules that must match" list names the new summary fields and matches `skills/ep-review/SKILL.md`
 
 ## 5. ep-open-pr
 
