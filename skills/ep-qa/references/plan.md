@@ -228,8 +228,10 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   item alone spawns one), step 9's cleanup runs `pm2 kill` at the end, even when no
   `pm2 start` ran or its stop did not run.
 - **One server at a time:** each start of the same app is its own start item with its own
-  stop item: the documented start, the placeholder start, and each missing-config start
-  ("Probes per project type", Local HTTP server). Order them: the documented start, its
+  stop item: the documented start, the placeholder start, each missing-config start
+  ("Probes per project type", Local HTTP server), and each re-check item whose
+  reproduction is itself a start of the app (`references/record.md`, "Earlier
+  findings"). Order them: the documented start, its
   probes and their verification, its stop; then each later start, its probes and their
   verification, its stop, one after another. A
   later start runs only after the previous start's stop item ran and its port is

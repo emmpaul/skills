@@ -207,10 +207,14 @@ when step 5 cleared the skip.
 Each finding with `status: open` in a usable record gets one re-check plan item (area of
 the finding, command: its `repro`, source: `record <id>`), which runs whatever the
 fingerprints say. A re-check item whose reproduction needs a server this run starts
-(a request to it, a start of it) is placed in that start's window, after its probes and
-before its stop item, and runs there (`references/plan.md`, "Running", Start window);
+(a request to it) is placed in that start's window, after its probes and before its stop
+item, and runs there (`references/plan.md`, "Running", Start window);
 when that start does not run or is not ready, the item is `not re-checked` (blocked
-prerequisite), and no server is restarted for it. The others run in step 8. Either
+prerequisite), and no server is restarted for it. A re-check item whose reproduction is
+itself a start of the app gets its own window instead, after the previous window's stop
+item ran and its port is confirmed free: a port check, the start as the reproduction
+gives it, the check, then its own stop item (planned as "Stop items" there says), never
+overlapping another start. The others run in step 8. Either
 way it ends in one of:
 
 | Outcome | When | Report |

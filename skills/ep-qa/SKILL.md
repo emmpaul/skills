@@ -185,7 +185,8 @@ verification of the candidates they raised and the re-check items that need it
 window, the crash is a candidate and the window's remaining items are `not covered:
 blocked by crash (P<n>)` unless its one verifying re-start runs them ("Running", Crash in
 a window, in `plan.md`). Every
-later start of the same app (the placeholder start, each missing-config start) is its own
+later start of the same app (the placeholder start, each missing-config start, a
+re-check whose reproduction starts the app) is its own
 start item with its own stop item, and runs only after the previous start's stop item ran
 and its port is confirmed free, never while it still runs. When no tool can find the
 process still holding a port, never claim it was freed: list it under "Not covered" and
