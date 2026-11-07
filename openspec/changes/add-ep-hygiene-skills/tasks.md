@@ -39,6 +39,7 @@
 - [ ] 5.1 Run `scripts/check-shared.sh` and verify it passes for all eight skills.
 - [ ] 5.2 Install from the local path with `npx skills add ./ --skill ep-protect ep-deps ep-spec-drift ep-pr-digest` and verify that the four folders appear in `~/.agents/skills/` and the agent lists them.
 - [ ] 5.3 Run `openspec validate add-ep-hygiene-skills --strict` and verify it passes.
+- [ ] 5.4 Write each new or edited `SKILL.md` and reference with the `writing-for-agents` skill; verify descriptions list each trigger branch once and steps end on completion criteria.
 
 ## Workflow follow-up
 
