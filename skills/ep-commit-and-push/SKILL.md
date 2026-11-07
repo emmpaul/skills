@@ -22,7 +22,7 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
   `git push -u origin HEAD`, never `--force`, `--force-with-lease`, or a `+refspec`.
 - **The default branch asks first.** Before a push whose target (step 7) is the
   repository's default branch, ask the user, even when told to just commit; push it
-  only on a yes.
+  only on a yes. An unknown or guessed default branch counts as the target: ask.
 - **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
   commit again. Use `--no-verify` only when the user asks.
 
@@ -64,6 +64,9 @@ git log -n 15 --format='%s%n%b---'   # recent style
 
 and the contents of untracked files from `git status`.
 
+The default branch is **unknown** when `default_branch` is null or the `gh` command
+fails, and **guessed** when `warnings` has `default branch guessed as <name>`.
+
 Done when you hold the diff, the untracked files, the recent log, the upstream and
 default branch, and the OpenSpec state. With no staged, unstaged, or untracked changes,
 say there is nothing to commit and stop: no commit and no push, even when the branch
@@ -103,8 +106,8 @@ Unless `--no-push` is in effect, the plan ends with the push line: the target br
 (step 7), the remote, and how many commits the push sends, counting earlier unpushed ones (`ahead`
 plus the planned commits; without an upstream, add
 `git rev-list --count HEAD --not --remotes`). When step 7 will ask (an upstream named
-differently from the current branch, or a default-branch target), the push line says
-it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
+differently from the current branch, or a default-branch target, unknown or guessed
+default branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
 Done when every changed file or hunk in scope sits in exactly one planned commit.
 Proceed when the user approves, or at once if they said to just commit.
@@ -183,7 +186,8 @@ branch name when there is no upstream.
   name with `git push -u origin HEAD`, which is then the push; on a no, keep the
   commits local. Push only to the current branch's own name: when git suggests a
   `HEAD:<branch>` refspec, report it and leave it unused.
-- **Target is the default branch:** ask first, and keep the commits local on a no.
+- **Target is the default branch, or the default branch is unknown or guessed:** ask
+  first, and keep the commits local on a no.
 
 Then:
 
