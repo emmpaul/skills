@@ -2,7 +2,7 @@
 
 ## 1. Shared risk rules
 
-- [ ] 1.1 Write `shared/risk.md` with the tier rules from design D4 (high, low, and medium order; built-in globs; the documentation-only path rule moved from `ep-babysit-pr/references/score.md`; trusted-author rule; `REVIEW.md` `## Risk` and `## Trusted authors` syntax from D5; raise-never-lower rule; missing tier means medium); verify every scenario of the ep-review "Risk tier" and ep-open-pr "Risk section" requirements can be decided from the file alone
+- [x] 1.1 Write `shared/risk.md` with the tier rules from design D4 (high, low, and medium order; built-in globs; the documentation-only path rule moved from `ep-babysit-pr/references/score.md`; trusted-author rule; `REVIEW.md` `## Risk` and `## Trusted authors` syntax from D5; raise-never-lower rule; missing tier means medium); verify every scenario of the ep-review "Risk tier" and ep-open-pr "Risk section" requirements can be decided from the file alone
 - [ ] 1.2 Extend `scripts/sync-shared.sh` and `scripts/check-shared.sh` with a source → destination → skills table: `context.sh` to every skill's `scripts/`, `risk.md` to `references/risk.md` in `ep-review`, `ep-open-pr`, `ep-babysit-pr`; verify `scripts/sync-shared.sh` creates the three copies, `scripts/check-shared.sh` passes, and that editing one copy by hand makes `scripts/check-shared.sh` fail with `differs: skills/<skill>/references/risk.md`
 
 ## 2. ep-review
