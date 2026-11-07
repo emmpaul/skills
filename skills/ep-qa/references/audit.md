@@ -57,8 +57,8 @@ area when the code is what is wrong.
 
 | Severity | Meaning | Examples |
 |---|---|---|
-| critical | The project cannot be set up, built, or started from its docs, a core flow is broken, or data is lost or exposed. | install or build fails on a clean checkout; app crashes on start, including from an undocumented required env variable; main command crashes on documented input; secret printed in normal output |
-| major | Wrong in a realistic case, or a check the project defines fails. | failing test; lint or typecheck errors in a configured check; documented command or flag fails; 500 on malformed input; crash with a stack trace on empty input to a secondary command; flaky test; undocumented env variable that only a secondary feature needs |
+| critical | The project cannot be set up, built, or started from its docs, a core flow is broken, or data is lost or exposed. | install or build fails on a clean checkout; app crashes on start; undocumented env variable the app cannot start without (see "Undocumented env variables"); main command crashes on documented input; secret printed in normal output |
+| major | Wrong in a realistic case, or a check the project defines fails. | failing test; lint or typecheck errors in a configured check; documented command or flag fails; 500 on malformed input; crash with a stack trace on empty input to a secondary command; flaky test; undocumented env variable only a secondary feature needs (see "Undocumented env variables") |
 | minor | Real but low impact. | invalid input rejected correctly but with a misleading message; doc typo in a flag name with an obvious fix; warning noise from the project's own code |
 
 Rank findings by severity, then area in the table order above, then plan order. Ids do
@@ -76,13 +76,31 @@ single request), then classify it:
 |---|---|---|
 | **reproduced** | it fails again the same way | a finding |
 | **flaky** | it failed once and passed on the re-run: re-run once more and quote every run | a finding marked `flaky` in its title, severity at most major, never reported as a deterministic failure |
-| **environment** | the cause is the auditing machine: tool missing, port in use, no network, missing credentials, a service not running | "Not covered" with that reason, no finding; but when the docs do not state the requirement (an env variable, a service, a tool version), a `docs` finding |
+| **environment** | the cause is the auditing machine: tool missing, port in use, no network, missing credentials, a service not running | "Not covered" with that reason, no finding; but when the docs do not state the requirement (a service, a tool version), a `docs` finding; for an env variable, see "Undocumented env variables" |
 | **refuted** | it does not happen again and the audit explains the first failure (the probe sent bad input on purpose and the app rejected it correctly, an earlier item left state behind) | dropped |
 
 Before keeping a candidate, try to disprove it: re-read the doc or spec line it relies on,
 check the command was run from the right directory with the documented env, and check an
 earlier plan item did not cause it. Deduplicate: one root cause is one finding; mention
 the other symptoms in its evidence.
+
+## Undocumented env variables
+
+The single rule for env variables no doc mentions; `plan.md` and `SKILL.md` step 7 point
+here.
+
+An undocumented variable is a `docs` finding only when all hold:
+
+- the documented start, or another documented command, failed or misbehaved without it;
+- its output or traceback names the variable;
+- no doc or example env file mentions it.
+
+Severity: **critical** when the app cannot start without it, **major** when only a
+secondary feature needs it. A variable read in code that never made anything the audit
+ran fail is **not a finding**: code reading alone never makes one. This holds for
+credential-like names too (`plan.md`, "Never-run list", Credentials): the finding applies
+when the documented start failed and named the variable, even though no placeholder
+start runs for it.
 
 ## Regression test proposals
 

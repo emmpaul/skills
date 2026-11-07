@@ -36,8 +36,8 @@ container files, and the entry point the docs or start script name (reads such a
 Plan the documented start command as written. When it needs variables no doc or example
 env file names, also plan a second start item after it that sets each of those to a
 harmless placeholder (`X=qa-placeholder`, never a real secret), so the probes can run;
-the probes depend on that item. This list only shapes the plan: a variable becomes a
-finding only when the documented start fails without it (step 7).
+the probes depend on that item. This list only shapes the plan; whether a variable is a
+finding follows "Undocumented env variables" in `references/audit.md`.
 
 ## Plan item shape
 

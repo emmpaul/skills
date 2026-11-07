@@ -152,9 +152,10 @@ failed plan item from step 5 is a candidate too.
 
 Compare each entry of the expected-behavior list with what steps 5 and 6 showed:
 documented setup steps, commands, flags, env variables, and examples. A mismatch is a
-`docs` candidate citing the doc line, the command run, and its output. A required env
-variable, service, or tool that made something fail and that no doc or example env file
-mentions is a `docs` candidate. Entries nothing exercised go to "Not covered".
+`docs` candidate citing the doc line, the command run, and its output. A required service
+or tool that made something fail and that no doc mentions is a `docs` candidate. An
+undocumented env variable is a candidate only as "Undocumented env variables" in
+`references/audit.md` says. Entries nothing exercised go to "Not covered".
 
 ## 8. Verify
 
