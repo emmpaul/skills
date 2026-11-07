@@ -170,8 +170,12 @@ Done when the title and every section are filled from the subsections below.
 Find the issue this branch was started from:
 
 ```bash
-git config --get branch.<branch>.ep-issue
+branch=$(git symbolic-ref --quiet --short HEAD)
+git config --get "branch.$branch.ep-issue"
 ```
+
+The name stays in `$branch`, never typed into the command: git ref names may contain
+`$`, `(`, `)`, and `;`, which the shell would run inside double quotes.
 
 `ep-start` records the issue number there. When the key is unset, parse the branch name:
 a name matching `<type>/<digits>-<slug>` (regex `^[a-z]+/([0-9]+)-`) links issue
@@ -280,7 +284,8 @@ Write the body to a temp file and create the PR (for an existing PR from step 2,
 ```bash
 body=$(mktemp)
 # write the body to "$body"
-gh pr create --base <base> --head <branch> --title "<title>" --body-file "$body" [--draft]
+branch=$(git symbolic-ref --quiet --short HEAD)   # kept in a variable, as in Linked issue
+gh pr create --base <base> --head "$branch" --title "<title>" --body-file "$body" [--draft]
 rm -f "$body"
 ```
 
