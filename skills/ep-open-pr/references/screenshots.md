@@ -107,13 +107,18 @@ skill before the PR is created or edited, and says so.
 1. Check that the port is free before starting (`ss -ltn 'sport = :<port>'`, or
    `lsof -iTCP:<port> -sTCP:LISTEN`). When something already listens there, start nothing:
    `Not captured: port <port> already in use`.
-2. Start the command in the background in its own session and process group, with stdout
-   and stderr in a scratch log outside the repository:
+2. Start the command in the background in its own process group (and its own session
+   with `setsid` where available; macOS has no `setsid`), with stdout and stderr in a
+   scratch log outside the repository:
 
    ```bash
    log=<scratch>/ep-open-pr-app.log
-   setsid <command> >"$log" 2>&1 < /dev/null &
-   pid=$!   # with setsid, the process group id equals $pid
+   if command -v setsid >/dev/null 2>&1; then
+     setsid sh -c '<command>' >"$log" 2>&1 < /dev/null &
+   else   # macOS: perl ships with it; setpgrp gives the job its own process group
+     perl -e 'setpgrp(0,0); exec @ARGV' sh -c '<command>' >"$log" 2>&1 < /dev/null &
+   fi
+   pid=$!   # either way, the process group id equals $pid
    ```
 
 3. Poll `http://localhost:<port>/` for up to **60 s**. It is ready when the port answers
@@ -122,7 +127,7 @@ skill before the PR is created or edited, and says so.
    10 lines of `$log` in a fenced block, and go on to open the PR.
 4. **Always stop it**, whether capture succeeded, failed, or was interrupted:
    `kill -TERM -- -<pid>`, wait up to 5 s, then `kill -KILL -- -<pid>` if any member is
-   left (`ps -o pid= -g <pid>`). Then check that the port is free. When it still answers,
+   left (`ps -eo pid=,pgid= | awk '$2 == <pid>'`). Then check that the port is free. When it still answers,
    find the listener (`lsof -t -iTCP:<port> -sTCP:LISTEN`, else the `pid=` field of
    `ss -ltnp 'sport = :<port>'`, else `fuser <port>/tcp`) and kill its process group. If
    no tool can name it, never claim the port was freed: say in the final report what is
