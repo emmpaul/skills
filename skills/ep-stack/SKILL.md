@@ -192,12 +192,31 @@ short kebab-case summary of the layer, unless the user names the branches.
       (`git diff <original-branch> <top-layer>` is empty).
    Say which commits were rewritten (they are unpushed).
 5. **Open PRs** bottom-up, each based on the previous layer's branch (the first on the
-   base), following `ep-open-pr` conventions: Conventional Commit title for that layer's
-   commits, and the body template from `ep-open-pr` step 4 built from that layer's
-   commits and paths: Summary, Changes, (with OpenSpec) the OpenSpec section,
-   Reversibility with its **How to revert:** line, Risk (the tier and reasons for that
-   layer's changed paths, by `ep-open-pr`'s risk rules), and Testing (**Run:** evidence
-   and **Steps:**), no attribution footer. Append the stack section:
+   base). Title: a Conventional Commit title for that layer's commits. Body, built from
+   that layer's commits and paths only, with these sections in order and no attribution
+   footer:
+   - `## Summary`: 2-4 sentences on what the layer does and why.
+   - `## Changes`: notable changes grouped by area, referencing commit subjects.
+   - `## OpenSpec` (only when the branch implements an OpenSpec change): change name,
+     a one-sentence Why from its `proposal.md`, capabilities, and tasks done/total.
+   - `## Reversibility`: **One-way door** or **Two-way door** with one sentence on why
+     (one-way when a revert leaves an effect: data or schema changes, changed public
+     interfaces, releases, external side effects, security or access changes, renames of
+     things others reference; each irreversible element on its own line with a
+     mitigation), then the line
+     **How to revert:** `git revert -m 1 <merge commit>` (or `git revert <squash sha>`).
+   - `## Risk`: the tier in bold and one bullet per reason, by
+     [`references/risk.md`](references/risk.md) over the layer's changed paths (every
+     path column of `git diff --name-status -M <parent>...<layer-branch>`, both sides of
+     a rename), the authenticated `gh` user as author, and `REVIEW.md` from the base; a
+     one-way door makes it `high`. Raise it with a stated reason as the rules allow; never
+     lower it.
+   - `## Testing`: **Run:** lists only commands seen run in this session on the layer's
+     head (with its short sha and result) or the latest completed CI run for that head;
+     otherwise the single line `Not run`. Never invent a command, result, or sha. Then
+     **Steps:**, concrete commands or checks a reviewer can repeat.
+
+   Append the stack section:
 
    ```bash
    gh pr create --base <prev-or-base> --head <layer-branch> --title "<title>" --body-file <file>

@@ -4,7 +4,7 @@
 # space-separated list of skill folder names.
 shared_files=(
   "context.sh|scripts/context.sh|*"
-  "risk.md|references/risk.md|ep-review ep-open-pr ep-babysit-pr"
+  "risk.md|references/risk.md|ep-review ep-open-pr ep-babysit-pr ep-stack"
 )
 
 # Print the skill folder names an entry's <skills> field names.
