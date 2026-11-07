@@ -1,9 +1,9 @@
 ---
-name: ep-commit
+name: ep-commit-and-push
 description: Turn working-tree changes into logical Conventional Commits in the repo's style, scoped to the active OpenSpec change, with no model attribution. Use when the user asks to commit, split changes into commits, or write commit messages.
 ---
 
-# ep-commit
+# ep-commit-and-push
 
 Turn the current changes into well-scoped Conventional Commits.
 
