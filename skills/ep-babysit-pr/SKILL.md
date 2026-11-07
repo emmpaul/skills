@@ -379,10 +379,10 @@ Merge only when **all** hold:
     approvals never count. Without one, do not merge: unless `risk_notified` equals
     `headRefOid`, notify the user that a human approval of this head is needed and set
     `risk_notified` to `headRefOid`; then wait as on `BLOCKED`.
-  - **Unattended** (a scheduled or looping run with no user present to answer): do not ask
-    and do not merge; unless `risk_notified` equals `headRefOid`, notify the user with
-    the tier, reasons, and head sha and set `risk_notified` to `headRefOid`; then wait. Ask on the next
-    run where the user is present.
+  - **Unattended** (test in [`references/score.md`](references/score.md#risk-gate),
+    "Unattended runs"): do not ask and do not merge; unless `risk_notified` equals
+    `headRefOid`, notify the user with the tier, reasons, and head sha and set
+    `risk_notified` to `headRefOid`; then wait. Ask on the next attended run.
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR

@@ -121,10 +121,18 @@ no counting approval, do not merge: notify the user that a human approval of thi
 needed, once per head (skip it when `risk_notified` equals `headRefOid`, else send it and
 set `risk_notified` to `headRefOid`), and wait as on `BLOCKED`.
 
-**Unattended runs.** When the skill runs from a schedule or loop wakeup with no user
-present to answer, it does not ask and does not merge: it notifies the user with the tier,
-reasons, and head sha, once per head (`risk_notified`, as above), and waits. The next run where
-the user is present asks the question.
+**Unattended runs.** A run is **unattended** when either holds:
+
+- no way to ask exists: the host has no question tool and the session takes no reply
+  from the user (a headless or non-interactive run, such as `claude -p` or CI); or
+- the run was started by a schedule rather than a session the user has open: a cloud
+  routine, a cron job, or a scheduled agent.
+
+Everything else is **attended**, including each `/loop` tick or wakeup in an interactive
+session the user started: there, ask the question (it waits for the answer, which is
+safe, because nothing merges meanwhile). An unattended run does not ask and does not
+merge: it notifies the user with the tier, reasons, and head sha, once per head
+(`risk_notified`, as above), and waits. The next attended run asks the question.
 
 The gate adds no GitHub write; it only removes merges.
 
