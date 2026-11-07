@@ -23,7 +23,7 @@ Every rewrite task loads the `writing-for-agents` skill (`.agents/skills/writing
 
 ## 4. Review skills and shared risk reference
 
-- [ ] 4.1 Rewrite `skills/ep-review/SKILL.md` and `references/dimensions.md`, keeping the four dimensions, the 3-verifier vote and its inline fallback, `--since`/`--known`/`--comment`, and the finding and report formats that `ep-babysit-pr` and `ep-orchestrate` read. Verify the interface checks for `ep-review` pass and every fenced report or finding template at base is still present byte-identical.
+- [x] 4.1 Rewrite `skills/ep-review/SKILL.md` and `references/dimensions.md`, keeping the four dimensions, the 3-verifier vote and its inline fallback, `--since`/`--known`/`--comment`, and the finding and report formats that `ep-babysit-pr` and `ep-orchestrate` read. Verify the interface checks for `ep-review` pass and every fenced report or finding template at base is still present byte-identical.
 - [ ] 4.2 Rewrite `shared/risk.md` (never the copies), then run `scripts/sync-shared.sh`. Verify `scripts/check-shared.sh` passes, the `#low`, `#high`, `#raising-the-tier`, `#documentation-only-paths`, and `#reviewmd-syntax` headings exist, the anchor check passes, and the summary-block and flags checks pass for `ep-review`, `ep-open-pr`, `ep-babysit-pr`, and `ep-stack`.
 - [ ] 4.3 Rewrite `skills/ep-review-evals/SKILL.md` and `references/collect.md`, `scoring.md`, `noise.md`, keeping the case, run-file, and score formats and the `collect`/`run`/`compare`/`noise` modes. Verify the interface checks for `ep-review-evals` pass and every fenced file-format template at base is still present byte-identical.
 

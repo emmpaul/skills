@@ -8,8 +8,8 @@ A defect is in scope when it sits in a **changed function** (a function, method,
 top-level block with an added, changed, or removed line) or in a **direct caller or
 callee** of one. One exception: a line in the repository's `CLAUDE.md` or `AGENTS.md`
 that the diff makes stale (it names a path, command, or symbol the diff renames, removes,
-or changes) is in scope even when that file is unchanged. Defects anywhere else are out of
-scope: do not report them, even when the diff touches the same file.
+or changes) is in scope even when that file is unchanged. Report only in-scope defects:
+anything else stays out of the report, even when the diff touches the same file.
 
 Each in-scope finding has an origin:
 
@@ -51,8 +51,8 @@ direct callers and callees) for the same defect. Report it **once**, at its firs
 location, and list every other location under `instances`, so one fix covers them all.
 Two instances of one class are one finding, not two.
 
-A finding without a concrete scenario is not a finding. "Could be cleaner" is not a
-finding for any of these dimensions.
+Every finding carries a concrete scenario; without one it is not a finding. "Could be
+cleaner" is not a finding for any of these dimensions.
 
 ## Severity scale
 
