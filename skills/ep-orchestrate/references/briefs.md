@@ -490,7 +490,8 @@ pass, else the base sha.
    named by known spec findings).
 4. **Four dimensions**, one after another (with subagents, one per dimension in
    parallel, each without the others' results). Report only defects in a changed
-   function or a direct caller or callee of one.
+   function or a direct caller or callee of one, plus `CLAUDE.md` or `AGENTS.md` lines
+   the diff makes stale even when those files are unchanged.
    - **correctness:** logic and operators, edge inputs (empty, null, zero, negative,
      large, unicode, duplicates), error paths, state and cleanup, concurrency, callers
      of changed contracts, data changes, removed code still in use; behavior that
@@ -536,9 +537,11 @@ pass, else the base sha.
    tests, re-read the requirement and search the codebase for spec findings, run the
    test when cheap and safe. Drop what cannot occur, downgrade what is smaller than
    claimed, drop listed instances without the defect. **Origin:** `pre-existing` only
-   when the lines are not among the diff's added lines and
+   when the defect would occur at the origin base too (the diff did not cause it), the
+   lines are not among the diff's added lines, and
    `git blame -M -C <origin-base>..<head> -L <start>,<end> -- <file>` marks every one as a
-   boundary line (`^`); unclear means `introduced`. A `known` candidate is `fixed` when
+   boundary line (`^`); a defect the diff causes in unchanged lines is `introduced`, and
+   unclear means `introduced`. A `known` candidate is `fixed` when
    its defect no longer occurs at the head (not counted in `dropped_in_verification`),
    else `still open`; the still-open locations of one known finding are one finding,
    marked still open, counted once like an introduced finding (or as pre-existing when
