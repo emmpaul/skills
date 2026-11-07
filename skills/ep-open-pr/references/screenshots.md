@@ -163,9 +163,12 @@ Save PNGs in a scratch folder outside the repository, named
 
   and the same with `--viewport-size=390,844`.
 
-**Sign-in:** when a page ends on a sign-in path (the final URL contains `login`,
-`signin`, `sign-in`, `auth`, or `sso`, or the page shows only a sign-in form), do not
-capture it and list it as `Not captured: needs sign-in`. Never type into any field.
+**Sign-in:** when a page ends on a sign-in page, do not capture it and list it as
+`Not captured: needs sign-in`. It ends on one when the final URL is on another host, or
+one of its path segments is exactly (ignoring case) `login`, `log-in`, `signin`,
+`sign-in`, `sign_in`, `auth`, `oauth`, or `sso`, or the page shows only a sign-in form.
+Match whole segments, never substrings: `/authors`, `/lessons`, and `/professors` are
+ordinary pages. Never type into any field.
 
 A page that errors (HTTP 4xx/5xx, a blank page) is captured as it is and noted
 `(page returned <status>)` next to its images; it is evidence for the reviewer.
