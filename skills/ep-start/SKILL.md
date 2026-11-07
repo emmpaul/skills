@@ -164,8 +164,8 @@ Done when `git rev-parse --abbrev-ref HEAD` prints `<name>` and, for a new branc
 ## 6. OpenSpec change
 
 Run this step only when step 1 found an OpenSpec root. Without one, offer and create no
-change and leave OpenSpec out of the report; when the user passed `--change`, say only
-that it was ignored because the repository has no OpenSpec root.
+change and leave OpenSpec out of the report; when the user passed `--change`, the report
+says only "`--change` was ignored; no change was created."
 
 With `--change`, create the change. Without it, ask once: **create a change** `<change>`
 or **skip**.
