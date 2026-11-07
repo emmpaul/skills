@@ -38,8 +38,12 @@ finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario>
 
 The leading `finding: ` and the trailing `| <scenario>` are optional. After the scenario,
 a line may add `| class: <label>` and `| instances: <file>:<line>,<file>:<line>` (the
-finding's class and other locations, as the report prints them). Lines that do not fit
-are ignored, and the report says how many.
+finding's class and other locations, as the report prints them). Callers may keep other
+lines in the same file (`ep-orchestrate` writes a round label such as `2` or `g3` and
+`commits:` lines). A line is a finding line when it starts with `finding:`, or when its
+second word is a dimension (`correctness`, `spec`, `tests`, `security`). Other lines,
+blank lines included, are skipped silently. A finding line that does not fit the form is
+ignored as unreadable, and the report says how many.
 
 ## 1. Gather context
 
