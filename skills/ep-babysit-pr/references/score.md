@@ -100,6 +100,10 @@ the tier the review reported.
 - **Wait:** do not merge; keep the loop running and ask again on a later tick.
 - **Stop:** do not merge; set `outcome: stopped: user declined merge` and stop.
 
+Risk-gate notices use their own flag, `risk_notified` (the head sha last notified), not
+`blocked_notified`: an earlier `BLOCKED` notice must not silence them, and a new head needs
+a new notice.
+
 A yes counts only for the head it named. Whenever `headRefOid` changes (a fix, a sync, a
 reviewer's commit), clear `human_ok` to `null`, so the new head needs a new yes.
 
@@ -113,12 +117,13 @@ gh api repos/{owner}/{repo}/pulls/<n>/reviews --paginate \
 An approval counts only when `state` is `APPROVED`, `commit_id` equals `headRefOid`,
 `login` is not the PR author, and `type` is `User` (an account of type `Bot`, or an app,
 never counts, nor does any review this skill could post, since it never approves). With
-no counting approval, do not merge: notify the user once (`blocked_notified`) that a human
-approval of this head is needed, and wait as on `BLOCKED`.
+no counting approval, do not merge: notify the user that a human approval of this head is
+needed, once per head (skip it when `risk_notified` equals `headRefOid`, else send it and
+set `risk_notified` to `headRefOid`), and wait as on `BLOCKED`.
 
 **Unattended runs.** When the skill runs from a schedule or loop wakeup with no user
-present to answer, it does not ask and does not merge: it notifies the user once
-(`blocked_notified`) with the tier, reasons, and head sha, and waits. The next run where
+present to answer, it does not ask and does not merge: it notifies the user with the tier,
+reasons, and head sha, once per head (`risk_notified`, as above), and waits. The next run where
 the user is present asks the question.
 
 The gate adds no GitHub write; it only removes merges.

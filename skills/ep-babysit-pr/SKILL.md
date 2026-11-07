@@ -74,6 +74,7 @@ write it after every action.
   "started_at": "<iso time>",
   "last_review": { "head": null, "summary": null, "findings": null, "synced_after": null },
   "human_ok": null,
+  "risk_notified": null,
   "last_score": null,
   "merge_async": null,
   "outcome": null
@@ -88,7 +89,9 @@ base sync pushed after `last_review.head` (step 5c), or `null` when none was; it
 next round to review the full PR again (step 5d also detects base merges this skill did
 not make). `human_ok` is `{ "head": "<sha>" }` after the user
 said yes to merging that exact head (step 7), or `null`; it is cleared to `null` whenever
-`headRefOid` changes.
+`headRefOid` changes. `risk_notified` is the head sha the latest risk-gate notice (step 7)
+was sent for, or `null`; it is separate from `blocked_notified`, so an earlier `BLOCKED` or
+waiting-on-humans notice never silences it, and a new head gets a new notice.
 `merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
 `"queued"` when GitHub answered that the PR was already merged or queued, so later ticks
 read its result or check the PR instead of requesting another merge. It belongs to one
@@ -96,7 +99,7 @@ run: a stop with `left merge queue` or `merge failed` clears it to `null`, so a 
 after the user fixes the cause can request the merge again.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
 state file missing fields, add them with defaults (`last_review.findings`,
-`last_review.synced_after`, and `human_ok` default to `null`); when own post ids are
+`last_review.synced_after`, `human_ok`, and `risk_notified` default to `null`); when own post ids are
 unknown, treat posts that reference commits you pushed as your own.
 
 ## 3. Loop pacing
@@ -373,10 +376,12 @@ Merge only when **all** hold:
     whenever `headRefOid` changes, so a new push needs a new yes.
   - **high:** the same yes, and an `APPROVED` review whose `commit_id` equals `headRefOid`,
     from a login other than the PR author whose `user.type` is `User`. Bot and app
-    approvals never count. Without one, do not merge: notify the user once
-    (`blocked_notified`) that a human approval is needed, and wait as on `BLOCKED`.
+    approvals never count. Without one, do not merge: unless `risk_notified` equals
+    `headRefOid`, notify the user that a human approval of this head is needed and set
+    `risk_notified` to `headRefOid`; then wait as on `BLOCKED`.
   - **Unattended** (a scheduled or looping run with no user present to answer): do not ask
-    and do not merge; notify the user once (`blocked_notified`) and wait. Ask on the next
+    and do not merge; unless `risk_notified` equals `headRefOid`, notify the user with
+    the tier, reasons, and head sha and set `risk_notified` to `headRefOid`; then wait. Ask on the next
     run where the user is present.
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
