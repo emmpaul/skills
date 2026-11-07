@@ -1,6 +1,6 @@
 ---
 name: ep-issue-to-change
-description: Turn a GitHub issue into an OpenSpec change, created with `openspec new change` and given a proposal grounded in the issue (its number, problem, asks, existing capability paths, and open questions), then stop for the propose workflow, optionally commenting a link on the issue after confirmation and with no model attribution. Use when the user asks to turn an issue into an OpenSpec change or proposal.
+description: Turn a GitHub issue into an OpenSpec change, created with `openspec new change` and given a proposal grounded in the issue (its number, problem, asks, existing capability paths, and open questions), then stop for the propose workflow, optionally commenting a link on the issue after confirmation and with no model attribution. Use when the user asks to turn an issue into an OpenSpec change.
 ---
 
 # ep-issue-to-change

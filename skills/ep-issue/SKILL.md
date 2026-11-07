@@ -1,6 +1,6 @@
 ---
 name: ep-issue
-description: Draft a new GitHub issue from a description, or triage an existing one by number, with a structured body, open questions for unknowns, labels from the repo's existing set, a one-way or two-way door call, and a duplicate search, writing to GitHub only after confirmation and with no model attribution. Use when the user asks to file or draft an issue, or to triage one.
+description: Draft a new GitHub issue from a description, or triage an existing one by number, with a structured body, open questions for unknowns, labels from the repo's existing set, a one-way or two-way door call, and a duplicate search, writing to GitHub only after confirmation and with no model attribution. Use when the user asks to file an issue or triage one.
 ---
 
 # ep-issue

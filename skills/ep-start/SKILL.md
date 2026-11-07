@@ -1,6 +1,6 @@
 ---
 name: ep-start
-description: Start a unit of work from a GitHub issue or a description, with a conventional `<type>/<issue>-<slug>` branch cut from the freshly fetched default branch (or a named base), a confirmed stash for a dirty tree, an optional OpenSpec change, and the issue link recorded for `ep-open-pr`, pushing nothing unless asked. Use when the user asks to start work on an issue or task, or to create a branch for one.
+description: Start a unit of work from a GitHub issue or a description, with a conventional `<type>/<issue>-<slug>` branch cut from the freshly fetched default branch (or a named base), a confirmed stash for a dirty tree, an optional OpenSpec change, and the issue link recorded for `ep-open-pr`, pushing nothing unless asked. Use when the user asks to start work on an issue or a task.
 ---
 
 # ep-start
