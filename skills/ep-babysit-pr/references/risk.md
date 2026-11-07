@@ -1,7 +1,7 @@
 # Risk tier rules
 
-Shared by `ep-review`, `ep-open-pr`, and `ep-babysit-pr`, so all three give the same tier
-for the same change. The source is `shared/risk.md`; each skill ships a copy as
+Shared by `ep-review`, `ep-open-pr`, `ep-babysit-pr`, and `ep-stack`, so all four give the
+same tier for the same change. The source is `shared/risk.md`; each skill ships a copy as
 `references/risk.md`. Edit the source and run `scripts/sync-shared.sh`.
 
 Every change gets one tier: `low`, `medium`, or `high`, with a list of reasons. Decide it
