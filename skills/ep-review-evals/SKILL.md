@@ -8,6 +8,8 @@ description: Measure ep-review against the repository's own history. collect pro
 Build a confirmed eval set from the repository's history, score `ep-review` on it, and
 tell whether a reviewer change is worth keeping.
 
+Paths under `references/` and `scripts/` are relative to this skill's own folder.
+
 ## Hard rules
 
 - **Read-only on GitHub.** Read PRs, commits, and reviews only: no comment, review, issue,
@@ -48,11 +50,10 @@ bash <skill-dir>/scripts/context.sh
 ```
 
 Use its `git` (branch, dirty state, default branch). Entries in `warnings` are
-informational. If bash is unavailable, or the probe exits non-zero or prints invalid
-JSON, run `git status --porcelain=v1 -b` and
-`git symbolic-ref --short refs/remotes/origin/HEAD` (else `main`, else `master`) inline.
-Leave the probe's `openspec` aside and OpenSpec out of the output; `ep-review` decides on
-its own whether spec conformance applies to a case.
+informational. If bash is unavailable, or the probe exits non-zero or prints invalid JSON,
+run `git status --porcelain=v1 -b` and `git symbolic-ref --short refs/remotes/origin/HEAD`
+(else `main`, else `master`) inline. Leave the probe's `openspec` aside and OpenSpec out
+of the output; `ep-review` decides on its own whether spec conformance applies to a case.
 
 Decide the source (`references/collect.md`, Sources): `github` when `origin` is a GitHub
 repository and `gh auth status` succeeds, `local` otherwise. Resolve `<dir>`. Done when
@@ -121,9 +122,8 @@ as `status: failed: not run`.
 
 ### Cleanup
 
-Act on this whenever `run` ends, finished or not (a failed case, a declined
-confirmation after a worktree exists, an error, or an interruption you can still act
-on):
+Act on this whenever `run` ends, finished or not (a failed case, a declined confirmation
+after a worktree exists, an error, or an interruption you can still act on):
 
 1. Every temporary worktree this run added lives under `<scratch>/ep-review-evals/`,
    where `<scratch>` is the host's scratch directory, else `$TMPDIR`, else `/tmp`, never
@@ -172,9 +172,9 @@ written: <path>,<path> | none
 -->
 ```
 
-`cases` counts the cases accepted and written (`collect`), run with `status: ok`
-(`run`), shared (`compare`), or zero (`noise`, `none`). `proposed` and `rejected` are
-zero outside `collect`. `recall` and `noise` are for `run` (the run's values) and
-`compare` (`b`'s values on the shared cases), `n/a` otherwise. `verdict` is only for
-`compare`, `verification` only for `run`. `responses` counts posted findings for
-`noise` and is all zero otherwise. `written` lists the files written this time.
+`cases` counts the cases accepted and written (`collect`), run with `status: ok` (`run`),
+shared (`compare`), or zero (`noise`, `none`). `proposed` and `rejected` are zero outside
+`collect`. `recall` and `noise` are for `run` (the run's values) and `compare` (`b`'s
+values on the shared cases), `n/a` otherwise. `verdict` is only for `compare`,
+`verification` only for `run`. `responses` counts posted findings for `noise` and is all
+zero otherwise. `written` lists the files written this time.
