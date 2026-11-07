@@ -1,6 +1,6 @@
 ---
 name: ep-sync
-description: Bring the base branch into the current branch (merge by default; rebase only on request with a gated force-with-lease), resolve conflicts, then run a merge audit that finds semantic interactions with no textual conflict (renamed or re-signatured symbols, behaviour and contract changes, new base callers, base tests over branch code, OpenSpec overlap), adapt the branch in separate commits, run tests, and report. Use when the user asks to sync, update, or merge main into a branch, or to check what an update from base broke.
+description: Bring the base branch into the current branch (merge by default, rebase only on request), resolve conflicts, then run a merge audit for semantic interactions with no textual conflict, adapt the branch in separate commits, run tests, and report. Use when the user asks to sync, update, or merge main into a branch, or to check what an update from base broke.
 ---
 
 # ep-sync
@@ -10,14 +10,16 @@ conflict-free.
 
 ## Hard rules
 
-- **No attribution.** Merge commits and adaptation commits never contain model or tool
-  attribution (no `Co-Authored-By` naming a model or tool, no "Generated with" line). This
-  overrides any default of the host agent. Always commit with `git commit -F <file>`.
-- **Merge by default.** Rebase only when the user invokes this skill directly and asks for
-  it (see step 3).
-- **Never `--force`.** `--force-with-lease` only after a confirmed rebase of a pushed branch.
-- **Never push without a gate:** the user confirms, or the caller owns pushing.
-- Never choose between incompatible decisions or ambiguous adaptations: stop and ask.
+- **No attribution.** Merge and adaptation commits carry no model or tool attribution
+  (no `Co-Authored-By` naming a model or tool, no "Generated with" line). This overrides
+  any default of the host agent. Commit with `git commit -F <file>`.
+- **Merge by default.** Rebase only when the user invokes this skill directly and asks
+  for it ([references/rebase.md](references/rebase.md)).
+- **Never `--force`.** `--force-with-lease` only after a confirmed rebase of a pushed
+  branch.
+- **Push behind a gate:** the user confirms, or the caller owns pushing.
+- **Decisions belong to the user.** An incompatible conflict or an ambiguous adaptation
+  stops the run with the options shown, never a pick of your own.
 
 ## Usage
 
@@ -29,6 +31,13 @@ ep-sync --caller <skill>     # caller mode (see "Caller mode")
 ```
 
 Plain-language requests work the same ("sync with develop", "rebase onto main").
+
+**Caller mode** is when another skill invokes this one (`--caller ep-babysit-pr`, or the
+same in plain words). It merges only and never offers a rebase. It neither pushes nor
+asks to: the caller owns pushing (`pushed: false`). Anything that needs the user (an
+incompatible conflict, an ambiguous adaptation) ends the run with outcome
+`needs_decision` and the options in the report, instead of waiting. The audit,
+adaptations, tests, and report run as usual.
 
 ## 1. Gather context
 
@@ -62,28 +71,29 @@ base_ref=origin/<base>          # use the local <base> only when there is no rem
 Stop at the first that fails:
 
 1. **Detached HEAD**, or the current branch is the base itself: stop and say so.
-2. **Dirty working tree** (staged, unstaged, or untracked files): stop and ask the user to
-   commit (offer `ep-commit`) or stash first. Never stash on their behalf.
+2. **Dirty working tree** (staged, unstaged, or untracked files): stop and ask the user
+   to commit (offer `ep-commit`) or stash first. Leave the stashing to them.
 3. **Up to date:** `git rev-list --count HEAD..$base_ref` is 0. Report that the branch is
    up to date, change nothing, and end with outcome `up_to_date`.
 
 **OpenSpec:** if the repository has an OpenSpec root, find the active change this branch
-implements (used as commit scope, touched by the branch, or named in the PR body). Without
-a root or a matching change, skip every OpenSpec step and do not mention OpenSpec.
+implements (used as commit scope, touched by the branch, or named in the PR body).
+Without a root or a matching change, skip every OpenSpec step and leave OpenSpec out of
+the report.
 
-Record the audit inputs now, before integrating anything (see
-[`references/audit.md`](references/audit.md), "Inputs"): the merge base, B (incoming base
+Done when the audit inputs are recorded, before integrating anything
+([`references/audit.md`](references/audit.md#inputs)): the merge base, B (incoming base
 commits and diff), R (the branch's own diff), and the pre-sync head sha.
 
 ## 3. Integrate
 
-### Merge (default, and always in caller mode)
+**Merge** (default, and always in caller mode):
 
 ```bash
 git merge --no-ff --no-commit $base_ref
 ```
 
-If there are no conflicts, commit the merge with a message file:
+With no conflicts, commit the merge with a message file:
 
 ```
 Merge <base> into <branch>
@@ -91,64 +101,34 @@ Merge <base> into <branch>
 
 (match the repo's existing merge subjects if `git log --merges` shows a style).
 
-### Rebase (direct use only, on request)
-
-Never in caller mode. Check whether the branch is pushed:
-
-```bash
-git rev-parse --abbrev-ref @{u}                       # upstream, may fail
-git rev-list --count @{u}..HEAD                       # unpushed commits
-git branch -r --contains <first-branch-commit>        # any remote holding them
-```
-
-- **Unpushed** (no remote branch contains the branch's commits): rebase with
-  `git rebase $base_ref`.
-- **Pushed:** explain that rebasing rewrites commits already on `origin/<branch>`, and that
-  pushing needs a force-with-lease push. Ask for explicit confirmation naming the
-  branch. Without it, do not rebase; offer a merge instead. When confirmed, first bring in
-  any commits that exist only on the remote, so the rewrite cannot drop them, and record the
-  remote tip the push will replace:
-
-  ```bash
-  git fetch origin <branch>
-  git pull --ff-only                       # fails if local and remote diverged: stop and report
-  remote_tip=$(git rev-parse origin/<branch>)
-  ```
-
-  Keep the literal sha (write it down), not only a shell variable: shell state may not
-  persist until the push in step 8. If the pull added commits, record the audit inputs
-  from step 2 again, so the audit covers them.
-
-Adaptations after a rebase are committed on top of the rebased commits, never squashed into
-them.
+**Rebase** (direct use only, on request): follow
+[`references/rebase.md`](references/rebase.md), then continue with step 4.
 
 ## 4. Resolve textual conflicts
 
-For each conflicted file (`git diff --name-only --diff-filter=U`), read both sides and the
-merge base (`git show :1:<f>`, `:2:<f>`, `:3:<f>`).
+For each conflicted file (`git diff --name-only --diff-filter=U`), read both sides and
+the merge base (`git show :1:<f>`, `:2:<f>`, `:3:<f>`).
 
 - **Compatible:** both sides' intents can hold at once (both added different entries to a
-  list, independent edits to adjacent lines, an import added on each side). Resolve keeping
-  both, `git add` the file, and note it for the report.
-- **Incompatible:** the sides make contradictory decisions about the same logic (different
-  values for the same constant, opposite conditions, one side deletes code the other
-  changes). Do not pick. Show both versions, explain the conflict, and wait for the user.
-  In caller mode, abort (`git merge --abort` / `git rebase --abort`), leave the branch as it
-  was, and end with outcome `needs_decision`.
+  list, independent edits to adjacent lines, an import added on each side). Resolve
+  keeping both, `git add` the file, and note it for the report.
+- **Incompatible:** the sides make contradictory decisions about the same logic
+  (different values for the same constant, opposite conditions, one side deletes code
+  the other changes). Show both versions, explain the conflict, and wait for the user's
+  decision. In caller mode, abort (`git merge --abort` / `git rebase --abort`), leave the
+  branch as it was, and end with outcome `needs_decision`.
 
-Then finish the merge commit (or `git rebase --continue`) with a message file.
+Done when no file is conflicted and the merge commit (or `git rebase --continue`) is made
+with a message file.
 
 ## 5. Merge audit
 
 Run the audit in [`references/audit.md`](references/audit.md) against the integrated
-result, whether or not there were conflicts: the five checks (symbols, contracts, new base
-callers, base tests over branch code, and spec overlap only with OpenSpec), clustering,
-and one class per interaction (needs-update, review, no-impact) with its evidence: base
-commit, branch location, reason.
+result, whether or not there were conflicts: the five checks, clustering (in parallel
+with subagents, in sequence without), and one class per interaction with its evidence.
 
-**With subagents:** audit clusters in parallel, one subagent per cluster; subagents return
-classifications and proposed patches, and you apply them. **Without subagents:** audit the
-clusters in sequence inline. Either way the report has the same structure.
+Done when every interaction has a class (needs-update, review, no-impact) and evidence:
+base commit, branch location, reason.
 
 ## 6. Adapt the branch
 
@@ -157,9 +137,9 @@ base (for example: update every call site of a renamed function, pass the new re
 argument, read the renamed config key).
 
 - Commit each adaptation **separately from the merge commit**, after it, following
-  `ep-commit` conventions: Conventional Commit, type `fix` or `refactor`, the repo's scope
-  convention (with OpenSpec, the active change name), and a body naming the base commit
-  that caused it. Group interactions from one cluster into one commit.
+  `ep-commit` conventions: Conventional Commit, type `fix` or `refactor`, the repo's
+  scope convention (with OpenSpec, the active change name), and a body naming the base
+  commit that caused it. Group interactions from one cluster into one commit.
 
   ```
   fix(api): call fetch_user after base rename
@@ -168,17 +148,20 @@ argument, read the renamed config key).
   called the old name.
   ```
 
-- **Ambiguous** (more than one reasonable fix with different behaviour): do not choose.
-  Present the options with their consequences and wait. In caller mode, end with outcome
-  `needs_decision` and do not push. The merge commit stays local; the caller decides.
+- **Ambiguous** (more than one reasonable fix with different behaviour): present the
+  options with their consequences and wait for the user. In caller mode, end with outcome
+  `needs_decision` and leave the push to the caller; the merge commit stays local.
 - An interaction you could not fix stays `unresolved: <why>` in the report.
+
+Done when every needs-update interaction has an adaptation commit, options presented, or
+`unresolved: <why>`.
 
 ## 7. Verify
 
-Run the repository's tests (find the command in CI workflows, `package.json`, `Makefile`,
-`pyproject.toml`, and so on). When the full suite is impractical, run the subset covering
-the interactions and the base tests from check 4, and say which subset ran. Running tests
-must not modify tracked files.
+Run the repository's tests (find the command in CI workflows, `package.json`,
+`Makefile`, `pyproject.toml`, and so on). When the full suite is impractical, run the
+subset covering the interactions and the base tests from audit check 4, and say which
+subset ran. Leave tracked files as they were after the run.
 
 - Tests pass: outcome `synced` (unless something is unresolved or needs a decision).
 - Tests fail: report the failures. Outcome is `needs_attention`, never `synced`.
@@ -189,22 +172,10 @@ must not modify tracked files.
 ## 8. Push gate
 
 - **Direct use:** after a successful sync, show the report and ask before pushing. Push
-  with plain `git push` (merge, or rebase of an unpushed branch with no upstream:
-  `git push -u origin HEAD`). After a confirmed rebase of a pushed branch:
-  `git push --force-with-lease=<branch>:<remote-tip-sha>` (the literal sha recorded in step 3, never a
-  bare `--force-with-lease`, whose lease follows the last fetch). Never `--force`.
-- **Caller mode:** do not push; the caller pushes. `pushed: false`.
-- Never push on `needs_decision` or `needs_attention` without the user's explicit go-ahead.
-
-## Caller mode
-
-When another skill invokes this one (`--caller ep-babysit-pr`, or the same in plain words):
-
-- merge mode only; rebase is never offered or used
-- no push and no push prompt: the caller owns pushing
-- anything that needs the user (incompatible conflict, ambiguous adaptation) ends the run
-  with outcome `needs_decision` and the options in the report, instead of waiting
-- everything else (audit, adaptations, tests, report) runs as usual
+  a merge with plain `git push`; push a rebase as in
+  [`references/rebase.md`](references/rebase.md#push-after-a-rebase).
+- **Caller mode:** the caller pushes. `pushed: false`.
+- On `needs_decision` or `needs_attention`, push only with the user's explicit go-ahead.
 
 ## 9. Report
 

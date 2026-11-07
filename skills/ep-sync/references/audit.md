@@ -2,7 +2,9 @@
 
 The audit looks for semantic interactions between what the base brought in and what the
 branch changed. A merge with no textual conflicts can still leave the branch wrong, so
-the audit runs after every sync, conflicts or not.
+the audit runs after every sync, conflicts or not. Done when all five checks have run,
+every interaction sits in a cluster with exactly one class and its evidence, and the
+report table is printed.
 
 ## Inputs
 
@@ -22,7 +24,8 @@ For a rebase, `HEAD` above is the branch tip before rebasing (`ORIG_HEAD` afterw
 Collect **R's identifiers**: every function, method, class, type, constant, config key,
 table, column, route, and exported name that R's hunks define, call, import, override,
 read, or write. Use the hunk headers (`@@ ... @@ <function>`) and the added or changed
-lines. Only these identifiers are audited, which keeps large base updates manageable.
+lines. The audit covers these identifiers only, which keeps large base updates
+manageable.
 
 ## The five checks
 
@@ -71,8 +74,8 @@ branch's behaviour.
 
 ### 5. Spec overlap (only with an OpenSpec root and an active change for this branch)
 
-Skip this check entirely, and do not mention it, when the repository has no OpenSpec root
-or the branch implements no active change.
+Run this check only when the repository has an OpenSpec root and the branch implements
+an active change. Otherwise skip it and leave it, and OpenSpec, out of the report.
 
 Otherwise, take the capabilities the active change touches (its
 `openspec/changes/<name>/specs/<capability>/` folders). Report each base commit that:
@@ -94,7 +97,7 @@ audited as a unit: read the code on both sides, then classify each interaction i
   base commits' diffs for those files, the branch's diff for those files, and the
   classification rules below. Ask for each interaction's class, evidence, and, for
   needs-update, a proposed patch, or the options when more than one fix is reasonable.
-  The main agent reviews and applies the patches; subagents do not commit.
+  Subagents only propose; the main agent reviews and applies the patches.
 - **Without subagents:** audit the clusters one after another inline, with the same
   rules. The report is identical.
 
@@ -110,8 +113,8 @@ Every interaction gets exactly one class and its evidence.
 
 A needs-update interaction with more than one reasonable fix that behaves differently
 (for example: base made `timeout` required, and the branch could pass the old default or
-the caller's configured value) is **ambiguous**. Do not choose; present the options and
-stop (`needs_decision`).
+the caller's configured value) is **ambiguous**: present the options and stop
+(`needs_decision`), leaving the choice to the user.
 
 ## Report table
 
@@ -133,8 +136,8 @@ Checks run: symbols, contracts, new callers, tests[, spec overlap]
 ```
 
 Resolution is one of: `updated in <sha>`, `options presented` (ambiguous), `listed for
-review`, `none needed` (no-impact), `unresolved: <why>`. When the audit finds nothing, say so explicitly:
-`No interactions found.` and still list the checks run.
+review`, `none needed` (no-impact), `unresolved: <why>`. When the audit finds nothing,
+print `No interactions found.` and still list the checks run.
 
 ## Summary keys
 
