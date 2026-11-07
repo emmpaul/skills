@@ -97,9 +97,10 @@ toolchain the plan uses); they are a global invalidator below.
 
 ## Fingerprint
 
-For each check, `deps` is the whole target, minus Markdown files and `docs/` for items
-outside the `docs` area. Narrower sets are not used: which files a test reads needs
-coverage data the audit cannot trust. For a path target, `deps` also holds the files
+For each check, whatever its area, `deps` is the whole target, Markdown files and `docs/`
+included: tests read `.md` fixtures and scripts read reference docs, so no file kind is
+left out. Narrower sets are not used: which files a test reads needs coverage data the
+audit cannot trust. For a path target, `deps` also holds the files
 outside the target that configure it: the lockfiles and manifests (the Lockfiles and
 Manifests rows of `references/plan.md`) in each folder from the target's parent up to the
 repository root, so a workspace root's `pnpm-lock.yaml` or `package.json` is included,
