@@ -86,8 +86,7 @@ Read `references/record.md` and load the run record beside the requested audit p
 (`<audit-file stem>.state.json`). With `--full`, use nothing from it, but still check a
 file there is an ep-qa record so a corrupt or foreign file is never overwritten. A
 missing, corrupt, foreign, or other-target record counts as absent; keep the reason for
-the report. Record the
-toolchain versions the record compares.
+the report.
 
 ## 2. Discover
 
@@ -108,9 +107,11 @@ noted as absent.
 
 Build plan items in the shape and order from `plan.md`: setup, build, lint, types,
 tests, run, probes, docs. Mark each `run`, `skip: unchanged since <sha>`, or
-`not covered: <reason>`. Skips follow "Skipping unchanged checks" and "Checks never
-skipped" in `record.md`; not covered is for never-run commands, missing tools
-(`command -v`), and services the audit cannot run locally. Add one re-check item per open
+`not covered: <reason>`. Once the items exist, and before marking any skip, record the
+version of every toolchain the plan uses (`record.md`, "Toolchain versions"). Skips
+follow "Skipping unchanged checks" and "Checks never skipped" in `record.md`; not covered
+is for never-run commands, missing tools (`command -v`), and services the audit cannot run
+locally. Add one re-check item per open
 finding in a usable record (`record.md`, "Earlier findings"). Probes come from
 the project type and the edge inputs in `plan.md`; with `--url`, add `GET`/`HEAD` probes of
 that URL. When the project defines no runnable command, say so; the audit continues with

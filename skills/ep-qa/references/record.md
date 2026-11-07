@@ -1,8 +1,8 @@
 # Run record reference
 
 Where the run record lives, what it holds, when a check is skipped, and how earlier
-findings carry over. Read in step 1 (load), step 3 (mark skips and re-check items), and
-step 9 (write).
+findings carry over. Read in step 1 (load), step 3 (toolchain versions, skips, and re-check
+items), and step 9 (write).
 
 ## Location
 
@@ -91,9 +91,17 @@ Otherwise the record is **usable** only when all hold:
 
 An unusable record counts as absent: nothing is skipped and there are no earlier findings
 to re-check. For a corrupt or foreign file, the report and output also say how to fix it:
-move or delete `<record path>` and run again. Record the toolchain versions now
-(`node --version`, `python3 --version`, `go version`, `cargo --version`, ... for each
-toolchain the plan uses); they are a global invalidator below.
+move or delete `<record path>` and run again.
+
+## Toolchain versions (step 3)
+
+The toolchains are known only once the plan is built, so record their versions in step 3,
+after the plan items exist and before any item is marked skipped: `node --version`,
+`python3 --version`, `go version`, `cargo --version`, ... for **every** toolchain a plan
+item uses (the interpreter or compiler behind each command, and the package manager, such
+as `npm --version` or `uv --version`). They are a global invalidator (below): a toolchain
+the plan uses whose version differs from the record's `toolchain`, or that the record's
+`toolchain` lacks, means no item is skipped. Store this run's map in the record.
 
 ## Fingerprint
 
@@ -144,8 +152,8 @@ Mark a plan item `skip: unchanged since <sha>` (the check's recorded `sha`) only
 3. No **global invalidator** changed since the record: the lockfiles and manifests in the
    target and, for a path target, in each folder above it up to the repository root (the
    Lockfiles and Manifests rows of `references/plan.md`), the toolchain versions recorded
-   in step 1, and the CI or task-runner file the item came from (a changed `Makefile`
-   test recipe changes the item). The files among these are in every check's `deps`
+   in step 3 ("Toolchain versions"), and the CI or task-runner file the item came from (a
+   changed `Makefile` test recipe changes the item). The files among these are in every check's `deps`
    (Fingerprint), so a change to any of them, inside the target or above it, changes the
    fingerprint of every check; the toolchain versions are compared with the record's
    `toolchain`.
