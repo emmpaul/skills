@@ -9,7 +9,7 @@ comments.
 
 | Skill | What it does |
 |---|---|
-| `ep-commit` | Splits working-tree changes into logical Conventional Commits that match the repo's style. |
+| `ep-commit-and-push` | Splits working-tree changes into logical Conventional Commits that match the repo's style, then pushes the branch with a plain push (`--no-push` commits only; pushing the default branch asks first). |
 | `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door, with its risk tier, the tests actually run, and how to revert. When UI files change, screenshots the affected pages from the running app after confirmation and links them in the body (`--screenshots` pre-approves, `--no-screenshots` skips). |
 | `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, confirms each finding by a 3-verifier vote, tags bugs the change did not introduce as pre-existing, follows the repo's `REVIEW.md`, re-reviews only new commits with `--since` and `--known`, and reports the change's risk tier. |
 | `ep-babysit-pr` | Watches a PR: fixes CI failures, answers review comments, runs up to 3 review rounds (later ones only on new commits), and merges when gates pass and the confidence score is at least 85; medium-risk PRs wait for your yes and high-risk ones also for a human approval. |
@@ -31,22 +31,30 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 npx skills add emmpaul/skills
 
 # All twelve ep-* skills
-npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+npx skills add emmpaul/skills --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # A single skill
-npx skills add emmpaul/skills --skill ep-commit
+npx skills add emmpaul/skills --skill ep-commit-and-push
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+npx skills add ./path/to/skills --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+npx skills add emmpaul/skills -g --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
 repo), which the CLI lists too. Name the `ep-*` skills explicitly to install only these.
 
 Remove with `npx skills remove ep-<name>`.
+
+`ep-commit` is now `ep-commit-and-push`, and it pushes after committing (`--no-push`
+commits only). Replace an existing install (add `-g` to both for a global one):
+
+```bash
+npx skills remove ep-commit
+npx skills add emmpaul/skills --skill ep-commit-and-push
+```
 
 ## `ep-qa` re-runs
 
