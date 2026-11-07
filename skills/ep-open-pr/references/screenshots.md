@@ -195,7 +195,8 @@ On Push, work in a scratch worktree outside the repository, so the PR branch and
 default branch never change:
 
 ```bash
-slug=<branch name, lowercased, every character outside [a-z0-9._-] replaced by ->
+branch=$(git rev-parse --abbrev-ref HEAD)   # read, never typed: names may hold $ ( ) |
+slug=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9._-' '-')
 sha=$(git rev-parse --short HEAD)
 wt=<scratch>/ep-pr-assets
 git fetch origin ep-pr-assets          # fails when the branch does not exist yet
@@ -208,12 +209,15 @@ mkdir -p "$wt/$slug/$sha"
 cp -- "$shots"/*.png "$wt/$slug/$sha/"   # only this run's images, as listed at gate 2
 git -C "$wt" add -- "$slug/$sha"
 msg=$(mktemp)
-printf 'chore: add screenshots for %s at %s\n' "<branch>" "$sha" > "$msg"
+printf 'chore: add screenshots for %s at %s\n' "$branch" "$sha" > "$msg"
 git -C "$wt" commit -F "$msg"
 rm -f "$msg"
 git -C "$wt" push origin HEAD:refs/heads/ep-pr-assets
 ```
 
+- The branch name reaches the shell only through `$branch`, set from `git rev-parse`:
+  never paste the name itself into a command, since git allows `$`, `(`, `)`, and `|` in
+  branch names and a double-quoted name would run them.
 - The commit holds only PNG files under `<branch-slug>/<head-short-sha>/`. The message
   carries no model or tool attribution: check it with `git -C "$wt" log -1 --format=%B`.
 - When any step before the push fails (creating the worktree, `add`, or `commit`, for
