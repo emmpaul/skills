@@ -2,7 +2,7 @@
 
 ## Why
 
-The `ep-*` chain starts at `ep-commit`, so everything before the first commit happens by hand. That includes writing up the issue, choosing a branch name, branching from a stale base, and creating the OpenSpec change. Because the chain has no front door, branch names, issue links, and the active OpenSpec change all vary from one piece of work to the next, and these are exactly what `ep-commit`, `ep-open-pr`, and `ep-babysit-pr` read later.
+The `ep-*` chain starts at `ep-commit-and-push`, so everything before the first commit happens by hand. That includes writing up the issue, choosing a branch name, branching from a stale base, and creating the OpenSpec change. Because the chain has no front door, branch names, issue links, and the active OpenSpec change all vary from one piece of work to the next, and these are exactly what `ep-commit-and-push`, `ep-open-pr`, and `ep-babysit-pr` read later.
 
 ## What Changes
 
@@ -36,6 +36,6 @@ Every one of these writes shows the draft first and waits for confirmation, unle
 
 - New files: `skills/ep-start/`, `skills/ep-issue/`, and `skills/ep-issue-to-change/`, each with a `SKILL.md` and `scripts/context.sh` (a synced copy), plus `references/` where needed.
 - Modified: `README.md` (skills table, install commands), and `skills/ep-open-pr/SKILL.md` (issue reference in the body).
-- Unchanged: `shared/context.sh`, `ep-commit`, `ep-review`, `ep-babysit-pr`.
+- Unchanged: `shared/context.sh`, `ep-commit-and-push`, `ep-review`, `ep-babysit-pr`.
 - Runtime: `git` and `gh` are required. `openspec` is optional for `ep-start` and required for `ep-issue-to-change`.
 - Local effects: `ep-start` creates a branch and may stash changes. Both `ep-start --change` and `ep-issue-to-change` write under `openspec/changes/`.

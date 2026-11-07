@@ -21,7 +21,7 @@ rules:
     - State any new outward effect on GitHub (push, comment, merge) explicitly
     - A change that adds or edits a skill applies the `writing-for-agents` skill to its description and body
   specs:
-    - One capability per skill, named after the skill (e.g. `ep-commit`)
+    - One capability per skill, named after the skill (e.g. `ep-commit-and-push`)
     - Include a scenario for repositories without OpenSpec when behavior depends on OpenSpec
     - Include a scenario for agents without subagents when behavior uses subagents
   design:
