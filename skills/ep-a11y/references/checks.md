@@ -110,8 +110,8 @@ templates.
   or `letter-spacing` set with `!important` in a way that blocks user styles; text in
   buttons or badges clipped by fixed dimensions.
 - **Rule out:** containers that grow with content.
-- **Fix:** use `min-height`, avoid clipping text, and do not force spacing with
-  `!important`.
+- **Fix:** use `min-height`, let text grow instead of clipping it, and leave spacing
+  overridable (no `!important` on it).
 
 ## 1.4.13 Content on Hover or Focus
 
