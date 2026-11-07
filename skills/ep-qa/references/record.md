@@ -108,10 +108,12 @@ and every other root file discovery read for the target (a workspace file such a
 from).
 
 Compute the fingerprint from the **working tree**, not `HEAD`, so uncommitted edits,
-added files, and deleted files all change it:
+added files, and deleted files all change it. Run it with bash and keep `-z`: without it,
+git quotes paths with non-ASCII or special characters (`"tests/na\303\257ve_test.py"`),
+`[ -f ]` fails on the quoted name, and that file silently drops out of the fingerprint:
 
 ```bash
-git ls-files -co --exclude-standard -- <deps> | LC_ALL=C sort | while IFS= read -r f; do
+git ls-files -z -co --exclude-standard -- <deps> | LC_ALL=C sort -z | while IFS= read -r -d '' f; do
   [ -f "$f" ] && printf '%s %s\n' "$f" "$(git hash-object -- "$f")"
 done | sha256sum
 ```

@@ -115,7 +115,8 @@ that encodes the expected behavior, so the bug cannot quietly come back:
   `tests/test_cli.py` beside the existing `tests/test_*.py`). It must not exist in the
   repository; pick a new file name when the natural one is taken.
 - **Scratch copy:** copy the target's tracked and untracked, non-ignored files
-  (`git ls-files -co --exclude-standard`) to a new directory under the system temp dir
+  (`git ls-files -z -co --exclude-standard`, NUL-separated so non-ASCII paths are not
+  quoted) to a new directory under the system temp dir
   (`mktemp -d`). Copy dependency directories (`node_modules`, `.venv`) when the test
   command may write to them, otherwise symlink them. Write the test there and run only
   that test with the project's test command, as the plan item "run proposed regression

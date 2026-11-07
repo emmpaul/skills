@@ -79,8 +79,8 @@ git status --porcelain=v1 -b
 ```
 
 and treat an `openspec/` folder at the root as the OpenSpec root. Then record
-`git rev-parse HEAD` as the head, and `git status --porcelain --untracked-files=all` as the
-**before-snapshot**. Resolve the target (Usage).
+`git rev-parse HEAD` as the head, and `git status --porcelain -z --untracked-files=all` as
+the **before-snapshot** (`-z` keeps non-ASCII paths unquoted, as in the fingerprint). Resolve the target (Usage).
 
 Read `references/record.md` and load the run record beside the requested audit path
 (`<audit-file stem>.state.json`). With `--full`, use nothing from it, but still check a
@@ -186,7 +186,7 @@ Done when every candidate has an outcome.
 1. Stop every process this run started, with its process group; check its port is free.
    Delete the scratch copies (regression tests, library examples) and large-input files
    under the system temp dir.
-2. Take the after-snapshot (`git status --porcelain --untracked-files=all`) and compare
+2. Take the after-snapshot (`git status --porcelain -z --untracked-files=all`) and compare
    it with the before-snapshot: every created or modified path goes under "Files changed
    by the audit" (collapse a created directory to one line). The audit file and the run
    record are not listed.
