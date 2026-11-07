@@ -40,7 +40,7 @@ Classify each posted finding by the first rule that applies:
 | `wrong` | a reply says the finding is incorrect: "not a bug", "false positive", "wrong", "can't happen", "already handled", or it explains why the scenario cannot occur |
 | `intentional` | a reply says the behavior is deliberate: "intended", "by design", "on purpose", "expected" |
 | `did not matter` | a reply accepts it but declines to act: "won't fix", "not worth it", "nit", "doesn't matter", "out of scope", "later" |
-| `fixed` | a commit after the review's `commit_id` changed the finding's file within 3 lines of its line (`git diff <commit_id> <headRefOid> -- <file>`, after `git fetch origin pull/<n>/head`), or a later `ep-review` review on the PR no longer reports it |
+| `fixed` | a commit after the review's `commit_id` changed the finding's file within 3 lines of its line (`git diff <commit_id> <headRefOid> -- <file>`, after `git fetch origin pull/<n>/head`). A later `ep-review` review that does not repeat the finding is no evidence: `--comment` leaves already-posted findings out of later reviews |
 | `unanswered` | none of the above |
 
 A **reply** is a comment in the finding's thread (`in_reply_to_id` equal to the finding's
