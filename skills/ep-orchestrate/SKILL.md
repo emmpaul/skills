@@ -165,7 +165,13 @@ label (the round number `<k>`, or `g<n>` for the pass after group `<n>`) and its
 `finding:` lines, unchanged, then the `commits:` line of each fix block of that review.
 Overwrite it when a review round or a group pass returns and append to it after each fix
 block, so a fix question can be resumed in the same review. Step 8's first round
-overwrites the last group pass's file.
+overwrites the last group pass's file. Review round *k* > 1 reads it as its `known`
+findings before overwriting it (step 8.1); the label and `commits:` lines are not finding
+lines, and the review ignores them.
+
+`.git/ep-orchestrate/<change>.pre-existing` keeps, for the report, the `pre-existing:`
+lines of every group pass and review round: append them when the review returns, leaving
+out a line whose file and summary match one already in the file. They are never fixed.
 
 `.git/ep-orchestrate/<change>.group-findings` keeps the group passes' findings for the
 report: when a group pass ends (after its fix phase, when one runs), append its label and
@@ -358,7 +364,8 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
    Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
    `null`); when the group already has an entry (a pass re-run on resume), replace it
    instead, so each group keeps one entry. Then overwrite `<change>.findings` with label
-   `g<n>` and its `finding:` lines.
+   `g<n>` and its `finding:` lines, and append its `pre-existing:` lines to
+   `<change>.pre-existing` (see "State file"). A pass never gets `since` or `known`.
 2. **Clean** (the step 8.2 test: `critical=0 major=0` and `spec_conformance: passed`):
    run no fix phase; set `fixed: 0` and `unfixed` to the minor count; go to 4.
 3. **Not clean:** run one `fix` phase with round `g<n>`, the pass's `finding:` lines with
@@ -393,11 +400,18 @@ they never stop the run.
 When every task is done, its group passes are finished, and the dead-code phase has run,
 run up to 3 rounds over the whole branch; group passes never replace them. Round *k*:
 
-1. Run the `review` phase on the branch against `base`. Record its counts and `head`,
-   and write its `finding:` lines to `<change>.findings` (see "State file").
+1. Run the `review` phase on the branch against `base`. Round 1 reviews the whole
+   branch. Round *k* > 1 also gets `since: <head of round k-1>` (the `head` of the
+   previous `reviews` entry) and `known: .git/ep-orchestrate/<change>.findings` (the
+   previous round's findings and fix commits, still in that file), so it reviews only
+   the commits since that head and re-checks the earlier findings instead of repeating
+   them. Record its counts and `head`, write its `finding:` lines to `<change>.findings`
+   (see "State file"), and append its `pre-existing:` lines to `<change>.pre-existing`.
 2. **Clean** (`critical=0 major=0` and `spec_conformance: passed`; the review phase is
    always told the change name, so `not_applicable` counts as not clean): stop
-   the rounds; its minor findings go in the report.
+   the rounds; its minor findings go in the report. The counts are of introduced findings
+   only: `pre_existing` never makes a round unclean, and pre-existing findings are never
+   fixed; they go in the final report.
 3. **Round 3 not clean:** stop; list the remaining findings; no fourth round. Outcome
    `review_limit`.
 4. Otherwise run the `fix` phase with that round's `finding:` lines (and the task groups
@@ -418,14 +432,23 @@ run up to 3 rounds over the whole branch; group passes never replace them. Round
 
 **Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
 `--workflow` is the opt-in: run each review round's step 1 as one Workflow, a `pipeline`
-over the four dimensions (each agent gets its checklist from `briefs.md#review-fallback`,
-the change name, and the base and head shas), feeding each dimension's findings to verify
-agents that try to disprove them: at most 5 verify agents in total, each taking a batch
-of findings across dimensions, so the Workflow has at most 9 agents. It returns the confirmed findings and counts; build the
-`finding:` lines and `ep-review-summary` from them. The fix round stays one subagent. Plan,
+over the four dimension agents (each gets its checklist from `briefs.md#review-fallback`,
+the change name, the base and head shas, and for round *k* > 1 the `since` sha), whose
+deduplicated candidates, plus the known findings for round *k* > 1, go to a `parallel`
+stage of 3 voter agents. Each voter gets every candidate, tries to disprove each one, and
+sees no other voter's verdicts; above 20 candidates it takes them in batches of 20, adding
+no agents. That is at most 7 agents (4 dimensions and 3 voters). Keep a candidate when at
+least 2 of its 3 verdicts are not `refuted`, at the highest severity that 2 non-refuting
+verdicts support, as `ep-review` votes; then build the `finding:` and
+`pre-existing:` lines and the `ep-review-summary` from the result, with
+`verification: vote`. The fix round stays one subagent. Plan,
 apply, and group passes and their fixes never run as a Workflow; `--workflow` applies
 only to these rounds. With `--workflow` but no Workflow tool, say so and use
 the subagent or inline path.
+
+**Without subagents**, the review phase verifies each finding once inline, as `ep-review`
+does without subagents, and its summary records `verification: inline`; round *k* > 1
+still reviews only the commits since `since` and re-checks the `known` findings.
 
 ## 9. Size and delivery
 
@@ -468,7 +491,8 @@ all layers merged gives `stacked_merged`.
 On every stop, print: change, branch, outcome, the gate result, every commit made this
 run (`git log --format='%h %s' <base-sha>..HEAD`, once `base` exists), the dead-code
 removals and reported items, each group pass (group, counts, `fixed`, `unfixed`) with the
-lines of `<change>.group-findings`, review rounds with counts, remaining or deferred findings, the size classification, stack layers if any, what the user should
+lines of `<change>.group-findings`, review rounds with counts, remaining or deferred findings,
+the pre-existing findings in `<change>.pre-existing` (listed, not fixed), the size classification, stack layers if any, what the user should
 do next, and the resume command when the run is unfinished. Set `outcome` in the state
 file when it exists (early stops in step 1 create none). Then end with:
 

@@ -235,24 +235,29 @@ head: <sha>
   the base sha is the group's start sha, and the range is `<start>...<head>`, only that
   group's commits
 
+For an end-of-run round *k* > 1, also `since: <sha>` (the previous round's head) and
+`known: <path>` (the previous round's findings file). Then only the changes from `since`
+to the branch head are reviewed, and the known findings are re-checked as `fixed` or
+`still open`, never reported as new. A group pass never gets them.
+
 Review the range. Post nothing to GitHub.
 
 - **If the skill `ep-review` is available to you** and the base sha equals
   `git merge-base <branch> origin/<default>` (`<default>` when there is no remote; this
   is what `ep-review <branch>` diffs against), invoke
-  `ep-review <branch>` (no `--comment`) and tell it the change name, so spec conformance
-  runs against it. For a group pass this holds only when the group's start sha is that
+  `ep-review <branch>` (no `--comment`), adding `--since <sha> --known <path>` when the
+  inputs give them, and tell it the change name, so spec conformance runs against it. For a group pass this holds only when the group's start sha is that
   merge base, in practice group 1 on a branch with no earlier run commits.
 - **Otherwise** (not installed, or the base sha differs, for example a run started on a
   branch that already had commits, or any group pass after the first group) follow
-  [review](#review-fallback) with the base sha; for a group pass, diff
-  `git diff <start>...<head>`.
+  [review](#review-fallback) with the base sha, and `since` and `known` when given; for a
+  group pass, diff `git diff <start>...<head>`.
 
 **Group pass rules:**
 
 - **Nothing to review.** When the range changes no file apart from `tasks.md` ticks,
-  review nothing: print `finding: none` and a summary with zero counts and
-  `spec_conformance: passed`. The pass is clean.
+  review nothing: print `finding: none` and a summary with zero counts (`pre_existing: 0`,
+  `known: fixed=0 still_open=0`) and `spec_conformance: passed`. The pass is clean.
 - **Partial change.** Tasks still `- [ ]` in `tasks.md` belong to later groups. A
   missing or partly implemented requirement whose implementing task is one of them is
   not a finding, and neither is a missing test or untested scenario whose test an
@@ -260,20 +265,27 @@ Review the range. Post nothing to GitHub.
   in neither `verified` nor `dropped_in_verification`. A scenario left untested only for
   that reason does not fail `spec_conformance`. This applies to findings from
   `ep-review` and from the fallback alike. After `ep-review`, recompute `verified`,
-  `by_dimension`, and `spec_conformance` over the findings that remain, so the summary
-  matches the findings list. A contradiction of a scenario's THEN by the group's code,
+  `by_dimension`, and `spec_conformance` over the introduced findings that remain, so the
+  summary matches the findings list. A contradiction of a scenario's THEN by the group's code,
   out-of-spec behavior, a ticked task of this group whose behavior is missing, and a
   missing test that no unticked task covers stay findings.
 
 Then print the findings list (`finding: none` when there are none), one line per
-**verified** finding, and finally the `ep-review-summary` block as the review produced
-it (with a group pass's recomputed counts). Finding ids are distinct from task ids:
-`r<round>.<n>` in a round (for example `r1.2`), `g<n>.<m>` in a group pass (for example
-`g2.1`).
+**verified introduced** finding (known findings still open included), then one
+`pre-existing:` line per verified pre-existing finding, and finally the
+`ep-review-summary` block as the review produced it (with a group pass's recomputed
+counts). Finding ids are distinct from task ids: `r<round>.<n>` in a round (for example
+`r1.2`), `g<n>.<m>` in a group pass (for example `g2.1`). Each line carries the finding's
+class and its other locations (`instances: none` when there are none), the form
+`ep-review --known` reads, so the next round can take the findings file as `known`:
 
 ```
-finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario>
+finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario> | class: <label> | instances: <file>:<line>,<file>:<line>
+pre-existing: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario> | class: <label> | instances: <file>:<line>
 ```
+
+Pre-existing findings are listed for the report only: the fix phase never gets them, and
+they never make a review unclean.
 
 ## fix
 
