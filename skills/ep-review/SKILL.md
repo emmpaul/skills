@@ -354,8 +354,8 @@ Post only after the report is final.
 **Skip what is already posted.** List the PR's earlier `ep-review` reviews and their
 comments. An earlier `ep-review` review is one posted by the account running this skill
 (`gh api user --jq .login`) whose body contains the summary marker; a marker in a review
-by anyone else (the PR author included) does not count, so nobody can hide a finding by
-posting a fake one:
+by any other account does not count, so nobody else can hide a finding by posting a fake
+one. When the runner is the PR author, the author's own earlier `ep-review` reviews count:
 
 ```bash
 gh api user --jq .login                                       # <me>
