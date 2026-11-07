@@ -291,8 +291,18 @@ current head commit (compare `last_review.head` with `headRefOid`):
    If `ep-review` is installed, invoke it (with subagents, delegate the round to a
    subagent running that skill); otherwise perform its steps inline: four dimensions
    (correctness, spec conformance, tests, security), verify each finding, apply `--since`
-   and the known findings the same way, and produce the `ep-review-summary` block. Do not
-   post the review unless the user asked for `--comment`.
+   and the known findings the same way, and produce the `ep-review-summary` block. Inline,
+   also:
+   - tag each verified finding's origin: **pre-existing** only when its lines are not
+     among the PR's added lines and `git blame -M -C <base>..<head> -L <start>,<end> --
+     <file>` marks every one as a boundary line (`^`); otherwise, or when unsure,
+     **introduced**. Count pre-existing ones only in `pre_existing:`, never in `verified:`;
+   - compute the tier and reasons from [`references/risk.md`](references/risk.md) over the
+     whole PR's changed paths (`gh pr diff <n> --name-only`, even on a `--since` round), the
+     PR author, and the base's `REVIEW.md`, and write them as `risk:` and `risk_reasons:`;
+     the block always has a `risk:` line, with `verification: inline`.
+
+   Do not post the review unless the user asked for `--comment`.
 3. Record the round: set `last_review.head` to the reviewed head and `last_review.summary`
    to the summary block, clear `last_review.synced_after` to `null`, and overwrite
    `.git/ep-babysit/<pr>.findings` with one line per verified finding of this round
