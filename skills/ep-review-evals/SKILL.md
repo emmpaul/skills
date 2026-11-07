@@ -107,7 +107,10 @@ also confirms writing that file. Declined: run nothing, write nothing.
 Take the before-snapshot (worktree list, branch, `HEAD`, `git status --porcelain`), then
 for each case, one at a time:
 
-1. Check `head` and `base` exist (`git cat-file -e <sha>^{commit}`); for the GitHub
+1. Validate the case's fields before using any of them: `base` and `head` are 40 or 64
+   lowercase hex characters, `pr` is `null` or a positive integer, and `id` matches
+   `^[A-Za-z0-9._-]+$` and is not `.` or `..`. Any other value: `status: failed:
+   invalid case`, next case, with nothing run for it. Then check `head` and `base` exist (`git cat-file -e <sha>^{commit}`); for the GitHub
    source, `git fetch origin pull/<pr>/head` first when the head is missing. Missing:
    `status: failed: commit missing`, next case.
 2. `git worktree add --detach <scratch>/ep-review-evals/<run-id>/<case-id> <head>`.
