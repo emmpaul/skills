@@ -10,7 +10,7 @@ Every rewrite task loads the `writing-for-agents` skill (`.agents/skills/writing
 
 ## 2. Commit and side-path skills
 
-- [ ] 2.1 Rewrite `skills/ep-commit/SKILL.md`. Verify the interface checks for `ep-commit` pass, and that every rule in the "Rules that must match" list in `skills/ep-orchestrate/references/briefs.md` `## commit` is still stated in `ep-commit`.
+- [x] 2.1 Rewrite `skills/ep-commit/SKILL.md`. Verify the interface checks for `ep-commit` pass, and that every rule in the "Rules that must match" list in `skills/ep-orchestrate/references/briefs.md` `## commit` is still stated in `ep-commit`.
 - [ ] 2.2 Rewrite `skills/ep-fixup/SKILL.md`, keeping the `side-paths.md#fixup` link and the no-rewrite mode callers use. Verify the interface checks for `ep-fixup` pass.
 - [ ] 2.3 Rewrite `skills/ep-ci-debug/SKILL.md` and `references/classes.md`, keeping the five cause classes and their names. Verify the interface checks for `ep-ci-debug` pass and the class names in `classes.md` match base (`git show 6704efa:skills/ep-ci-debug/references/classes.md`).
 - [ ] 2.4 Rewrite `skills/ep-sync/SKILL.md` and `references/audit.md`. Verify the interface checks for `ep-sync` pass and every audit category at base is still present in `audit.md`.
