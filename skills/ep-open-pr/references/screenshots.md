@@ -138,7 +138,13 @@ skill before the PR is created or edited, and says so.
 3. Poll `http://localhost:<port>/` for up to **60 s**. It is ready when the port answers
    and the process is still running. When the process exits first, or the port does not
    answer in time, stop it (below), write `Not captured: app did not start` with the last
-   10 lines of `$log` in a fenced block, and go on to open the PR.
+   10 lines of `$log` in a fenced block, and go on to open the PR. Those lines leave the
+   machine in the PR body, so redact them first: replace the password in any
+   `scheme://user:password@` URL, the value of any `NAME=value` or `name: value` whose name
+   contains `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`, `KEY`, `AUTH`, or `CREDENTIAL`
+   (ignoring case), and any `Bearer` token with `***`. Drop a line that still looks like a
+   secret (a private key block, a long random string) and write `[line removed: possible
+   secret]` in its place.
 4. **Always stop it**, whether capture succeeded, failed, or was interrupted:
    `kill -TERM -- -<pid>`, wait up to 5 s, then `kill -KILL -- -<pid>` if any member is
    left (`ps -eo pid=,pgid= | awk '$2 == <pid>'`). Then check that the port is free. When it still answers,
