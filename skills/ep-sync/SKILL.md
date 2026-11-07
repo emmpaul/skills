@@ -172,7 +172,8 @@ subset ran. Leave tracked files as they were after the run.
 ## 8. Push gate
 
 - **Direct use:** after a successful sync, show the report and ask before pushing. Push
-  a merge with plain `git push`; push a rebase as in
+  a merge with plain `git push`, or `git push -u origin HEAD` when the branch has no
+  upstream; push a rebase as in
   [`references/rebase.md`](references/rebase.md#push-after-a-rebase).
 - **Caller mode:** the caller pushes. `pushed: false`.
 - On `needs_decision` or `needs_attention`, push only with the user's explicit go-ahead.

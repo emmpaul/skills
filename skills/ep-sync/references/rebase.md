@@ -42,7 +42,8 @@ offered.
 
 ## Push after a rebase
 
-- Unpushed branch with no upstream: `git push -u origin HEAD`, after the user confirms.
+- Unpushed branch, after the user confirms: plain `git push` when it has an upstream,
+  `git push -u origin HEAD` when it has none.
 - Confirmed rebase of a pushed branch:
   `git push --force-with-lease=<branch>:<remote-tip-sha>`, with the literal sha recorded
   above. Never a bare `--force-with-lease` (its lease follows the last fetch), and never
