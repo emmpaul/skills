@@ -1,8 +1,8 @@
 # Run record reference
 
 Where the run record lives, what it holds, when a check is skipped, and how earlier
-findings carry over. Read in step 1 (load), step 3 (toolchain versions, skips, and re-check
-items), and step 9 (write).
+findings carry over. Read in step 1 (load), step 3 (version items, skips, and re-check
+items), step 5 (toolchain comparison), and step 9 (write).
 
 ## Location
 
@@ -93,15 +93,29 @@ An unusable record counts as absent: nothing is skipped and there are no earlier
 to re-check. For a corrupt or foreign file, the report and output also say how to fix it:
 move or delete `<record path>` and run again.
 
-## Toolchain versions (step 3)
+## Toolchain versions (steps 3 and 5)
 
-The toolchains are known only once the plan is built, so record their versions in step 3,
-after the plan items exist and before any item is marked skipped: `node --version`,
-`python3 --version`, `go version`, `cargo --version`, ... for **every** toolchain a plan
-item uses (the interpreter or compiler behind each command, and the package manager, such
-as `npm --version` or `uv --version`). They are a global invalidator (below): a toolchain
-the plan uses whose version differs from the record's `toolchain`, or that the record's
-`toolchain` lacks, means no item is skipped. Store this run's map in the record.
+A version check is a project command too: `./gradlew --version` runs the repository's
+wrapper script and may download Gradle, and `pnpm --version` under corepack may download
+pnpm. So no version command runs before confirmation, and none runs when the plan is
+declined or not confirmed.
+
+- **Step 3:** once the items exist, add one **version item** per toolchain a plan item
+  uses (the interpreter or compiler behind each command, the package manager, and any
+  wrapper): area `setup`, command `node --version`, `python3 --version`, `go version`,
+  `cargo --version`, `pnpm --version`, `./gradlew --version`, ..., source: the plan items
+  that use it. Version items come first in the plan. An item that passes every other skip
+  condition is marked `skip if toolchain unchanged: unchanged since <sha>` (the toolchain
+  condition cannot be checked yet). Version files such as `.nvmrc`, `.tool-versions`, the
+  `packageManager` field, or `gradle/wrapper/gradle-wrapper.properties` are read, not
+  run, and are already in every fingerprint.
+- **Step 5:** the version items run first. The toolchain versions are a global
+  invalidator (below): when any version differs from the record's `toolchain`, the
+  record's `toolchain` lacks it, or a version item was dropped, failed, or did not run,
+  every `skip if toolchain unchanged` is cleared and those items run as confirmed. Only
+  when every version matches do they stay skipped.
+- Store this run's map (the version items' output) in the record; with no confirmed
+  plan, nothing ran and the record stays as it was.
 
 ## Fingerprint
 
@@ -143,17 +157,20 @@ folder to one entry.
 
 ## Skipping unchanged checks (step 3)
 
-Mark a plan item `skip: unchanged since <sha>` (the check's recorded `sha`) only when
-**every** condition holds; any doubt means it runs:
+Skip a plan item (the check's recorded `sha` as `<sha>`) only when **every** condition
+holds; any doubt means it runs. Step 3 checks conditions 1, 2, 4, and the files of 3, and
+marks the item `skip if toolchain unchanged: unchanged since <sha>`; step 5 checks the
+toolchain part of 3 ("Toolchain versions"):
 
 1. The record has a check with the same `key` whose `result` is `passed`. A `failed` or
    `flaky` check always runs again.
 2. Its fingerprint, recomputed now, equals the recorded one.
 3. No **global invalidator** changed since the record: the lockfiles and manifests in the
    target and, for a path target, in each folder above it up to the repository root (the
-   Lockfiles and Manifests rows of `references/plan.md`), the toolchain versions recorded
-   in step 3 ("Toolchain versions"), and the CI or task-runner file the item came from (a
-   changed `Makefile` test recipe changes the item). The files among these are in every check's `deps`
+   Lockfiles and Manifests rows of `references/plan.md`), the toolchain versions from
+   the version items, checked in step 5 ("Toolchain versions"), and the CI or
+   task-runner file the item came from (a changed `Makefile` test recipe changes the
+   item). The files among these are in every check's `deps`
    (Fingerprint), so a change to any of them, inside the target or above it, changes the
    fingerprint of every check; the toolchain versions are compared with the record's
    `toolchain`.
@@ -166,6 +183,8 @@ run.
 ## Checks never skipped
 
 - A check that failed or was flaky on its last run.
+- A version item ("Toolchain versions"): it decides the other skips. It is not stored in
+  `checks`.
 - A `--url` probe: the remote app changes without the repository changing.
 - A re-check item for an earlier finding (below).
 - The item `run proposed regression tests in a scratch copy` (`references/plan.md`): its
@@ -175,8 +194,10 @@ run.
   start's install and build. It is shown as run, never as skipped. Walk `prereqs` down
   from every item that runs and clear the skip on each one reached.
 
-In step 5, a skipped item does not run; its result is copied from the record. The plan
-table shows `skipped, unchanged since <short sha>`.
+In step 5, a skipped item whose toolchain matched does not run; its result is copied
+from the record. The shown plan marks it `skip if toolchain unchanged: unchanged since
+<sha>`; the report table shows `skipped, unchanged since <short sha>`, or its run result
+when step 5 cleared the skip.
 
 ## Earlier findings (steps 3 and 8)
 

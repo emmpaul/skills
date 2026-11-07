@@ -53,8 +53,11 @@ id:        P<n>, numbered in plan order
 area:      setup | build | lint | types | tests | runtime | docs
 command:   the exact command, from the directory it runs in; or the probe (input, request, expected)
 source:    file:line it came from (README.md:42, package.json:9, .github/workflows/ci.yml:31)
-decision:  run | not covered: <reason>
+decision:  run | skip if toolchain unchanged: unchanged since <sha> | not covered: <reason>
 ```
+
+Version items (`node --version`, `./gradlew --version`, ...) open the plan, one per
+toolchain the other items use (`references/record.md`, "Toolchain versions").
 
 Order the plan by phase: setup, build, lint, types, tests, run (start the app), probes,
 docs. Prefer the command as the docs or CI write it; when the docs and CI disagree, plan
@@ -85,14 +88,18 @@ plan.
 ## Showing the plan
 
 Print the plan as a numbered list: id, area, exact command, source, and decision. Put the
-`not covered` items after the runnable ones. Flag an install without a lockfile as
+`not covered` items after the runnable ones. Say that an item marked
+`skip if toolchain unchanged` runs when a version item shows a changed toolchain, so
+confirming covers it. Flag an install without a lockfile as
 "may change dependency resolution". Then ask once whether to run it; the user may drop
 items by id. `--yes` is confirmation of the plan as built. When the agent cannot ask and
 `--yes` was not given, run no project command: every runnable item becomes
 `not covered: not confirmed`, and steps 2, 3, and 7 run by reading only.
 
 Reading files, `git` read commands, `command -v`, and `--url` `GET`/`HEAD` requests are
-not project code and need no confirmation.
+not project code and need no confirmation. Running a toolchain, package manager, or
+wrapper is project code, a `--version` check included: it is a version item and runs only
+once confirmed.
 
 ## Dependency installs
 

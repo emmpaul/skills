@@ -60,7 +60,7 @@ All in this skill's folder (the directory containing this SKILL.md):
 |---|---|---|
 | `references/plan.md` | discovery sources, plan item shape, showing the plan, lockfile installs, never-run list, running and server rules, probes per project type, edge inputs | step 2, always |
 | `references/audit.md` | finding shape, areas, severity, verification outcomes, regression test proposals, secrets, coverage, wording, report template | step 8, always |
-| `references/record.md` | run record path and format, fingerprints, skip and invalidation rules, checks never skipped, earlier findings, unusable records, atomic write | steps 1, 3, and 9, always |
+| `references/record.md` | run record path and format, fingerprints, skip and invalidation rules, checks never skipped, earlier findings, unusable records, atomic write | steps 1, 3, 5, and 9, always |
 
 ## 1. Context
 
@@ -121,10 +121,12 @@ noted as absent.
 ## 3. Plan
 
 Build plan items in the shape and order from `plan.md`: setup, build, lint, types,
-tests, run, probes, docs. Mark each `run`, `skip: unchanged since <sha>`, or
-`not covered: <reason>`. Once the items exist, and before marking any skip, record the
-version of every toolchain the plan uses (`record.md`, "Toolchain versions"). Skips
-follow "Skipping unchanged checks" and "Checks never skipped" in `record.md`; not covered
+tests, run, probes, docs. Mark each `run`, `skip if toolchain unchanged: unchanged since
+<sha>`, or `not covered: <reason>`. Run no toolchain, package manager, or wrapper command
+here, not even a version check: they can run repository code and download tools. Instead,
+add one **version item** per toolchain the plan uses, first in the plan (`record.md`,
+"Toolchain versions"); it runs in step 5 only once confirmed. Skips follow "Skipping
+unchanged checks" and "Checks never skipped" in `record.md`; not covered
 is for never-run commands, missing tools (`command -v`), and services the audit cannot run
 locally. Add one re-check item per open
 finding in a usable record (`record.md`, "Earlier findings"). Probes come from
@@ -142,7 +144,8 @@ Print the plan as `plan.md` describes, then ask once whether to run it; the user
 items by id. Then:
 
 - **Confirmed:** run exactly the confirmed items, no others. Dropped items become
-  `not covered: dropped by the user`.
+  `not covered: dropped by the user`. Confirming an item marked
+  `skip if toolchain unchanged` confirms running it when step 5 clears its skip.
 - **`--yes`:** print the plan and continue without asking.
 - **Declined, or you cannot ask and `--yes` was not given:** run no project command.
   Every runnable item becomes `not covered: not confirmed`. Skip step 5; in step 6 send
@@ -152,7 +155,11 @@ items by id. Then:
 
 ## 5. Execute
 
-Skipped items do not run; copy their result from the record. Run the other confirmed
+Run the version items first and compare their output with the record's `toolchain`
+(`record.md`, "Toolchain versions"): on any difference, a missing version, or a version
+item that was dropped, failed, or did not run, clear every `skip if toolchain unchanged`
+and run those items. Skipped items do not run; copy their result from the record. Run
+the other confirmed
 items one at a time, in plan order, from this context, following
 "Running" in `plan.md`: 10-minute timeout per command, exit code and decisive lines
 recorded, items depending on a failed setup or build become `not covered: blocked by
