@@ -222,7 +222,8 @@ confirmed: <true | false>
 
 `dirty` is the tree state from step 1. `findings` counts flaky findings under their
 severity and includes still-failing ones. `plan.run` counts items that ran (`passed` +
-`failed`); `skipped` counts items skipped as unchanged; `not_covered` counts the rest.
+`failed`); `skipped` counts items skipped as unchanged; `not_covered` counts the rest
+(skipped items are listed under "Not covered" too, but counted only in `skipped`).
 `previous` counts the open findings from the record (all zero without one).
 `regression_tests` counts findings with a proposed test and with a no-test reason.
 `record` is the record written this run, or `none` when none was written (plan declined,

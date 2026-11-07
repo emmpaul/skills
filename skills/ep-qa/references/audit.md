@@ -158,7 +158,8 @@ a `.env` file; example env files are quoted by variable name only.
 ## Coverage
 
 "Not covered" lists every plan item that did not run or whose result could not be
-judged, each with its reason: never run (what it does), tool not installed, blocked by
+judged, each with its reason: skipped, unchanged since <short sha> (result carried over
+from the run record, not exercised this run), never run (what it does), tool not installed, blocked by
 P<n>, not confirmed, dropped by the user, environment (the cause), service not available
 locally, needs a browser, needs writes to a `--url` app. It also lists project kinds with
 no command at all ("no lint command defined") and code suspicions as `worth testing`.
@@ -230,6 +231,7 @@ build, lint, and tests; started the server and probed 6 routes.">
 | P7 | setup | `npm run deploy` | package.json:14 | not covered |
 
 ## Not covered
+- P4 `npm test`: skipped, unchanged since 1a2b3c4 (result carried over from the run record)
 - P7 `npm run deploy`: never run (deploys)
 - Runtime probes: need PostgreSQL at DATABASE_URL, not available locally
 - worth testing: unchecked index in src/parse.ts:88 (no probe reached it)
