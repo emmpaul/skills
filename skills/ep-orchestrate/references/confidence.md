@@ -1,12 +1,13 @@
 # Plan confidence gate
 
 The gate decides whether a change's plan is safe to implement without asking. It has two
-independent parts: an evidence **score** and a **hard-to-undo checklist**. Both are
-computed only from the artifacts and the repository. Never add, remove, or adjust points
-from your own sense of how good the plan is: the same artifacts and repository must give
-the same result.
+independent parts: an evidence **score** and a **hard-to-undo checklist**. Both come only
+from the artifacts and the repository, so the same artifacts and repository always give
+the same result; your own sense of how good the plan is adds or removes no points.
 
-The gate is read-only: it runs commands and reads files, and changes nothing.
+The gate is read-only: it runs commands and reads files, and changes nothing. Scoring is
+done when every score item is met or has its unmet line and every checklist item has
+been checked, with its counts recorded.
 
 ## Score
 
@@ -34,10 +35,9 @@ For every unmet item, record one line naming what failed (for example
 
 ## Hard-to-undo checklist
 
-Checked separately from the score. Any element found pauses the run **whatever the score
+Checked separately from the score: read the proposal, design, specs, and tasks, and check
+the repository for each item below. Any element found pauses the run **whatever the score
 is**, even 100, and even with `--yes`. Name each element that triggered it.
-
-Read the proposal, design, specs, and tasks, and check the repository for each item below.
 
 ### One-way doors (condensed from `ep-open-pr`, "Classifying the door")
 

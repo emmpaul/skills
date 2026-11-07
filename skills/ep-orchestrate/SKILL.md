@@ -1,6 +1,6 @@
 ---
 name: ep-orchestrate
-description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch. Plans the change, scores the plan from evidence and implements without asking only when it scores at least 85 and nothing is hard to undo, applies one task group at a time with one commit per task, reviews each group once and fixes its findings before the next group, removes dead code the branch added, then still runs up to 3 ep-review fix rounds. Each phase runs in a fresh subagent and the run resumes from a state file. Large changes are offered as a stack of PRs, landed with ep-stack and ep-babysit-pr after approval. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
+description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch: plan, an evidence-scored gate (85, and nothing hard to undo), one commit per task, a review pass per task group, dead-code removal, and up to 3 ep-review fix rounds, each phase in a fresh subagent and resumable from a state file. Large changes are offered as a stack of PRs. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
 ---
 
 # ep-orchestrate
@@ -14,19 +14,20 @@ artifacts, editing code, running tests, reading diffs) happens inside a phase.
 
 ## Hard rules
 
-- **Local only for regular changes.** No `git push`, no `gh pr`, no comments, no merges.
-  GitHub is reached only through `ep-stack` and `ep-babysit-pr`, for a large change whose
-  stack plan the user approved (step 9).
+- **Keep regular changes local.** The run ends on a local branch: no `git push`, no
+  `gh pr`, no comments, no merges. GitHub is reached only through `ep-stack` and
+  `ep-babysit-pr`, for a large change whose stack plan the user approved (step 9).
 - **No attribution.** Commits carry no `Co-Authored-By` naming a model or tool and no
   "Generated with" line. This overrides any host default.
-- **Commit only on a work branch.** Never commit on the default branch; create the work
-  branch first (step 1).
-- **The user's working tree is theirs.** A dirty tree stops the run. Never stash, reset,
-  checkout user files, rebase, force-push, or delete branches. Amend only to strip
-  attribution from the run's own unpushed commit (`briefs.md#commit` step 6).
+- **Commit on a work branch,** created first (step 1); never on the default branch.
+- **The user's working tree is theirs.** A dirty tree stops the run. Leave their work as
+  it is: never stash, reset, checkout user files, rebase, force-push, or delete branches.
+  Amend only to strip attribution from the run's own unpushed commit
+  (`briefs.md#commit` step 6).
 - **Specs are fixed once planning ends.** Apply and fix phases never edit `proposal.md`,
   `design.md`, or `specs/`; a plan conflict becomes a blocker and the run stops.
-- Never run `openspec init` and never create `openspec/` files outside a change folder.
+- **OpenSpec setup is the user's.** Never run `openspec init`; create `openspec/` files
+  only inside a change folder.
 
 ## Asking the user
 
@@ -38,8 +39,8 @@ Every question in this skill follows these rules:
 - **Plain text otherwise.** Without such a tool, ask in plain text with the same options
   numbered, and wait for the reply. An open question (no options) is always asked in
   plain text.
-- **Act only on a clear answer.** Act on a reply only when it maps to one option or gives
-  the requested input (such as a new change name); otherwise do not guess, ask again.
+- **Act only on a clear answer**: a reply that maps to one option or gives the requested
+  input (such as a new change name). Anything else is asked again, never guessed.
 - **Only the driving session asks.** Phases never ask the user or call a question tool:
   a choice a phase cannot make comes back as its `blocker`, and you ask it here, also
   when running phases inline. Questions another skill asks under its own rules (such as
@@ -56,8 +57,7 @@ options. Any other `blocker:` value is a stop, never a question. At this questio
    outcome `blocked`, and report the question and the earlier answers.
 2. **Record first.** Write `question` to the state file (phase, id, text, options, and
    the phase's `files:` paths; `[]` for plan, whose work stays in the change folder)
-   before asking, so a session that ends unanswered resumes
-   at the same question.
+   before asking, so a session that ends unanswered resumes at the same question.
 3. **Ask** (as above): the phase's options plus `Stop`, at most 4 in all; with no
    options, an open question in plain text that says replying `Stop` ends the run.
 4. **Answer.** Append `{ "q": <question>, "a": <answer> }` to `answers.<id>` and set
@@ -81,9 +81,15 @@ ep-orchestrate ... --yes           # skip the score threshold (never the hard-to
 ep-orchestrate ... --workflow      # Claude Code: run review rounds as a Workflow
 ```
 
-The bundled files live in this skill's folder (the directory containing this SKILL.md):
-`references/confidence.md` (gate), `references/briefs.md` (one brief per phase, summary
-formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe).
+Paths under `references/` and `scripts/` are relative to this skill's folder (the
+directory containing this SKILL.md):
+
+- `references/confidence.md`: the gate (steps 5 and 9, and the plan fingerprint on resume).
+- `references/briefs.md`: one brief per phase, summary formats, fallbacks for `ep-commit`
+  and `ep-review`.
+- `references/resume.md`: read when a state file exists (step 1.4).
+- `references/workflow.md`: read only with `--workflow` (step 8).
+- `scripts/context.sh`: the probe.
 
 ## 1. Resolve
 
@@ -96,26 +102,28 @@ formats, fallbacks for `ep-commit` and `ep-review`), `scripts/context.sh` (probe
    `openspec init` themselves. Create nothing. Outcome `needs_openspec`.
 3. **Input.** The argument names an active change (`openspec list --json`): use it.
    Otherwise it is a description: derive a kebab-case name of 2-5 words with a verb
-   prefix such as `add-`, `fix-`, `update-`, `rename-`, or `remove-`. If that name matches an existing
-   change, ask (see "Asking the user") with the options `Continue <change>` and
-   `Use a different name`; take the new name from the reply or a follow-up plain
-   question.
-4. **State.** If `.git/ep-orchestrate/<change>.json` exists, this is a resume: go to
-   "Resume" below.
+   prefix such as `add-`, `fix-`, `update-`, `rename-`, or `remove-`. If that name
+   matches an existing change, ask (see "Asking the user") with the options
+   `Continue <change>` and `Use a different name`; take the new name from the reply or a
+   follow-up plain question.
+4. **State.** If `.git/ep-orchestrate/<change>.json` exists, this is a resume: read
+   `references/resume.md` and follow it.
 5. **Clean tree.** Any staged, unstaged, or untracked path outside
    `openspec/changes/<change>/` stops the run: list the paths. Outcome `dirty_tree`.
 6. **Branch.** On the default branch (or detached HEAD), create and switch to
    `<type>/<change>` (`git switch -c`), where `<type>` comes from the change name's
-   prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If that branch exists,
-   create nothing and ask (see "Asking the user") with the options `Continue on <branch>`
-   (`git switch <branch>`, no new branch) and `Stop` (the run ends; no state file). On any
-   other branch, stay on it.
+   prefix: `fix-` → `fix`, `docs-` → `docs`, `refactor-` → `refactor`, else `feat`. If
+   that branch exists, create nothing and ask (see "Asking the user") with the options
+   `Continue on <branch>` (`git switch <branch>`, no new branch) and `Stop` (the run
+   ends; no state file). On any other branch, stay on it.
 7. **Base.** `base` = `<ref>@<sha>`, where `<ref>` is the default branch and `<sha>` is
    `git rev-parse HEAD` now, before the run's first commit. On a new branch that is the
    default branch's tip; on an existing branch it keeps the user's earlier commits out
    of the run (dead code, review, and size cover only this run's commits; say so when
    the branch already had commits). Pass `<ref>` where a skill wants a branch name and
    `<sha>` where a brief wants the base sha. Create the state file (step 2).
+
+Resolve is done when the branch is checked out, `base` is set, and the state file exists.
 
 ## 2. State file
 
@@ -160,88 +168,24 @@ paths holding the blocked work (the phase's `files:`, `[]` for `none`). `answers
 per id, every question asked and its answer, in order; the length of an id's list is its
 question count. Both hold short user-facing text, not diffs, logs, or finding text.
 
-Finding text lives in `.git/ep-orchestrate/<change>.findings` instead: the latest review's
-label (the round number `<k>`, or `g<n>` for the pass after group `<n>`) and its
-`finding:` lines, unchanged, then the `commits:` line of each fix block of that review.
-Overwrite it when a review round or a group pass returns and append to it after each fix
-block, so a fix question can be resumed in the same review. Step 8's first round
-overwrites the last group pass's file. Review round *k* > 1 reads it as its `known`
-findings before overwriting it (step 8.1); the label and `commits:` lines are not finding
-lines, and the review ignores them.
+Three side files sit next to it:
 
-`.git/ep-orchestrate/<change>.pre-existing` keeps, for the report, the `pre-existing:`
-lines of every group pass and review round: append them when the review returns, leaving
-out a line whose file and summary match one already in the file. They are never fixed.
-
-`.git/ep-orchestrate/<change>.group-findings` keeps the group passes' findings for the
-report: when a group pass ends (after its fix phase, when one runs), append its label and
-the `finding:` lines that have no fix commit, which are its minor and deferred findings.
-
-### Resume
-
-Run again on a change with a state file, `tasks.md` and git win over the file:
-
-0. HEAD must be on the recorded `branch`. If it is not, stop and ask the user to switch
-   back to it (`git switch <branch>`); do not rebuild state from another branch.
-1. A task is **done** when its `tasks.md` line is `- [x]` **and** a commit in
-   `<base-sha>..HEAD` has a `Task:` line naming `<id>` (a folded tick names two ids)
-   (`git log --format='%H%n%B' <base-sha>..HEAD`).
-2. If the file disagrees (a recorded sha is not on the branch, a task it marks done is
-   unticked, or ticked tasks lack a commit), say exactly what differed and rebuild
-   `tasks`, `groups`, and `phase` from `tasks.md` and git.
-3. The clean-tree check (step 1.5) still applies; the only acceptable leftovers are
-   inside the change folder. When `question` is set, uncommitted changes in exactly the
-   paths in `question.files` are accepted too; any other path stops the run with outcome
-   `dirty_tree`, listing those paths.
-4. **Open question first.** When `question` is set, first check whether the user has
-   resolved it since: for apply, its task is done (step 1); for fix, a commit in
-   `<head>..HEAD` that is not in the `commits:` lines of `<change>.findings` has a
-   `Finding:` line naming the finding's `<dimension> <file>:<line>`, where `<head>` is
-   the `head` of the review that file holds (the `reviews` entry of round `<k>`, or the
-   `group_reviews` entry of group `<n>` for `g<n>`), so earlier reviews' fix commits
-   never match. If so, set `question`
-   to `null` without asking (for fix, append `commits: <finding id>=<sha>` to
-   `<change>.findings`) and continue at the recorded phase. Otherwise ask it again at the
-   phase question point ("Phase questions") before running any phase, then continue at the recorded
-   phase with the answer. When none of `question.files` still has changes (the user
-   discarded them), leave `partial:` out: the task or finding starts fresh, and the
-   answer still applies. For a fix question, re-run the fix phase of the round in
-   `<change>.findings` (step 8.4), taking the findings and their fix commits from that
-   file; never run a new review for it. When that file is missing, set `question` to `null`
-   and stop with outcome `blocked`: say the round's findings are lost and list
-   `question.files`, which the user commits or discards before running again. An open
-   fix question while `phase` is `apply` is a group fix question: the same rules apply,
-   with the pass's findings from `<change>.findings` labelled `g<n>`, re-run as step 6's
-   group pass step 3; never a new pass.
-5. **Group passes.** Rebuild each group's `start` from git: the parent of the earliest
-   commit in `<base-sha>..HEAD` whose `Task:` line names a task of the group. While
-   `phase` is `apply`:
-   - A group with every task done and no `group_reviews` entry gets its pass (step 6)
-     before the next group starts, only when no later group has a commit with a `Task:`
-     line. Earlier groups are never reviewed after the fact, which also covers state
-     files from before group passes.
-   - An entry with `fixed: null` continues at step 6's group pass step 2, with the
-     findings and fix commits from `<change>.findings` when its label is `g<n>`; its
-     step 3 then fixes only findings with no fix commit yet. When
-     that file is missing or has another label, run the pass again: it is read-only,
-     and its step 1 replaces that entry instead of appending one.
-   - A group whose entry has `fixed` set and no `g<n>` block in
-     `<change>.group-findings` continues at step 6's group pass step 4 when no later
-     group has a commit with a `Task:` line, whatever its status (a step-2 rebuild
-     cannot tell `reviewing` from `done`), with the findings and fix commits from
-     `<change>.findings` when its label is `g<n>`. When that file is missing or has
-     another label, step 4 records the label `g<n>` with the note `findings lost`
-     instead of its `finding:` lines.
-
-   When step 2 rebuilds `phase` with every task done and no `deadcode` recorded, the
-   rebuilt phase stays `apply` while the last group still gets its pass, or finishes it,
-   under the rules above. Once `phase` is past `apply`, no group pass runs.
-6. Continue at the first unfinished phase: skip planning when the artifacts exist, keep
-   a gate decision of `auto` or `approved` only while the plan is unchanged since it was
-   scored (its "Plan fingerprint" in `references/confidence.md` equals `gate.artifacts`;
-   ticks do not change it; otherwise re-run the gate), re-ask a `paused` one, continue apply at
-   the first task that is not done, and run the dead-code check unless `deadcode` is
-   recorded. Stack runs continue at the first unmerged layer.
+- `.git/ep-orchestrate/<change>.findings` holds finding text: the latest review's label
+  (the round number `<k>`, or `g<n>` for the pass after group `<n>`) and its `finding:`
+  lines, unchanged, then the `commits:` line of each fix block of that review. Overwrite
+  it when a review round or a group pass returns and append to it after each fix block,
+  so a fix question can be resumed in the same review. Step 8's first round overwrites
+  the last group pass's file. Review round *k* > 1 reads it as its `known` findings
+  before overwriting it (step 8.1); the label and `commits:` lines are not finding
+  lines, and the review ignores them.
+- `.git/ep-orchestrate/<change>.pre-existing` keeps, for the report, the `pre-existing:`
+  lines of every group pass and review round: append them when the review returns,
+  leaving out a line whose file and summary match one already in the file. They are
+  never fixed.
+- `.git/ep-orchestrate/<change>.group-findings` keeps the group passes' findings for the
+  report: when a group pass ends (after its fix phase, when one runs), append its label
+  and the `finding:` lines that have no fix commit, which are its minor and deferred
+  findings.
 
 ## 3. How phases run
 
@@ -261,20 +205,21 @@ Each phase follows its section of `references/briefs.md` and ends with a summary
 
 **With subagents:** give each subagent the path of `briefs.md`, the name of its section,
 and the inputs that section lists: names, shas, and paths, never pasted artifact text.
-Read back only its summary block (for review, also its `finding:` lines). Do not read
-diffs, logs, or artifact bodies yourself; short lookups (status, counts, names, shas,
+Read back only its summary block (for review, also its `finding:` lines). Leave diffs,
+logs, and artifact bodies to the phases; short lookups (status, counts, names, shas,
 the `tasks.md` headings and task ids) are fine.
 
 **Without subagents:** run the same sections yourself, in the same order, with the same
 gates, state file, and summary blocks; reading artifacts and diffs inside a phase is then
 yours to do. After every phase (plan, gate, each apply group, each group pass and its
-fix, dead code, each review and fix round, each stack layer), print `Resume with: ep-orchestrate <change>` and
-suggest clearing or compacting context before continuing. Questions still come only at
-this file's question points (see "Asking the user"), never mid-phase: a phase's open
-choice ends it with a `blocker`, as with subagents.
+fix, dead code, each review and fix round, each stack layer), print
+`Resume with: ep-orchestrate <change>` and suggest clearing or compacting context before
+continuing. Questions still come only at this file's question points (see "Asking the
+user"), never mid-phase: a phase's open choice ends it with a `blocker`, as with
+subagents.
 
 If a summary block is missing or malformed, re-derive its facts from git and `tasks.md`
-(commits and `Task:` lines since base, ticks, `git rev-parse HEAD`). Do not ask the
+(commits and `Task:` lines since base, ticks, `git rev-parse HEAD`) instead of asking the
 phase to resend.
 
 ## 4. Plan
@@ -285,9 +230,11 @@ phase to resend.
   `blocked`. Record `plan_commit`.
 - **Existing change:** check `openspec status --change <change> --json` shows every
   `applyRequires` artifact done; otherwise run the `plan` phase with `mode: complete` to
-  write the missing ones only. Never regenerate existing artifacts. Uncommitted files in the change folder
-  are committed on their own as `docs(<change>): propose <change>` (briefs `#commit`
-  rules) before any code changes.
+  write the missing ones only, keeping existing artifacts as they are. Uncommitted files
+  in the change folder are committed on their own as `docs(<change>): propose <change>`
+  (briefs `#commit` rules) before any code changes.
+
+Plan is done when every `applyRequires` artifact is done and committed.
 
 ## 5. Gate
 
@@ -323,10 +270,10 @@ Make no code change before the answer.
 
 ## 6. Apply
 
-Groups are the `## ` headings of `tasks.md` holding tracked tasks, in file order. For each
-group with tasks not done, record its `start` (`git rev-parse HEAD`) and set it
-`in_progress` before its first apply phase, then start one `apply` phase (one fresh
-subagent per group). Never run groups in parallel: they commit in order.
+Groups are the `## ` headings of `tasks.md` holding tracked tasks, in file order. Run
+them one at a time, in order, since they commit in order. For each group with tasks not
+done, record its `start` (`git rev-parse HEAD`) and set it `in_progress` before its first
+apply phase, then start one `apply` phase (one fresh subagent per group).
 
 After each group, read the `ep-orchestrate-apply` block and record each `commits` sha
 under `tasks`, then check: every done task has a commit whose `Task:` line names it, and
@@ -348,7 +295,8 @@ the group finished before the next one starts. Then:
   uncommitted; record the blocker and report it, and tell the user that the next run
   needs that work finished and committed (with `Task: <id>` in the commit body), or
   discarded, by them (the clean-tree check stops otherwise; after `Stop` it accepts the
-  recorded paths and asks the question again, see "Resume"). Outcome `blocked`.
+  recorded paths and asks the question again, see `references/resume.md`). Outcome
+  `blocked`.
 
 A group that stops with tasks not done gets no pass until it finishes, including after a
 re-run with an answer.
@@ -357,11 +305,12 @@ re-run with an answer.
 
 Each group gets exactly one review pass, once every task of it is done (after any apply
 re-run) and before the next group starts; for the last group, before step 7. A group is
-never reviewed twice: the next group's pass and step 8 cover its fix commits.
+reviewed once: the next group's pass and step 8 cover its fix commits.
 
 1. **Review.** Run the `review` phase with `group: <n>`, the group's `start` as the base
    sha, HEAD as its head, and `origin base: <base-sha>` (the run's `base` sha), so a
-   defect an earlier group of this run added is never classed pre-existing. It never runs as a Workflow, with or without `--workflow`.
+   defect an earlier group of this run added is never classed pre-existing. It runs on
+   the subagent or inline path, never as a Workflow, with or without `--workflow`.
    Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
    `null`); when the group already has an entry (a pass re-run on resume), replace it
    instead, so each group keeps one entry. Then overwrite `<change>.findings` with label
@@ -373,7 +322,8 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
    no fix commit yet (all of them on a fresh pass; on resume, those not named in the
    `commits:` lines of `<change>.findings`), and `large_predicted` and `groups:` as in
    step 8. When every finding already has a fix commit, run no fix phase and go to
-   `blocker: none` below. Append its `commits:` line to `<change>.findings`. Then, by its `blocker`, as in step 8.4:
+   `blocker: none` below. Append its `commits:` line to `<change>.findings`. Then, by its
+   `blocker`, as in step 8.4:
    - **Question blocker** (`blocker: needs input: g<n>.<m>: ...`): ask it at the phase
      question point and, on an answer other than `Stop`, run the fix phase again for the
      pass's findings with no fix commit yet, with `answers:` and `partial:`. The re-run
@@ -386,6 +336,8 @@ never reviewed twice: the next group's pass and step 8 cover its fix commits.
    to `<change>.group-findings`; when the file already holds a `g<n>` block (a finish
    re-run on resume), replace that block instead, so each group appears once. Set the
    group `done`, write the state file, and start the next group.
+
+Apply is done when every task is done and every group is `done`.
 
 ## 7. Dead code
 
@@ -423,35 +375,19 @@ run up to 3 rounds over the whole branch; group passes never replace them. Round
      phase question point ("Phase questions"), with the block's `files:` as the blocked
      paths. On an answer other than `Stop`, run the fix phase of the same round again,
      only for the round's findings with no fix commit yet (from the `commits:` of the
-     earlier fix blocks, kept in `<change>.findings`), with `answers:` and `partial: <finding id>: <files>`. With
-     subagents that is a fresh subagent; without, the fix phase runs inline again. The
-     re-run is not a new review round; repeat this step on its block.
+     earlier fix blocks, kept in `<change>.findings`), with `answers:` and
+     `partial: <finding id>: <files>`. With subagents that is a fresh subagent; without,
+     the fix phase runs inline again. The re-run is not a new review round; repeat this
+     step on its block.
    - **`Stop` at that question**, or any other blocker (such as `spec:` for a finding
      that needs a spec change, which is never asked): stop the run with outcome
      `blocked`, reporting the blocker and any uncommitted paths.
    - **`blocker: none`:** start round *k+1* on the new head.
 
-**Workflow path (`--workflow`).** In Claude Code with a Workflow tool, the user's
-`--workflow` is the opt-in: run each review round's step 1 as one Workflow that follows
-`briefs.md#review-fallback` with the round's base, `since`, and `known`, except that steps
-4 and 7 run as agents. Before the agents, do its steps 1 to 3 (`REVIEW.md` from the
-default branch, the diff with `## Skip` paths removed, `scope`, spec input). Then a
-`pipeline` over the four dimension agents (each gets its checklist from step 4, the
-`REVIEW.md` guidance and skipped paths, the change name, the base and head shas, and for
-round *k* > 1 the `since` sha) yields candidates; deduplicate them and drop new ones that
-duplicate a known location (step 6). Those candidates, plus the known locations for round
-*k* > 1, go to a `parallel` stage of 3 voter agents. Each voter gets every candidate, tries to disprove each one, and
-sees no other voter's verdicts; above 20 candidates it takes them in batches of 20, adding
-no agents. That is at most 7 agents (4 dimensions and 3 voters). Keep a candidate when at
-least 2 of its 3 verdicts are not `refuted`, at the highest severity that 2 non-refuting
-verdicts support, as `ep-review` votes. A known location is `fixed` when 2 verdicts say
-its defect no longer occurs. Then set origin, apply the minor cap, and compute `risk`,
-`risk_reasons`, `scope`, and the `known` counts as in steps 7 to 10, and build the
-`finding:` and `pre-existing:` lines and the `ep-review-summary` from the result, with
-`verification: vote`. The fix round stays one subagent. Plan,
-apply, and group passes and their fixes never run as a Workflow; `--workflow` applies
-only to these rounds. With `--workflow` but no Workflow tool, say so and use
-the subagent or inline path.
+**With `--workflow`** in Claude Code with a Workflow tool, run each round's step 1 as
+`references/workflow.md` says; with `--workflow` but no Workflow tool, say so and use the
+subagent or inline path. The flag applies only to these rounds: plan, apply, and group
+passes and their fixes keep the subagent or inline path.
 
 **Without subagents**, the review phase verifies each finding once inline, as `ep-review`
 does without subagents, and its summary records `verification: inline`; round *k* > 1
@@ -464,7 +400,7 @@ Measure the reviewed branch with "Large-change thresholds" in
 predicted large at the gate or the diff is over the thresholds; report the classification
 with groups, tasks, lines, and files.
 
-**Regular change:** done. Nothing is pushed. Suggest `ep-open-pr`, then `ep-babysit-pr`.
+**Regular change:** done, with nothing pushed. Suggest `ep-open-pr`, then `ep-babysit-pr`.
 Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
 
 **Large change**, once the review rounds end without a blocker (`reviewed` or
@@ -499,10 +435,11 @@ all layers merged gives `stacked_merged`.
 On every stop, print: change, branch, outcome, the gate result, every commit made this
 run (`git log --format='%h %s' <base-sha>..HEAD`, once `base` exists), the dead-code
 removals and reported items, each group pass (group, counts, `fixed`, `unfixed`) with the
-lines of `<change>.group-findings`, review rounds with counts, remaining or deferred findings,
-the pre-existing findings in `<change>.pre-existing` (listed, not fixed), the size classification, stack layers if any, what the user should
-do next, and the resume command when the run is unfinished. Set `outcome` in the state
-file when it exists (early stops in step 1 create none). Then end with:
+lines of `<change>.group-findings`, review rounds with counts, remaining or deferred
+findings, the pre-existing findings in `<change>.pre-existing` (listed, not fixed), the
+size classification, stack layers if any, what the user should do next, and the resume
+command when the run is unfinished. Set `outcome` in the state file when it exists
+(early stops in step 1 create none). Then end with:
 
 ```
 <!-- ep-orchestrate-summary
@@ -526,4 +463,5 @@ One `layer:` line per stack layer, bottom-up; omit `layer:` lines when there is 
 Any value not known yet is written `na` (for example `gate: score=na decision=none
 hard_to_undo=none`, `reviews: rounds=0 last=na`, `large=na`). `group_reviews:` counts
 the `group_reviews` entries, and sums `fixed` and `unfixed` over the entries where they
-are set (not `null`), clean passes with no fix phase included; it is `passes=0 fixed=0 unfixed=0` before any pass, never `na`.
+are set (not `null`), clean passes with no fix phase included; it is
+`passes=0 fixed=0 unfixed=0` before any pass, never `na`.
