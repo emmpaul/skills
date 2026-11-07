@@ -149,8 +149,10 @@ skill before the PR is created or edited, and says so.
 
 ### Shots
 
-Save PNGs in a scratch folder outside the repository, named
-`<page-slug>-<width>.png` (`/` → `root`, other `/` → `-`).
+Save PNGs in a new, empty folder made for this run, outside the repository
+(`shots=$(mktemp -d <scratch>/ep-open-pr-shots.XXXXXX)`), named
+`<page-slug>-<width>.png` (`/` → `root`, other `/` → `-`). Never reuse a folder from an
+earlier run: it would hold images gate 2 never showed.
 
 - Host browser tool: open the page, set the viewport to the width and height, wait for
   the page to load, take the screenshot.
@@ -158,7 +160,7 @@ Save PNGs in a scratch folder outside the repository, named
 
   ```bash
   npx --no-install playwright screenshot --viewport-size=1280,800 \
-    http://localhost:<port><route> <scratch>/<page-slug>-1280.png
+    http://localhost:<port><route> "$shots/<page-slug>-1280.png"
   ```
 
   and the same with `--viewport-size=390,844`.
@@ -177,7 +179,7 @@ A page that errors (HTTP 4xx/5xx, a blank page) is captured as it is and noted
 
 Skip this part when no image was captured.
 
-Show every image path that will be pushed, the branch `ep-pr-assets`, and the target
+Show every image path that will be pushed (exactly the files in `$shots`), the branch `ep-pr-assets`, and the target
 folder, then ask **Push** or **Don't push**. `--screenshots` answers Push. Screenshots of
 a local app may show local data; the list lets the user check before anything leaves the
 machine. Don't push (or a non-interactive run without `--screenshots`) skips to
@@ -197,7 +199,7 @@ git fetch origin ep-pr-assets          # fails when the branch does not exist ye
 #          git -C "$wt" switch --orphan ep-pr-assets-tmp
 #          (an orphan switch empties the index and tree; the commit holds only images)
 mkdir -p "$wt/$slug/$sha"
-cp <scratch>/*.png "$wt/$slug/$sha/"
+cp -- "$shots"/*.png "$wt/$slug/$sha/"   # only this run's images, as listed at gate 2
 git -C "$wt" add -- "$slug/$sha"
 msg=$(mktemp)
 printf 'chore: add screenshots for %s at %s\n' "<branch>" "$sha" > "$msg"
@@ -246,8 +248,8 @@ instead and tell the reader to drag them in:
 
 Not pushed. Drag these files into a comment:
 
-- `<scratch>/root-1280.png`
-- `<scratch>/root-390.png`
+- `<shots>/root-1280.png`
+- `<shots>/root-390.png`
 ```
 
 When nothing was captured, the section is the single reason line, for example
