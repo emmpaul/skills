@@ -23,7 +23,8 @@ Two sources give the merged PRs and their commits:
   trailing `(#<n>)`), else `null`, and the case is then identified by its `merge` sha.
   A commit maps to the first-parent commit that brought it in:
   `git log --first-parent --ancestry-path --format=%H <sha>..origin/<default> | tail -1`,
-  or the commit itself when it is on the first-parent line.
+  or the commit itself when it is on the first-parent line. A root commit (no parent)
+  has no base and is never a case.
 
 Say which source was used in the output (`source: github` or `source: local`). Both
 give the same case shape. Read only: never fetch from or write to any remote other than
