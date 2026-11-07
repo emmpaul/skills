@@ -81,8 +81,21 @@ git status --porcelain=v1 -b
 ```
 
 and treat an `openspec/` folder at the root as the OpenSpec root. Then record
-`git rev-parse HEAD` as the head, and `git status --porcelain -z --untracked-files=all` as
-the **before-snapshot** (`-z` keeps non-ASCII paths unquoted, as in the fingerprint). Resolve the target (Usage).
+`git rev-parse HEAD` as the head, and take the **before-snapshot** into a file under the
+system temp dir. It holds each dirty or untracked path with its content hash, so a command
+that rewrites an already-modified or already-untracked file still shows up (`-z` keeps
+non-ASCII paths unquoted, as in the fingerprint):
+
+```bash
+git status --porcelain=v1 -z --untracked-files=all | while IFS= read -r -d '' e; do
+  st=${e:0:2} f=${e:3}
+  case $st in R*|C*) IFS= read -r -d '' _ ;; esac   # skip a rename's original path
+  if [ -f "$f" ]; then h=$(git hash-object -- "$f"); else h=-; fi
+  printf '%s %s %s\n' "$st" "$h" "$f"
+done | LC_ALL=C sort -k3
+```
+
+Resolve the target (Usage).
 
 Read `references/record.md` and load the run record beside the requested audit path
 (`<audit-file stem>.state.json`). With `--full`, use nothing from it, but still check a
@@ -191,10 +204,12 @@ Done when every candidate has an outcome.
 1. Stop every process this run started, with its process group; check its port is free.
    Delete the scratch copies (regression tests, library examples) and large-input files
    under the system temp dir.
-2. Take the after-snapshot (`git status --porcelain -z --untracked-files=all`) and compare
-   it with the before-snapshot: every created or modified path goes under "Files changed
-   by the audit" (collapse a created directory to one line). The audit file and the run
-   record are not listed.
+2. Take the after-snapshot with the same command as step 1 and compare it with the
+   before-snapshot path by path: every path whose line differs (new, gone, other status,
+   or other hash) goes under "Files changed by the audit" as created (absent before),
+   deleted (file gone now), or modified, so a file that was already dirty or untracked
+   and was rewritten is listed too (collapse a created directory to one line). The audit
+   file and the run record are not listed.
 3. Write the report with the template in `audit.md`, redacting secrets. Path: `--out`
    (relative to the root; create missing parent folders) or `qa-audit.md` at the root.
    When a file already exists there and its first line does not start with
