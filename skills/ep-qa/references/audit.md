@@ -104,7 +104,8 @@ says: "No problems found in what was exercised." followed by what was exercised,
 
 The first line is the marker. An existing file at the report path is overwritten only
 when its first line starts with `<!-- ep-qa audit:`; otherwise the report goes to
-`qa-audit-<YYYY-MM-DD-HHMM>.md` in the same folder.
+`qa-audit-<YYYY-MM-DD-HHMM>.md` in the same folder, with `-2`, `-3`, ... before `.md` when
+that name is taken too (a dated file is never overwritten).
 
 ~~~
 <!-- ep-qa audit: <full head sha> <ISO 8601 date> -->

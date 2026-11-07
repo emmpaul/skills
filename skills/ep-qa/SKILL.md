@@ -167,7 +167,8 @@ Done when every candidate has an outcome.
    (relative to the root; create missing parent folders) or `qa-audit.md` at the root.
    When a file already exists there and its first line does not start with
    `<!-- ep-qa audit:`, leave it untouched and write `qa-audit-<YYYY-MM-DD-HHMM>.md` in the
-   same folder instead. Do not commit it or add it to `.gitignore`.
+   same folder instead; when that name is taken too, add `-2`, `-3`, ... before `.md`
+   (never overwrite a dated file). Do not commit it or add it to `.gitignore`.
 4. Print a short summary: counts by severity, the top findings (id, severity, title), the
    report path (and, for a dated name, why), and a suggestion to commit the report (for
    example with `ep-commit`) or delete it.
