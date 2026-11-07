@@ -43,8 +43,9 @@ when some path matches any of:
 A directory alone never makes a file UI: `app/models/user.rb`, `app/main.py`, and Helm's
 `templates/deployment.yaml` are not UI files.
 
-Ignore test files: a path whose file name contains `test` or `spec`, or that lies under a
-`__tests__/` directory. When no path is left, skip this whole step: start nothing, push
+Ignore test files: a file name matching `*.test.*`, `*.spec.*`, `*_test.*`, `*_spec.*`, or
+`test_*`, or a path under a `__tests__/`, `test/`, `tests/`, or `spec/` directory. A name
+that merely contains `test` or `spec` (`Inspector.tsx`, `LatestPosts.tsx`) is not a test. When no path is left, skip this whole step: start nothing, push
 nothing, and add no `## Screenshots` section.
 
 The app is started from the working tree, but the images must show the branch head they
