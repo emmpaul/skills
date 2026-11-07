@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Copy shared files into every skill folder. Skills are installed folder by
-# folder, so each one ships its own copy of the context probe.
+# Copy shared files into skill folders. Skills are installed folder by
+# folder, so each one ships its own copy of every shared file it uses.
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
-src=$repo/shared/context.sh
-for skill in "$repo"/skills/*/; do
-  skill=${skill%/}
-  [ -f "$skill/SKILL.md" ] || continue
-  mkdir -p "$skill/scripts"
-  cp "$src" "$skill/scripts/context.sh"
-  chmod +x "$skill/scripts/context.sh"
-  echo "synced ${skill#"$repo"/}/scripts/context.sh"
+# shellcheck source=shared-files.sh
+. "$repo/scripts/shared-files.sh"
+for entry in "${shared_files[@]}"; do
+  IFS='|' read -r src dest skills <<<"$entry"
+  targets=$(shared_targets "$repo" "$skills") || exit 1
+  for skill in $targets; do
+    copy=$repo/skills/$skill/$dest
+    mkdir -p "$(dirname "$copy")"
+    cp "$repo/shared/$src" "$copy"
+    case $copy in *.sh) chmod +x "$copy" ;; esac
+    echo "synced skills/$skill/$dest"
+  done
 done

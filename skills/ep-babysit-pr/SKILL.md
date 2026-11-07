@@ -1,6 +1,6 @@
 ---
 name: ep-babysit-pr
-description: Shepherd a GitHub PR to merge. Watches checks, reviews, comments, and merge state; fixes CI failures (max 3 attempts per check); fixes or replies to review comments and flags scope changes; runs up to 3 ep-review rounds; merges only when hard gates pass, an evidence-based score is at least 85, and GitHub reports the PR mergeable without bypass. Use when the user asks to babysit, shepherd, watch, or land a PR.
+description: Shepherd a GitHub PR to merge. Watches checks, reviews, comments, and merge state; fixes CI failures (max 3 attempts per check); fixes or replies to review comments and flags scope changes; runs up to 3 ep-review rounds (later rounds review only new commits and re-check earlier findings; pre-existing bugs are listed, not fixed); merges only when hard gates pass, an evidence-based score is at least 85, the risk gate passes (low risk merges, medium risk needs the user's yes for the exact head, high risk also a human GitHub approval of it; REVIEW.md low globs and trusted authors allow merges without asking), and GitHub reports the PR mergeable without bypass. Use when the user asks to babysit, shepherd, watch, or land a PR.
 ---
 
 # ep-babysit-pr
@@ -72,7 +72,9 @@ write it after every action.
   "unknown_ticks": 0,
   "blocked_notified": false,
   "started_at": "<iso time>",
-  "last_review": { "head": null, "summary": null },
+  "last_review": { "head": null, "summary": null, "findings": null, "synced_after": null },
+  "human_ok": null,
+  "risk_notified": null,
   "last_score": null,
   "merge_async": null,
   "outcome": null
@@ -81,14 +83,24 @@ write it after every action.
 
 `last_review.head` is the commit the latest review round ran on and `last_review.summary`
 the raw `ep-review-summary` block, so a later run can score without re-reviewing.
+`last_review.findings` is the path of the findings file the latest round wrote,
+`.git/ep-babysit/<pr>.findings` (step 5d). `last_review.synced_after` is the head sha of a
+base sync pushed after `last_review.head` (step 5c), or `null` when none was; it tells the
+next round to review the full PR again (step 5d also detects base merges this skill did
+not make). `human_ok` is `{ "head": "<sha>" }` after the user
+said yes to merging that exact head (step 7), or `null`; it is cleared to `null` whenever
+`headRefOid` changes. `risk_notified` is the head sha the latest risk-gate notice (step 7)
+was sent for, or `null`; it is separate from `blocked_notified`, so an earlier `BLOCKED` or
+waiting-on-humans notice never silences it, and a new head gets a new notice.
 `merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
 `"queued"` when GitHub answered that the PR was already merged or queued, so later ticks
 read its result or check the PR instead of requesting another merge. It belongs to one
 run: a stop with `left merge queue` or `merge failed` clears it to `null`, so a re-run
 after the user fixes the cause can request the merge again.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
-state file missing fields, add them with defaults; when own post ids are unknown, treat
-posts that reference commits you pushed as your own.
+state file missing fields, add them with defaults (`last_review.findings`,
+`last_review.synced_after`, `human_ok`, and `risk_notified` default to `null`); when own post ids are
+unknown, treat posts that reference commits you pushed as your own.
 
 ## 3. Loop pacing
 
@@ -249,7 +261,8 @@ user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop af
    inside it. Otherwise follow
    [`references/side-paths.md#sync`](references/side-paths.md#sync) inline.
 2. Read the `ep-sync-summary` block (or the side path's fields):
-   - `outcome: synced`: push with plain `git push`, wait for checks, re-evaluate. The
+   - `outcome: synced`: push with plain `git push`, set `last_review.synced_after` to the
+     pushed head sha when `last_review.head` is set, wait for checks, re-evaluate. The
      adaptation commits for needs-update items are this sync's **fix round**: they are
      separate from the merge commit and get the same checks as any fix.
    - `outcome: needs_decision`: do not push. Notify the user with the options from the
@@ -271,16 +284,66 @@ When checks are green, no new comments need action, and no review round has run 
 current head commit (compare `last_review.head` with `headRefOid`):
 
 1. If `round >= 3`: stop (see step 7).
-2. Run `ep-review <n>` on the PR. If `ep-review` is installed, invoke it (with subagents,
-   delegate the round to a subagent running that skill); otherwise perform its steps
-   inline: four dimensions (correctness, spec conformance, tests, security), verify each
-   finding, and produce the `ep-review-summary` block. Do not post the review unless the
-   user asked for `--comment`.
-3. Fix verified critical, major, and minor findings (commits per ep-commit conventions).
-   A minor finding may be waived instead, with a PR comment stating the reason.
-4. Push and wait for required checks to be green. That completes the round: increment
+2. Run the review on the PR:
+   - **Round 1** (`last_review.head` is `null`): `ep-review <n>`, the full PR.
+   - **Later rounds:** `ep-review <n> --since <last_review.head> --known <last_review.findings>`,
+     so only the commits since the last reviewed head are reviewed and the earlier
+     findings are re-checked instead of reported again. When base code entered the branch
+     after that head, drop `--since` and review the full PR, still passing
+     `--known <last_review.findings>`. That is the case when `last_review.synced_after` is
+     set (this skill pushed a base sync), and also when the base arrived another way (GitHub's
+     "Update branch", a merge a person pushed, then fast-forwarded in step 4). Check it
+     every later round, after `git fetch origin <baseRefName>`:
+
+     ```bash
+     git rev-list --count --merges <last_review.head>..<headRefOid>            # merge commits
+     git rev-list --count <last_review.head>..<headRefOid> --not origin/<baseRefName>
+     git rev-list --count <last_review.head>..<headRefOid>
+     ```
+
+     A merge commit in the range (first count above 0), or a range holding commits that are
+     already on the base (second count below the third), means base code came in: review
+     the full PR. If a command fails, review the full PR too.
+
+   If `ep-review` is installed, invoke it (with subagents, delegate the round to a
+   subagent running that skill); otherwise perform its steps inline: four dimensions
+   (correctness, spec conformance, tests, security), verify each finding, apply `--since`
+   and the known findings the same way, and produce the `ep-review-summary` block. Inline,
+   also:
+   - tag each verified finding's origin: **pre-existing** only when the defect would
+     occur at the base too (the PR did not cause it), its lines are not among the PR's
+     added lines, and `git blame -M -C <base>..<head> -L <start>,<end> -- <file>` marks
+     every one as a boundary line (`^`); a defect the PR causes in unchanged lines (an
+     unchanged caller of a changed callee, a `CLAUDE.md` line a rename makes stale), any
+     other case, or doubt means **introduced**. Count pre-existing ones only in
+     `pre_existing:`, never in `verified:`;
+   - compute the tier and reasons from [`references/risk.md`](references/risk.md) over the
+     whole PR's changed paths, both sides of each rename (`gh api
+     repos/{owner}/{repo}/pulls/<n>/files --paginate --jq '.[] | .filename,
+     (.previous_filename // empty)'`, even on a `--since` round), the
+     PR author, and the base's `REVIEW.md`, and write them as `risk:` and `risk_reasons:`;
+     the block always has a `risk:` line, with `verification: inline`.
+
+   Do not post the review unless the user asked for `--comment`.
+3. Record the round: set `last_review.head` to the reviewed head and `last_review.summary`
+   to the summary block, clear `last_review.synced_after` to `null`, and overwrite
+   `.git/ep-babysit/<pr>.findings` with one line per verified finding of this round
+   (introduced, still open, and pre-existing), then set `last_review.findings` to that path:
+
+   ```
+   finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario> | class: <label> | instances: <file>:<line>,<file>:<line>
+   ```
+
+   `<id>` is `r<round>.<n>`. Drop the `| instances:` part when the finding has none.
+4. Fix verified critical, major, and minor **introduced** findings (commits per ep-commit
+   conventions). A fix covers the finding's location and every one of its `instances`, in
+   the same commit. A minor finding may be waived instead, with a PR comment stating the
+   reason. **Pre-existing** findings (the `### pre-existing` section, counted in
+   `pre_existing:`) are not fixed: list them in the next status report and in the final
+   report. They do not count in `verified:`, so they do not affect the score.
+5. Push and wait for required checks to be green. That completes the round: increment
    `round`.
-5. Compute the score (step 6) and decide (step 7).
+6. Compute the score (step 6) and decide (step 7).
 
 ## 6. Score
 
@@ -289,7 +352,8 @@ Compute the merge confidence score exactly as in
 `ep-review-summary` block, commits, comments, the probe's task counts, and the PR's
 changed paths. Never use self-assessed confidence. Without OpenSpec, drop the OpenSpec
 items and move their weight to tests as described there. For a documentation-only PR
-(path rules in `references/score.md`), the tests item is met as not applicable. Print the breakdown (each item,
+(path rule in [`references/risk.md`](references/risk.md#documentation-only-paths)), the
+tests item is met as not applicable. Print the breakdown (each item,
 its weight, met or not) and save it to `last_score`.
 
 ## 7. Decide
@@ -305,6 +369,28 @@ Merge only when **all** hold:
   Commits pushed after the last review round (CI fixes, review fixes, a sync's
   adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
   stop and report the unreviewed commits instead of merging
+- the **risk gate** passes, checked last, after every condition above (details in
+  [`references/score.md`](references/score.md#risk-gate)). The tier is the `risk:` line of
+  `last_review.summary`; a summary without one counts as `medium`:
+  - **low:** nothing extra; merge.
+  - **medium:** the user's explicit yes for this exact head. Unless `human_ok.head` equals
+    `headRefOid`, ask one structured question showing the tier, its reasons, the score
+    breakdown, and the head sha, with the options **Merge**, **Wait**, and **Stop**. Merge
+    records `human_ok: { "head": "<headRefOid>" }`; Wait keeps waiting and asks again
+    on the next attended run; Stop sets `outcome: stopped: user declined merge`. `human_ok` is cleared
+    whenever `headRefOid` changes, so a new push needs a new yes.
+  - **high:** the same yes, and an `APPROVED` review whose `commit_id` equals `headRefOid`,
+    from a login other than the PR author whose `user.type` is `User` and whose
+    `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` (an account with no
+    standing on the repository never counts). Bot and app
+    approvals never count. Without one, do not merge: unless `risk_notified` equals
+    `headRefOid`, notify the user that a human approval of this head is needed and set
+    `risk_notified` to `headRefOid`; then wait as on `BLOCKED`.
+  - **Unattended** (test in [`references/score.md`](references/score.md#risk-gate),
+    "Unattended runs"): do not ask and do not merge; unless `risk_notified` equals
+    `headRefOid`, notify the user with the tier, reasons, and head sha and set
+    `risk_notified` to `headRefOid`; then wait. Ask on the next attended run. A `/loop`
+    tick or wakeup that no user message started is unattended.
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
@@ -360,9 +446,13 @@ bottom layer merges:
 4. Leave the head branch in place. GitHub rebases the PRs above onto it. The final report
    says the branch was kept and that the repository's auto-delete setting still applies.
 
-Otherwise:
+Otherwise, apply the first rule below that matches. The waiting rules come before the
+round rules, so a PR that only needs a person (GitHub, a reviewer, or the risk gate) waits
+at any round, including after round 3:
 
-- Gates or score not met and `round < 3`: continue the loop (next fix or review round).
+- Only the risk gate fails (score >= 85, every other condition met): this is waiting on
+  humans, not a reason for another review round or a round-cap stop. Wait as described in
+  the gate.
 - `BLOCKED` with score >= 85: wait, notify the user once, and merge when GitHub reports the
   PR mergeable.
 - **Waiting on humans:** score >= 85 and the only failing gates are ones a person must clear
@@ -371,18 +461,24 @@ Otherwise:
   (`blocked_notified`) naming the threads and reviewers, then wait (scheduling agents) or
   stop and tell the user to re-run after they clear (non-scheduling agents). Do not start
   another review round on an unchanged head.
+- Gates or score not met and `round < 3`: continue the loop (next fix or review round).
 - `round >= 3` and the merge condition is not met: stop, post one summary comment on the
-  PR (rounds run, what was fixed, remaining findings, score breakdown, blocking gates;
-  no attribution), and notify the user.
+  PR, and notify the user. The comment states the rounds run, what was fixed, remaining
+  findings, pre-existing findings left unfixed, the score breakdown, and the blocking
+  gates, and asks the author to step back and reconsider the approach rather than
+  continue patching findings (three rounds that did not converge suggest the approach,
+  not the details, needs another look). No attribution.
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
-meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
+Stop when: merged; closed; the user chose Stop at the risk gate (step 7); the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+meeting the merge condition (not when only a person is left to act: those waiting rules in
+step 7 come first); `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 
 On every stop, report to the user: PR URL, outcome, rounds run, fixes pushed (shas),
-comments replied to, scope changes flagged, the last score breakdown, and what (if
+comments replied to, scope changes flagged, pre-existing findings left unfixed (file,
+line, summary), the last score breakdown, and what (if
 anything) the user needs to do next.
 
 ## Without subagents, loops, or sibling skills

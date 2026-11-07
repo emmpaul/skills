@@ -3,26 +3,28 @@
 # Fix drift with scripts/sync-shared.sh.
 set -uo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
-src=$repo/shared/context.sh
+# shellcheck source=shared-files.sh
+. "$repo/scripts/shared-files.sh"
 status=0
 count=0
-for skill in "$repo"/skills/*/; do
-  skill=${skill%/}
-  [ -f "$skill/SKILL.md" ] || continue
-  count=$((count + 1))
-  copy=$skill/scripts/context.sh
-  rel=${copy#"$repo"/}
-  if [ ! -f "$copy" ]; then
-    echo "missing: $rel"
-    status=1
-  elif ! cmp -s "$src" "$copy"; then
-    echo "differs: $rel"
-    status=1
-  fi
+for entry in "${shared_files[@]}"; do
+  IFS='|' read -r src dest skills <<<"$entry"
+  targets=$(shared_targets "$repo" "$skills") || exit 1
+  for skill in $targets; do
+    count=$((count + 1))
+    rel=skills/$skill/$dest
+    if [ ! -f "$repo/$rel" ]; then
+      echo "missing: $rel"
+      status=1
+    elif ! cmp -s "$repo/shared/$src" "$repo/$rel"; then
+      echo "differs: $rel"
+      status=1
+    fi
+  done
 done
 if [ "$status" -ne 0 ]; then
   echo "shared files out of sync; run scripts/sync-shared.sh" >&2
 else
-  echo "ok: $count skill(s) match shared/context.sh"
+  echo "ok: $count shared cop(ies) match shared/"
 fi
 exit "$status"
