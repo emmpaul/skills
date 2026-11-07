@@ -106,8 +106,8 @@ Install only with the project's lockfile-respecting command, into the project:
 | Bun | `bun.lockb` | `bun install --frozen-lockfile` |
 | pip | `requirements*.txt` (pinned) | `python -m venv .venv` then `.venv/bin/pip install -r requirements.txt` |
 | uv | `uv.lock` | `uv sync --frozen` |
-| Poetry | `poetry.lock` | `poetry install --no-root` |
-| Pipenv | `Pipfile.lock` | `pipenv sync` |
+| Poetry | `poetry.lock` | `POETRY_VIRTUALENVS_IN_PROJECT=true poetry install` (installs the project too, so a src layout imports) |
+| Pipenv | `Pipfile.lock` | `PIPENV_VENV_IN_PROJECT=1 pipenv sync` |
 | Bundler | `Gemfile.lock` | `bundle install` (lockfile present) |
 | Cargo | `Cargo.lock` | `cargo build --locked` |
 | Go | `go.sum` | `go mod download` |
@@ -116,7 +116,10 @@ Install only with the project's lockfile-respecting command, into the project:
 
 Without a lockfile, plan the documented install command and flag it in the plan as "may
 change dependency resolution", so the user decides. Python installs go into a
-project-local `.venv`, never the system or user site.
+project-local `.venv`, never the system or user site: Poetry and Pipenv create their
+environments outside the project unless the variables in the table tell them otherwise,
+and uv uses `.venv` by default. Run the project's later Python commands through that
+environment (`.venv/bin/<tool>`, `poetry run`, `pipenv run`, `uv run`).
 
 ## Never-run list
 
