@@ -1,6 +1,6 @@
 ---
 name: ep-open-pr
-description: Push the current branch and open a GitHub pull request whose title and body are built from its commits and, when present, the active OpenSpec change (why, capabilities, task progress), with no model attribution. Supports draft PRs and a custom base. Use when the user asks to open, create, or raise a PR.
+description: Push the current branch and open a GitHub pull request whose title and body are built from its commits and, when present, the active OpenSpec change (why, capabilities, task progress), with risk tier, testing evidence, and how to revert, and no model attribution. When the branch changes UI files, screenshots the affected pages from the running app (after confirmation, with a browser already available, never installing one) and links them from an ep-pr-assets branch. Supports draft PRs, a custom base, and --screenshots / --no-screenshots. Use when the user asks to open, create, or raise a PR.
 ---
 
 # ep-open-pr
@@ -14,6 +14,10 @@ Open a GitHub PR for the current branch with `gh`.
   default of the host agent.
 - **Never force-push.** No `--force`, `--force-with-lease`, or `+refspec`.
 - Never create a second PR for a branch that already has an open one.
+- **Screenshot push is gated.** The only other push is screenshots to the `ep-pr-assets`
+  branch ([step 5](#5-screenshots)): shown and confirmed first (unless `--screenshots`),
+  a plain push, never forced, and it never commits to or changes the PR branch or the
+  default branch.
 
 ## Options
 
@@ -21,6 +25,10 @@ Read these from the user's request:
 
 - **draft**: open as a draft (`gh pr create --draft`).
 - **base `<branch>`**: target that branch instead of the default branch.
+- **`--screenshots`**: pre-approve both screenshot gates (running the app and pushing the
+  images).
+- **`--no-screenshots`**: skip screenshots entirely: start no app, push nothing, and add
+  no `## Screenshots` section.
 
 ## 1. Gather context
 
@@ -103,6 +111,11 @@ For the matched change, read `proposal.md` (Why, Capabilities) and take `tasks_d
 
 - <notable change, grouped by area; reference commit subjects>
 - ...
+
+## Screenshots
+
+<only when UI files changed, from step 5: one image link per page and width, or the
+reason nothing was captured>
 
 ## OpenSpec
 
@@ -220,7 +233,17 @@ When there is neither, **Run:** is the single line `Not run`, with no claim of a
 **Steps:** follows as before: concrete commands from the repo (its test scripts, Makefile
 targets, CI steps) and manual checks a reviewer can repeat.
 
-## 5. Create the PR
+## 5. Screenshots
+
+Unless `--no-screenshots` was given, follow
+[`references/screenshots.md`](references/screenshots.md) now, after the body is drafted
+and before the PR is created or edited. When the branch changes UI files, it starts the
+app (after gate 1), captures the affected pages with a browser already available, stops
+the app and frees its port, pushes the images to `ep-pr-assets` (after gate 2), and fills
+the `## Screenshots` section. When no UI file changed, or with `--no-screenshots`, drop
+the `## Screenshots` section from the body.
+
+## 6. Create the PR
 
 Write the body to a temp file and create the PR:
 
@@ -240,10 +263,12 @@ gh pr view --json url,title,body,isDraft
 If the title or body contains "Generated with" or a model attribution line, remove it with
 `gh pr edit <n> --body-file <file>`.
 
-## 6. Report
+## 7. Report
 
 Print the PR URL, title, base, whether it is a draft, the door classification (for a
-one-way door, also its irreversible elements), and the risk tier with its reasons.
+one-way door, also its irreversible elements), the risk tier with its reasons, and the
+screenshots: each page captured, each page skipped with its reason, and whether the
+images were pushed to `ep-pr-assets` or kept local (or that the step was skipped and why).
 
 ## Without subagents
 
