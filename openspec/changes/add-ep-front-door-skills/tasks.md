@@ -17,7 +17,7 @@
 
 - [x] 3.1 Write `skills/ep-start/SKILL.md` (issue or description input, branch naming and existing-branch check per design D6, `git fetch` and base from `origin/<default>` or `--base`, dirty-tree prompt with named stash, optional `--change` only when an OpenSpec root exists, issue link in `branch.<name>.ep-issue` per design D3, no push without `--push`, `ep-start-summary` block); verify every requirement in `specs/ep-start/spec.md` maps to a section
 - [x] 3.2 Run `scripts/sync-shared.sh` and `scripts/check-shared.sh`; verify the copy exists and the check passes
-- [ ] 3.3 Verify in a scratch clone with local `main` behind `origin/main`: `ep-start 17` creates `fix/17-...` at `origin/main`, sets `git config branch.<name>.ep-issue` to 17, pushes nothing (`git ls-remote --heads origin` unchanged); a dirty tree triggers the prompt; in a non-OpenSpec repo `--change` is not offered and OpenSpec is not mentioned
+- [x] 3.3 Verify in a scratch clone with local `main` behind `origin/main`: `ep-start 17` creates `fix/17-...` at `origin/main`, sets `git config branch.<name>.ep-issue` to 17, pushes nothing (`git ls-remote --heads origin` unchanged); a dirty tree triggers the prompt; in a non-OpenSpec repo `--change` is not offered and OpenSpec is not mentioned
 
 ## 4. ep-open-pr issue reference
 
