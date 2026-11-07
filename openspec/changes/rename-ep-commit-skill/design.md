@@ -29,18 +29,22 @@ See proposal.md (Why). Current state the approach has to fit:
 
 The user decided that `ep-commit-and-push` pushes after committing, not just commits. This is settled input, not a planning default. The push becomes a new step after verification: commit, verify no attribution (amending the unpushed commit when needed), then push. Ordering the push last keeps the amend-to-strip-attribution step legal, since amending is only allowed on unpushed commits.
 
-### D2. Push rules mirror `ep-open-pr` step 3
+### D2. Push rules follow `ep-open-pr` step 3, with an explicit target
 
-- No upstream and `origin` exists: `git push -u origin HEAD`. Upstream exists: `git push`. No upstream and no `origin`: push nothing and report it.
+- The target is the remote branch with the current branch's name. No upstream and `origin` exists: `git push -u origin HEAD:refs/heads/<branch>`. Upstream with the branch's name: `git push <remote> HEAD:refs/heads/<branch>`. No upstream and no `origin`: push nothing and report it.
+- Every push names its target with the explicit refspec `HEAD:refs/heads/<branch>`, never a bare `git push`: a bare push takes its destination from git config, so `push.default=matching` would also push an unpushed local `main` past the default-branch gate, and a configured `+refs/heads/*:refs/heads/*` push refspec would force-push. The explicit refspec makes the pushed ref the gated ref.
 - Plain pushes only: never `--force`, `--force-with-lease`, or `+refspec`; hooks run, `--no-verify` only on the user's request.
 - Rejected push or failing pre-push hook: stop, keep the commits, report the cause, suggest `ep-sync` for a remote that moved ahead. No pull or rebase from this skill.
 - Push only when this run created a commit. "Nothing to commit" still stops without pushing, even with unpushed commits on the branch: pushing work the user did not hand to this run would be a surprise.
 
 Alternative considered: delegate the push to `ep-open-pr`'s rules by reference. Rejected because skills install folder by folder and may only reference files inside their own folder; the rules are short enough to state in the skill.
 
-### D3. Push gate: the plan prompt, plus a default-branch confirmation
+### D3. Push gate: the plan prompt, plus confirmations for the riskiest targets
 
-The push is an outward effect, so it gets an explicit gate (config rule for design). The existing plan prompt (step 3) is that gate: the plan now names the target branch and remote and how many commits the push sends, including earlier unpushed ones. When the user says "just commit", that instruction covers the push too, since they invoked a commit-and-push skill. The one exception is the default branch: pushing straight to it is the hardest to undo, so the skill always asks before pushing the default branch, even when told to just commit.
+The push is an outward effect, so it gets an explicit gate (config rule for design). The existing plan prompt (step 3) is that gate: the plan now names the target branch and remote and how many commits the push sends, including earlier unpushed ones. When the user says "just commit", that instruction covers the push too, since they invoked a commit-and-push skill. The exceptions ask even when the user said to just commit:
+
+- **Default branch.** Pushing straight to it is the hardest to undo, so the skill always asks before pushing the default branch. An unknown or guessed default branch also asks, whatever the current branch: without knowing the default, the skill cannot tell a feature push from a default-branch push.
+- **Upstream named differently from the branch** (for example `fix` made with `git switch -c fix origin/main`). The skill never pushes to the upstream's branch; it asks whether to push the branch under its own name with `git push -u <remote> HEAD:refs/heads/<branch>`, which creates that remote branch and points the upstream at it, and keeps the commits local on a no.
 
 Alternative considered: always ask before every push. Rejected: it turns the skill back into `ep-commit` plus a prompt, contrary to the user's choice.
 

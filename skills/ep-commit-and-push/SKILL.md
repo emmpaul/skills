@@ -17,9 +17,11 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
 - **Published history stays as it is.** Commits on the upstream get no `--amend`, rebase,
   reset, or squash: when the last commit is pushed, make a new commit. Amend an unpushed
   commit only when the user asks, or in step 6 to remove attribution.
-- **Push last, with a plain push.** Push only after step 6 has verified every created
-  message, and only when this run created a commit. Push with `git push` or
-  `git push -u origin HEAD`, never `--force`, `--force-with-lease`, or a `+refspec`.
+- **Push last, to the gated target only.** Push only after step 6 has verified every
+  created message, and only when this run created a commit. Push with the explicit
+  refspec of step 7, `git push [-u] <remote> HEAD:refs/heads/<branch>`, so git config
+  (`push.default`, a remote's push refspecs) cannot add branches or a force. Never
+  `--force`, `--force-with-lease`, or a `+refspec`.
 - **The default branch asks first.** Before a push whose target (step 7) is the
   repository's default branch, ask the user, even when told to just commit; push it
   only on a yes. An unknown or guessed default branch counts as the target: ask.
@@ -177,22 +179,27 @@ Done when no created message contains a `Co-Authored-By` naming a model or tool,
 
 ## 7. Push
 
-Skip this step with `--no-push`. Otherwise gate the **target**, the remote branch the
-push writes to: the upstream's branch name (`main` for `origin/main`), or the current
-branch name when there is no upstream.
+Skip this step with `--no-push`. Otherwise the push writes the current branch to the
+remote branch of the same name, the **target**: `<branch>` is the current branch name,
+and `<remote>` is the upstream's remote (`git config branch.<branch>.remote`), or
+`origin` when there is no upstream. On a detached `HEAD` there is no branch: push
+nothing.
+
+Ask first, even when told to just commit, and keep the commits local on a no, when
+either holds (one question covers both):
 
 - **Upstream named differently from the current branch** (for example a branch made
   with `git switch -c fix origin/main`): ask whether to push the branch under its own
-  name with `git push -u origin HEAD`, which is then the push; on a no, keep the
-  commits local. Push only to the current branch's own name: when git suggests a
-  `HEAD:<branch>` refspec, report it and leave it unused.
-- **Target is the default branch, or the default branch is unknown or guessed:** ask
-  first, and keep the commits local on a no.
+  name, which creates `<remote>/<branch>` and points the upstream at it. When git
+  suggests a `HEAD:<other>` refspec, report it and leave it unused.
+- **Target is the default branch, or the default branch is unknown or guessed**
+  (step 1).
 
 Then:
 
-- **Upstream exists:** `git push`.
-- **No upstream, `origin` exists:** `git push -u origin HEAD`.
+- **Upstream with the current branch's name:** `git push <remote> HEAD:refs/heads/<branch>`.
+- **Upstream named differently, after a yes:** `git push -u <remote> HEAD:refs/heads/<branch>`.
+- **No upstream, `origin` exists:** `git push -u origin HEAD:refs/heads/<branch>`.
 - **No upstream, no `origin`:** push nothing; the commits stay local.
 - **Push rejected** (the remote branch has commits the local one lacks): stop with the
   commits kept local, report the rejection, and suggest bringing the remote changes in
@@ -200,9 +207,9 @@ Then:
   user.
 - **Pre-push hook fails:** stop with the commits kept local and report the hook output.
 
-Done when `git rev-parse HEAD` equals `git rev-parse @{u}` and the upstream's branch
-name equals the current branch name, or you know why nothing was pushed (`--no-push`,
-upstream mismatch declined, default branch declined, no remote, rejected, hook failed).
+Done when `git rev-parse HEAD` equals `git rev-parse @{u}` and `@{u}` is
+`<remote>/<branch>`, or you know why nothing was pushed (`--no-push`, upstream mismatch
+declined, default branch declined, detached `HEAD`, no remote, rejected, hook failed).
 
 ## 8. Report
 

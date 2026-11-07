@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Turns the current working-tree changes into one or more well-scoped Conventional Commits that match the repository's style, reference the active OpenSpec change when one exists, never carry model attribution, and then push the branch with a plain push unless the caller asks for commits only.
+Turns the current working-tree changes into one or more well-scoped Conventional Commits that match the repository's style, reference the active OpenSpec change when one exists, never carry model attribution, and then push the branch to its own name on the remote with a plain push unless the caller asks for commits only.
 
 ## ADDED Requirements
 
@@ -77,22 +77,30 @@ The skill SHALL NOT amend, rebase, or otherwise rewrite commits that exist on th
 - **THEN** the skill creates a new commit rather than amending
 
 ### Requirement: Push after committing
-After it has created its commits and verified them free of attribution, the skill SHALL push the current branch: `git push -u origin HEAD` when the branch has no upstream, `git push` when it has one. It SHALL push only when it created at least one commit in this run.
+After it has created its commits and verified them free of attribution, the skill SHALL push the current branch to the remote branch of the same name, its target: `git push -u origin HEAD:refs/heads/<branch>` when the branch has no upstream, and `git push <remote> HEAD:refs/heads/<branch>` to the upstream's remote when the upstream has the branch's name. It SHALL push only when it created at least one commit in this run.
 
 #### Scenario: Branch without upstream
 - **WHEN** the skill has committed on a branch with no upstream and `origin` exists
-- **THEN** it runs `git push -u origin HEAD` and reports the remote branch it pushed to
+- **THEN** it runs `git push -u origin HEAD:refs/heads/<branch>` and reports the remote branch it pushed to
 
 #### Scenario: Branch with upstream
-- **WHEN** the skill has committed on a branch whose upstream exists
-- **THEN** it runs `git push` and reports the commits pushed
+- **WHEN** the skill has committed on a branch whose upstream has the branch's name
+- **THEN** it runs `git push <remote> HEAD:refs/heads/<branch>` and reports the commits pushed
+
+#### Scenario: Upstream named differently
+- **WHEN** the skill has committed on a branch whose upstream has another name (for example `fix` made with `git switch -c fix origin/main`)
+- **THEN** it asks whether to push the branch under its own name, even when told to just commit; on a yes it runs `git push -u <remote> HEAD:refs/heads/<branch>`, creating that remote branch and pointing the upstream at it, and on a no it keeps the commits local; it never pushes to the upstream's branch
 
 #### Scenario: No remote to push to
 - **WHEN** the branch has no upstream and the repository has no `origin` remote
 - **THEN** the skill keeps the commits, pushes nothing, and reports that no remote was found
 
 ### Requirement: Plain pushes only
-The skill SHALL push with a plain push only: never `--force`, `--force-with-lease`, or a `+refspec`, and never `--no-verify` unless the user asks. When the push is rejected or a pre-push hook fails, it SHALL stop, keep the commits local, and report the cause.
+The skill SHALL push with a plain push only: never `--force`, `--force-with-lease`, or a `+refspec`, and never `--no-verify` unless the user asks. Every push SHALL name its target with the explicit refspec `HEAD:refs/heads/<branch>`, so git configuration (`push.default`, a remote's push refspecs) cannot add branches or a force. When the push is rejected or a pre-push hook fails, it SHALL stop, keep the commits local, and report the cause.
+
+#### Scenario: Configuration would widen the push
+- **WHEN** `push.default` is `matching` with an unpushed local `main`, or the remote has a `+refs/heads/*:refs/heads/*` push refspec, and the skill pushes from `feature`
+- **THEN** only `feature` is pushed, and no other remote branch changes
 
 #### Scenario: Remote has new commits
 - **WHEN** the push is rejected because the remote branch has commits the local branch lacks
@@ -103,11 +111,15 @@ The skill SHALL push with a plain push only: never `--force`, `--force-with-leas
 - **THEN** the skill reports the hook output, keeps the commits local, and does not retry with `--no-verify`
 
 ### Requirement: Default branch push is gated
-When the current branch is the repository's default branch, the skill SHALL ask before pushing, even when it was told to just commit, and SHALL push nothing unless the user confirms.
+When the push target is the repository's default branch, or the default branch is unknown, the skill SHALL ask before pushing, even when it was told to just commit, and SHALL push nothing unless the user confirms.
 
 #### Scenario: Committing on the default branch
 - **WHEN** the skill has committed on `main`, the default branch, without `--no-push`
 - **THEN** it asks whether to push `main` and, if the user declines, reports the commits as local
+
+#### Scenario: Default branch unknown
+- **WHEN** the repository has no `origin/HEAD` and `gh` reports no default branch, so the default branch is guessed or not found
+- **THEN** the skill asks before pushing, whatever the branch, and on a no reports the commits as local
 
 ### Requirement: No-push mode
 With `--no-push`, or when the user or a calling skill says to commit without pushing, the skill SHALL create and verify its commits as usual, push nothing, and report the commits as local.
