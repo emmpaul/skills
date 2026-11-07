@@ -13,7 +13,7 @@ shared_targets() {
   if [ "$skills" = "*" ]; then
     for dir in "$repo"/skills/*/; do
       dir=${dir%/}
-      [ -f "$dir/SKILL.md" ] && echo "${dir##*/}"
+      if [ -f "$dir/SKILL.md" ]; then echo "${dir##*/}"; fi
     done
   else
     for name in $skills; do
