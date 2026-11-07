@@ -1,6 +1,6 @@
 ---
 name: ep-review
-description: Review a local diff, a branch, or a GitHub PR across four dimensions (correctness, OpenSpec spec conformance, tests, security), verify every finding before reporting it, and print a ranked report or post it to the PR with --comment. Produces a summary block other skills (ep-babysit-pr) can read. Use when the user asks to review changes, a branch, or a PR.
+description: Review a local diff, a branch, or a GitHub PR across four dimensions (correctness, OpenSpec spec conformance, tests, security), confirm every finding by a 3-verifier vote (one inline check without subagents), tag bugs the change did not introduce as pre-existing without counting them, follow the repo's REVIEW.md, re-review only new commits with --since and --known so known findings are re-checked, not repeated, and classify the change's risk tier (low, medium, high). Prints a ranked report starting with what to fix, or posts it to the PR with --comment. Produces a summary block other skills (ep-babysit-pr, ep-orchestrate) can read. Use when the user asks to review changes, a branch, or a PR.
 ---
 
 # ep-review
