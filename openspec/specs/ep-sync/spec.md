@@ -92,7 +92,7 @@ The skill SHALL classify each audit interaction as needs-update (the branch is w
 - **THEN** the report gives its class, the base commit, the affected branch location, and the reason
 
 ### Requirement: Branch adaptation
-For each needs-update interaction, the skill SHALL update the branch's code so it is correct with the new base. It SHALL commit each adaptation following `ep-commit` conventions as a commit separate from the merge commit.
+For each needs-update interaction, the skill SHALL update the branch's code so it is correct with the new base. It SHALL commit each adaptation following `ep-commit-and-push` conventions as a commit separate from the merge commit.
 
 #### Scenario: Call sites updated
 - **WHEN** base renamed a function that the branch calls
