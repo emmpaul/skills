@@ -13,7 +13,7 @@ runners, CI, and docs; the source tree only where a doc or script points into it
 | Kind | Files |
 |---|---|
 | Manifests | `package.json`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Cargo.toml`, `go.mod`, `Gemfile`, `pom.xml`, `build.gradle`, `build.gradle.kts`, `composer.json`, `*.csproj`, `*.sln` |
-| Lockfiles | `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `Pipfile.lock`, `Cargo.lock`, `go.sum`, `Gemfile.lock`, `composer.lock`, `packages.lock.json` |
+| Lockfiles | `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `Pipfile.lock`, `Cargo.lock`, `go.sum`, `Gemfile.lock`, `composer.lock`, `packages.lock.json` |
 | Task runners | `Makefile`, `justfile`, `Taskfile.yml`, package `scripts`, `tox.ini`, `noxfile.py`, `[tool.*]` script tables in `pyproject.toml`, `Rakefile` |
 | CI workflows | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`: the `run:` steps of test, lint, and build jobs |
 | Containers | `Dockerfile`, `docker-compose*.yml`, `compose*.yml`: the start command, exposed ports, required env, and backing services |
@@ -103,7 +103,7 @@ Install only with the project's lockfile-respecting command, into the project:
 | npm | `package-lock.json` / `npm-shrinkwrap.json` | `npm ci` |
 | pnpm | `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` |
 | Yarn (Berry) | `yarn.lock` | `yarn install --immutable` (Yarn 1: `yarn install --frozen-lockfile`) |
-| Bun | `bun.lockb` | `bun install --frozen-lockfile` |
+| Bun | `bun.lock` (Bun 1.2+, text) / `bun.lockb` | `bun install --frozen-lockfile` |
 | pip | `requirements*.txt` (pinned) | `python -m venv .venv` then `.venv/bin/pip install -r requirements.txt` |
 | uv | `uv.lock` | `uv sync --frozen` |
 | Poetry | `poetry.lock` | `POETRY_VIRTUALENVS_IN_PROJECT=true poetry install` (installs the project too, so a src layout imports) |
