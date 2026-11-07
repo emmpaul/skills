@@ -23,7 +23,8 @@ Each in-scope finding has an origin:
   `git blame -M -C <base>..<head> -L <start>,<end> -- <file>` (line numbers of the head
   version) marks every one of them as a boundary line (`^` before the sha), meaning
   they were already present at the target's base. `-M -C` follows moved and copied
-  lines, so a file move does not make an old bug look new.
+  lines, so a file move does not make an old bug look new. Blame alone never makes a
+  finding pre-existing: unchanged lines whose defect the diff causes are introduced.
 
 When blame is unavailable or the result is unclear, the origin is **introduced**: erring
 that way asks for a fix rather than hiding one. Decide origin during verification.
