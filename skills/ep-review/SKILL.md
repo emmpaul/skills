@@ -227,13 +227,46 @@ exists, use the subagent path above.
 
 ## 6. Report
 
-Rank verified findings most severe first (critical, major, minor), then by dimension.
+### Risk tier
+
+Classify the change as `low`, `medium`, or `high` with the rules in
+[`references/risk.md`](references/risk.md), and list the reasons it gives. Use the paths
+the **whole** target changes (its base to its head, as in the table in step 2), even with
+`--since`, and including paths skipped by `REVIEW.md`: a narrowed re-review never lowers the
+tier. The author is the PR's author for a PR target, and the user running the review
+otherwise. You may raise the tier with a stated reason when the change needs a person
+anyway (as `references/risk.md` describes); never lower it below the rules' result.
+
+### Findings
+
+Rank verified introduced findings most severe first (critical, major, minor), then by
+dimension. Pre-existing findings go in their own `### pre-existing` section after the four
+dimensions, ranked the same way.
+
+**Minor cap.** When `REVIEW.md` sets `max_minor: <n>` and more than `<n>` minor findings are
+verified (introduced and pre-existing together), report the `<n>` most important
+(introduced before pre-existing, then by impact) and state under the count line how many
+were omitted by the cap. The summary counts only the reported findings.
+
+The first line under the header is the **count line**: the findings to fix by severity and
+the number of pre-existing findings, for example
+`To fix: 0 critical, 1 major, 0 minor. Pre-existing: 1.` When there are no introduced
+findings, it is the plain line **"Nothing to fix."**, followed by
+`Pre-existing: <n>.` only when `<n>` is not zero. Below it, when they apply, one line
+each: the paths skipped by `REVIEW.md`, the minor findings omitted by the cap, the known
+findings (`Known findings: <n> fixed, <n> still open.`), and the `--known` lines that
+could not be read.
 
 ```
 ## Review: <uncommitted diff | branch:<name> | PR #<n>>
 
+To fix: 1 critical, 1 major, 0 minor. Pre-existing: 1.
+Skipped by REVIEW.md: gen/client.ts
+Known findings: 1 fixed, 0 still open.
+
 ### correctness
 - [major] src/calc.py:3 — div returns None when b is negative
+  Class: missing branch for negative input. Instances: src/calc.py:11
   Scenario: div(4, -2) -> None instead of -2.0, caller prints "None".
 ### spec
 - [critical] Requirement "Draft and base options" not implemented
@@ -242,10 +275,20 @@ Rank verified findings most severe first (critical, major, minor), then by dimen
 No findings.
 ### security
 No findings.
+### pre-existing
+- [major] correctness src/calc.py:20 — mod divides by zero when b is 0
+  Class: unchecked zero divisor. Instances: none
+  Scenario: mod(1, 0) raises ZeroDivisionError; lines predate this change (git blame).
+
+Risk: high
+- .github/workflows/ci.yml matches .github/workflows/** (CI)
 ```
 
 Every dimension appears, with findings, **"No findings."**, or (spec only)
-**"Not applicable: no OpenSpec change."**
+**"Not applicable: no OpenSpec change."** The `### pre-existing` section appears only when
+there are pre-existing findings. A known finding that is still open is marked
+`(still open)` after its severity, for example `- [major] (still open) src/calc.py:3 — ...`.
+Every finding shows its class and instances (`Instances: none` when there are none).
 
 Then always end with the summary block, exactly in this form, so callers can parse it:
 
@@ -257,20 +300,46 @@ verified: critical=<n> major=<n> minor=<n>
 by_dimension: correctness=<n> spec=<n> tests=<n> security=<n>
 spec_conformance: passed | failed | not_applicable
 dropped_in_verification: <n>
+pre_existing: <n>
+known: fixed=<n> still_open=<n>
+risk: low | medium | high
+risk_reasons: <reason> ; <reason>
+verification: vote | inline
+scope: full | since:<sha>
 -->
 ```
 
 `head` is the sha of `HEAD` (or the PR head) the review ran on; for an uncommitted diff it
-is `HEAD`. `dropped_in_verification` counts only findings refuted in step 5, not those
-merged during deduplication.
+is `HEAD`. `verified` and `by_dimension` count only **introduced** findings, including known
+findings that are still open; pre-existing findings are counted only in `pre_existing`.
+`dropped_in_verification` counts only new candidates refuted in step 5, not those merged
+during deduplication and not known findings found fixed. `known` is `fixed=0 still_open=0`
+without `--known`. `risk_reasons` separates reasons with ` ; `. `verification` is `vote` on
+the subagent and Workflow paths and `inline` otherwise. `scope` is `since:<sha>` with
+`--since` and `full` without it (or when step 2 fell back to a full review).
 
-`spec_conformance` is `passed` when the spec dimension has no verified critical or major
-finding, `failed` otherwise, and `not_applicable` without an OpenSpec change.
+`spec_conformance` is `passed` when the spec dimension has no verified introduced critical
+or major finding, `failed` otherwise, and `not_applicable` without an OpenSpec change.
 
 ## 7. `--comment` mode (PR targets only)
 
-Post only after the report is final. Use one PR review with inline comments for findings
-that map to a line in the diff, and put the rest (plus the summary block) in the review body:
+Post only after the report is final.
+
+**Skip what is already posted.** List the PR's earlier `ep-review` reviews and their
+comments:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/<n>/reviews --paginate      # keep reviews whose body contains <!-- ep-review-summary
+gh api repos/{owner}/{repo}/pulls/<n>/comments --paginate     # keep comments whose pull_request_review_id is one of them
+```
+
+Leave out of the new review every finding whose file and summary match an inline comment
+from one of those reviews (or a finding line in one of their bodies). The new review body
+states `<n> already posted` when `<n>` is not zero. The report printed in the session and
+the summary block keep every finding.
+
+Use one PR review with inline comments for findings that map to a line in the diff, and
+put the rest (plus the summary block) in the review body:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<n>/reviews --method POST --input <payload.json>
@@ -282,15 +351,19 @@ with `payload.json`:
 {
   "commit_id": "<headRefOid>",
   "event": "COMMENT",
-  "body": "<report header, non-inline findings, summary block>",
+  "body": "<report header, count line, non-inline findings, summary block>",
   "comments": [
     { "path": "src/calc.py", "line": 3, "side": "RIGHT",
-      "body": "**[major] correctness** — <summary>\n\nScenario: <scenario>" }
+      "body": "**[major] correctness** — <summary>\n\nScenario: <scenario>\nInstances: <file:line, ...>" }
   ]
 }
 ```
 
+Tag every pre-existing finding `pre-existing` in its comment, for example
+`**[major] correctness · pre-existing** — <summary>`, and add one line saying it predates
+this PR, so it does not read as the author's fault.
+
 Always use `"event": "COMMENT"`, never `APPROVE` or `REQUEST_CHANGES`. If the inline
 review is rejected (for example a line is outside the diff), move that finding into the
-body and retry. With no findings, post a single review body saying so, with the summary
-block. No attribution anywhere. Report the review URL.
+body and retry. With no findings left to post, post a single review body saying so, with
+the summary block. No attribution anywhere. Report the review URL.
