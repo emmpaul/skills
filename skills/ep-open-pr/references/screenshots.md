@@ -22,7 +22,7 @@ into a form. Capture is sequential: no subagents.
 | Gate 1 Stop | End the whole skill before creating or editing the PR. |
 | App did not start | Stop it, open the PR anyway. Section: `Not captured: app did not start`, plus its last output lines. |
 | Page redirects to sign-in | That page is not captured. Section lists it with `Not captured: needs sign-in`. |
-| Gate 2 declined, or push failed twice | Nothing pushed; the PR is still opened. Section lists the local paths. |
+| Gate 2 declined, commit in the scratch worktree failed, or push failed twice | Nothing pushed; the PR is still opened. Section lists the local paths. |
 
 `--screenshots` pre-approves both gates. Without it, each gate is a question to the user
 and waits for the answer.
@@ -210,6 +210,10 @@ git -C "$wt" push origin HEAD:refs/heads/ep-pr-assets
 
 - The commit holds only PNG files under `<branch-slug>/<head-short-sha>/`. The message
   carries no model or tool attribution: check it with `git -C "$wt" log -1 --format=%B`.
+- When any step before the push fails (creating the worktree, `add`, or `commit`, for
+  example a repository hook rejecting the commit), push nothing and
+  fall back to local paths; say in the final report which step failed and its first
+  error line. Never retry the commit with `--no-verify`.
 - A plain push only: never `--force`, `--force-with-lease`, or a `+` refspec.
 - A non-fast-forward rejection (someone pushed meanwhile) gets one retry: `git fetch
   origin ep-pr-assets`, `git -C "$wt" rebase origin/ep-pr-assets` (the temporary branch
@@ -240,8 +244,8 @@ Add `## Screenshots` right after `## Changes`. With pushed images, one line per 
 
 These blob URLs render in private repositories for viewers with access.
 
-When nothing was pushed (gate 2 declined, or the push failed twice), list the local paths
-instead and tell the reader to drag them in:
+When nothing was pushed (gate 2 declined, the commit failed, or the push failed twice),
+list the local paths instead and tell the reader to drag them in:
 
 ```markdown
 ## Screenshots
