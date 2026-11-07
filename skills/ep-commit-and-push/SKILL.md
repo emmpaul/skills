@@ -25,10 +25,17 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
 - **The default branch asks first.** Before a push whose target (step 7) is the
   repository's default branch, ask the user, even when told to just commit; push it
   only on a yes. An unknown default branch (step 1) counts as the target: ask.
-- **Secret-like files ask first.** An untracked file whose name looks like a secret
-  (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `*credentials*`, `*.p12`) is staged only after
-  the user says yes to it by name, even when told to just commit. Until then it stays
-  untracked, and the plan and report list it as left out.
+- **Secret-like files ask first.** Check every file the commits would add as new to
+  history: each untracked file in `git status --porcelain --untracked-files=all` (which
+  lists the files inside a new directory one by one) and each staged added file in
+  `git diff --cached --name-only --diff-filter=A`. One whose file name (the last path
+  component) matches a secret-like name is committed only after the user says yes to it
+  by name, even when told to just commit. Until then it stays out of every commit (an
+  untracked one stays untracked, a staged one is unstaged with
+  `git restore --staged -- <file>`), and the plan and report list it as left out.
+  Secret-like names: `.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`,
+  `*.kdbx`, `*.tfvars`, `id_rsa*`, `id_ed25519*`, `id_ecdsa*`, `id_dsa*`,
+  `*credentials*`, `secrets.*`, `.netrc`, `.npmrc`, `.pypirc`.
 - **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
   commit again. Use `--no-verify` only when the user asks.
 
@@ -68,7 +75,8 @@ git diff                   # unstaged
 git log -n 15 --format='%s%n%b---'   # recent style
 ```
 
-and the contents of untracked files from `git status`, except secret-like files (hard
+and the contents of the untracked files that
+`git status --porcelain --untracked-files=all` lists, except secret-like files (hard
 rules), whose names are enough.
 
 Then settle the default branch. When `gh auth status` succeeds, run
@@ -87,8 +95,8 @@ when the branch already has unpushed commits.
 ## 2. Decide what is in scope
 
 - The user asked to commit **only staged changes**: plan one commit of the staged set
-  from `git diff --cached`. Stage nothing else, and leave unstaged changes in place
-  (unstashed).
+  from `git diff --cached`, minus secret-like files left out (hard rules). Stage nothing
+  else, and leave unstaged changes in place (unstashed).
 - Otherwise plan from all changes.
 
 ## 3. Group changes into commits
@@ -123,7 +131,7 @@ differently from the current branch, or a default-branch target, unknown default
 branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
 Done when every changed file or hunk in scope sits in exactly one planned commit, except
-secret-like untracked files without a yes, which sit on the left-out line.
+secret-like files without a yes, which sit on the left-out line.
 Proceed when the user approves, or at once if they said to just commit.
 
 ## 4. Write messages
@@ -165,7 +173,7 @@ in the commit that implements the task. Tick only tasks the commit completes in 
 For each planned commit, in order:
 
 ```bash
-git add -- <files>            # or apply the hunk patch to the index
+git add -- <files>            # file paths, or apply the hunk patch to the index
 msg=$(mktemp)
 cat > "$msg" <<'MSG'
 fix(parser): handle empty input
@@ -177,7 +185,8 @@ rm -f "$msg"
 ```
 
 When committing only staged changes, skip `git add` and make a single commit of the
-staged set as it is, unless the user asks to restage or split it.
+staged set as it is once any left-out secret-like file is unstaged, unless the user asks
+to restage or split it.
 
 ## 6. Verify
 

@@ -129,11 +129,26 @@ When `gh` is authenticated, the skill SHALL take the default branch from `gh rep
 - **THEN** the skill treats the default branch as unknown and asks before pushing
 
 ### Requirement: Secret-like files are staged only on a yes
-An untracked file whose name looks like a secret (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `*credentials*`, `*.p12`) SHALL be staged only after the user says yes to it by name, even when the user said to just commit. Until then the skill SHALL leave it untracked and list it in the plan and the report.
+A file new to history (untracked, listed with `git status --porcelain --untracked-files=all`, or staged added, from `git diff --cached --name-only --diff-filter=A`) whose name is secret-like SHALL be committed only after the user says yes to it by name, even when told to just commit. Until then the skill SHALL keep it out of every commit (untracked stays untracked, staged is unstaged) and list it in the plan and the report.
 
 #### Scenario: Untracked env file
 - **WHEN** the working tree has an un-ignored, untracked `.env.local` beside other changes and the user says to just commit
 - **THEN** the skill commits and pushes the other changes, leaves `.env.local` untracked, and lists it in the plan and the report as left out
+
+#### Scenario: Staged env file
+- **WHEN** the user staged a never-committed `.env.local` and says to just commit
+- **THEN** the skill unstages it, commits and pushes the other changes, and lists `.env.local` as left out
+
+#### Scenario: Secret inside a new directory
+- **WHEN** a new untracked directory `deploy/` holds `prod.pem` and other files
+- **THEN** the skill commits the other files of `deploy/` and leaves `deploy/prod.pem` untracked and listed as left out
+
+### Requirement: Secret-like names
+The secret-like names SHALL be `.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `*.kdbx`, `*.tfvars`, `id_rsa*`, `id_ed25519*`, `id_ecdsa*`, `id_dsa*`, `*credentials*`, `secrets.*`, `.netrc`, `.npmrc`, and `.pypirc`, matched against the last path component.
+
+#### Scenario: Private key
+- **WHEN** an untracked `id_ed25519` sits beside other changes and the user says to just commit
+- **THEN** the skill leaves `id_ed25519` untracked and lists it as left out
 
 ### Requirement: No-push mode
 With `--no-push`, or when the user or a calling skill says to commit without pushing, the skill SHALL create and verify its commits as usual, push nothing, and report the commits as local.
