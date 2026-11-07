@@ -221,7 +221,8 @@ Runs once, after every task is done and before the first review round.
 Specs, design, and proposal stay as they are, and tests keep their full strength: never
 touch the plan, and never weaken a test. A test that exists only for removed dead code is
 removed with it, in the same commit as the code. The phase is done when every candidate is
-removed and committed, restored, or reported.
+cleared as not dead by step 2 (kept, and neither removed nor reported), removed and
+committed, restored, or reported.
 
 ```
 <!-- ep-orchestrate-deadcode
