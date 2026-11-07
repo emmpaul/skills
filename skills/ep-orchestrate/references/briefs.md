@@ -370,13 +370,35 @@ This section runs in two parts, because only the user can approve the plan.
 
 1. Babysit only the bottom open layer (its PR targets the default branch):
    `ep-babysit-pr <pr>`. With subagents, run each babysit in its own subagent, which polls
-   inside its session. Read the result from `.git/ep-babysit/<pr>.json` (`outcome`:
-   `merged`, `closed`, or `stopped: <reason>`) and the subagent's final report line, not
-   its transcript.
+   inside its session. A babysit subagent is an unattended run by `ep-babysit-pr`'s own
+   test (no user message started it, and it has no question tool), so it never gets a
+   risk-gate yes itself. Tell it: when only the risk gate is left for the current head
+   (its step 7 rule "Only the risk gate fails"), stop polling, leave `outcome` unset, and
+   end with the final report line
+   `risk_gate: <tier> head=<headRefOid> reasons=<reason> ; <reason>`.
+   Read the result from `.git/ep-babysit/<pr>.json` (`outcome`: `merged`, `closed`, or
+   `stopped: <reason>`) and the subagent's final report line, not its transcript.
 2. `merged`: confirm with `gh pr view <pr> --json state` (`MERGED`). Then invoke
    `ep-stack retarget` in the driving session (it shows the base change and waits for
    confirmation, its own rule), read its `layer:` lines, and continue with the next layer.
-3. Anything else: stop. Do not touch the layers above. Record the layer and the reason.
+3. A `risk_gate:` line (outcome unset): the layer needs the user's yes for that head
+   (medium or high tier). Ask in the driving session (see "Asking the user" in SKILL.md)
+   with the tier, the reasons, the head sha, and the options `Merge`, `Wait`, and `Stop`;
+   for `high`, say that a human GitHub approval of that head is also needed.
+   - `Merge` or `Stop`: run `ep-babysit-pr <pr>` for that layer **in the driving session**,
+     not a subagent, and tell it the user's answer and the head sha it was for. That run
+     is attended (the user's reply to a risk-gate notice), so babysit records the answer
+     under its own rules: Merge sets `human_ok` for that head only when `headRefOid` still
+     equals it (a moved head needs a new yes, which babysit then asks in this session);
+     Stop sets `outcome: stopped: user declined merge`. Then read the outcome as in steps
+     2 and 4.
+   - `Wait`: stop as in step 4 with reason `risk gate: waiting for the user's yes on
+     <head>`; the next run of this layer's babysit asks again.
+4. Anything else: stop. Do not touch the layers above. Record the layer and the reason.
+
+Without subagents, run step 1's babysit inline with the same instruction, and handle a
+`risk_gate:` line as in step 3: the question is asked at this question point, never by a
+babysit run this skill started, since no user message started that run.
 
 Never force-push, never merge outside `ep-babysit-pr`, and never retarget a layer whose
 parent has not merged.

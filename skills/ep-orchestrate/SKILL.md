@@ -257,7 +257,7 @@ Each phase follows its section of `references/briefs.md` and ends with a summary
 | dead code | 1 fresh subagent, brief `#deadcode` | inline |
 | review round *k* | 1 fresh subagent, brief `#review` | inline |
 | fix round *k* | 1 fresh subagent, brief `#fix` | inline |
-| stack | split and retarget in this session; 1 subagent per babysit run | inline, layer by layer |
+| stack | split and retarget in this session; 1 subagent per babysit run, except a risk-gate answer's babysit run, which runs in this session | inline, layer by layer |
 
 **With subagents:** give each subagent the path of `briefs.md`, the name of its section,
 and the inputs that section lists: names, shas, and paths, never pasted artifact text.
@@ -487,6 +487,7 @@ Outcome `reviewed` (or `review_limit` / `blocked` from step 8).
 | babysit | only the bottom open layer, one at a time |
 | retarget the next PR | after `gh pr view` shows the parent `MERGED`; `ep-stack retarget`'s own confirmation applies |
 | merge a layer | only `ep-babysit-pr`, under its hard gates and score ≥ 85 |
+| risk gate (medium or high layer) | the user's yes for that layer's exact head, asked in the driving session (`briefs.md#stack`, Part 2 step 3) and passed to `ep-babysit-pr` run there; high also needs a human GitHub approval of that head; Wait or Stop stops the run |
 | force-push | never, on any layer |
 
 A layer whose babysit stops without merging stops the run: layers above it are left
