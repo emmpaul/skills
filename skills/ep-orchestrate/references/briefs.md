@@ -521,8 +521,9 @@ pass, else the base sha.
    findings (introduced before pre-existing) and say how many the cap omitted; the
    summary counts only those reported.
 9. **Risk tier**, from every path the branch changes since the merge base
-   (`git diff --name-only $(git merge-base <branch> origin/<default>)...<head>`,
-   `<default>` with no remote; skipped paths included, also with `since`), with reasons
+   (every path column of `git diff --name-status -M $(git merge-base <branch>
+   origin/<default>)...<head>`, so a rename's old and new path both count; `<default>`
+   with no remote; skipped paths included, also with `since`), with reasons
    naming each path and rule:
    - **high** when a path matches `.github/workflows/**`, `.github/actions/**`,
      `CODEOWNERS` (any depth), `**/install*`, `**/*updater*`, `**/release*`,
