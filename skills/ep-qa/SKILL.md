@@ -253,7 +253,7 @@ Done when every candidate has an outcome.
    path.
 5. Print a short summary: counts by severity, the top findings (id, severity, title), the
    report path (and, for a dated name, why), and a suggestion to commit the report (for
-   example with `ep-commit`) or delete it.
+   example with `ep-commit-and-push`) or delete it.
 6. End with this block, exactly in this form, as the last thing in the output:
 
 ```ep-qa-summary

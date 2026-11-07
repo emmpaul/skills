@@ -85,8 +85,8 @@ Paths under `references/` and `scripts/` are relative to this skill's folder (th
 directory containing this SKILL.md):
 
 - `references/confidence.md`: the gate (steps 5 and 9, and the plan fingerprint on resume).
-- `references/briefs.md`: one brief per phase, summary formats, fallbacks for `ep-commit`
-  and `ep-review`.
+- `references/briefs.md`: one brief per phase, summary formats, fallbacks for
+  `ep-commit-and-push` and `ep-review`.
 - `references/resume.md`: read when a state file exists (step 1.4).
 - `references/workflow.md`: read only with `--workflow` (step 8).
 - `scripts/context.sh`: the probe.

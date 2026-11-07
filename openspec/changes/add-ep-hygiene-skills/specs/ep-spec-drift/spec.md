@@ -10,8 +10,8 @@ Checks a whole repository against its main OpenSpec specs, reporting for each re
 The skill SHALL check every capability under the repository's main specs by default, or only the capabilities the user names.
 
 #### Scenario: Single capability
-- **WHEN** the user runs `ep-spec-drift ep-commit`
-- **THEN** only the `ep-commit` capability is checked
+- **WHEN** the user runs `ep-spec-drift ep-commit-and-push`
+- **THEN** only the `ep-commit-and-push` capability is checked
 
 #### Scenario: Unknown capability
 - **WHEN** the user names a capability that has no main spec

@@ -97,7 +97,7 @@ the file (`<old-start>` is 0) only the line below exists, so blame line 1.
   number of new lines), ask the user which commit it belongs to; in caller mode, leave it
   uncommitted and end with `needs_decision`, naming the change and the candidate commits.
 - **Base lines only** (no branch commit introduced them): propose a normal commit
-  following `ep-commit` conventions instead of a fixup. In direct use the outcome is
+  following `ep-commit-and-push` conventions instead of a fixup. In direct use the outcome is
   `needs_decision` until the user agrees; caller mode makes the normal commit and lists
   it under `commits:`.
 - **New file** (untracked, or staged but absent from `HEAD`, so nothing to blame): target
@@ -166,7 +166,7 @@ identical.
 
 - Target is the branch commit (since the merge base) that introduced the corrected lines.
 - Subject is exactly `fixup! <target subject>`, with no attribution.
-- Lines from the base get a normal ep-commit commit, never a fixup.
+- Lines from the base get a normal ep-commit-and-push commit, never a fixup.
 - No autosquash, rebase, or force-push in caller mode; `rewritten: false`.
 - Never `--force`; `--force-with-lease` only after confirmation in direct use.
 - Caller mode never waits: an unresolvable target returns `needs_decision`, uncommitted.

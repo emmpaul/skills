@@ -58,7 +58,7 @@ openspec list --json                     # optional; root null = no OpenSpec
 ```
 
 A dirty working tree stops every subcommand except `status`: ask the user to commit
-(offer `ep-commit`) or stash first. Done when the tree is clean (or the subcommand is
+(offer `ep-commit-and-push`) or stash first. Done when the tree is clean (or the subcommand is
 `status`) and you know the default branch and whether OpenSpec is present.
 
 ## Native mode

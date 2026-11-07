@@ -24,7 +24,7 @@ Step 8 of `SKILL.md`, read only with `--fix`. Edits go to the working tree; no c
 ## After editing
 
 Leave the edits uncommitted. Show `git diff --stat` and the diff of the edited files under
-"Fixed", and suggest committing them (for example with `ep-commit`). Keep line numbers
+"Fixed", and suggest committing them (for example with `ep-commit-and-push`). Keep line numbers
 from before the fix in the report. Fixed findings still count in the summary's
 `findings`, and `fixed: true` only when files were edited.
 

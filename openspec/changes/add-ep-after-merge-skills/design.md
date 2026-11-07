@@ -67,7 +67,7 @@ The default branch is updated with `git pull --ff-only`. On failure (diverged), 
 
 Archiving (`openspec archive <change>`) moves files and updates `openspec/specs/`, so it is a commit.
 
-- **Chosen:** an `chore/archive-<change>` branch from the fresh default branch, then `openspec archive <change> --yes`, a commit following ep-commit conventions (`chore(openspec): archive <change>`), a push, and a PR following ep-open-pr conventions (title, body, no attribution). It runs only after the user confirms the offer. It works under branch protection and gets reviewed like any other change. This is the same shape PR #1 in this repo took by hand.
+- **Chosen:** an `chore/archive-<change>` branch from the fresh default branch, then `openspec archive <change> --yes`, a commit following ep-commit-and-push conventions (`chore(openspec): archive <change>`), a push, and a PR following ep-open-pr conventions (title, body, no attribution). It runs only after the user confirms the offer. It works under branch protection and gets reviewed like any other change. This is the same shape PR #1 in this repo took by hand.
 - **Rejected:** committing the archive directly to the default branch. It breaks under branch protection, skips review of the generated main specs, and contradicts "never pushes to the default branch".
 - **Rejected:** archiving inside the feature PR before merge. That's a valid team convention, but it isn't `ep-land`'s job, and it would change `ep-open-pr`.
 

@@ -37,7 +37,7 @@ For one failing check:
      (GitHub re-runs those too) publishes, releases, or deploys, report it instead of
      re-running.
    - `config`, `secret`: report what is needed; no code change.
-5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
+5. **Commit** each cause separately (ep-commit-and-push conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
 6. **Result fields**, as in `ep-ci-debug-summary`: `outcome` (`fixed`, `rerun`, or
    `reported`), `head`, and
@@ -82,7 +82,7 @@ For one fix-class review comment, in a repository whose merge method is squash:
      separated is not guessed: outcome `needs_decision` for that change, left uncommitted.
    - new file (nothing to blame): target the commit that added the code it serves; with no
      clear target, outcome `needs_decision` for that file, left uncommitted.
-   - base lines only: make a normal ep-commit commit instead (listed under `commits:`).
+   - base lines only: make a normal ep-commit-and-push commit instead (listed under `commits:`).
 3. **Commit:** `git commit --fixup=<target-sha>` per target, containing only its hunks.
    Subject is exactly `fixup! <target subject>`; check it has no attribution.
 4. **Push** with plain `git push`. The fixups stay as they are: never autosquash, rebase,
@@ -98,7 +98,7 @@ Done when every hunk is in a pushed fixup or normal commit, or left uncommitted 
 
 - Target is the branch commit (since the merge base) that introduced the corrected lines.
 - Subject is exactly `fixup! <target subject>`, with no attribution.
-- Lines from the base get a normal ep-commit commit, never a fixup.
+- Lines from the base get a normal ep-commit-and-push commit, never a fixup.
 - No autosquash, rebase, or force-push in caller mode; `rewritten: false`.
 - Never `--force`; `--force-with-lease` only after confirmation in direct use.
 - Caller mode never waits: an unresolvable target returns `needs_decision`, uncommitted.
@@ -129,7 +129,7 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
 
    Group interactions by file or identifier into clusters; classify each interaction as
    `needs-update`, `review`, or `no-impact`, with base commit, branch location, and reason.
-4. **Adapt** each needs-update cluster in its own commit after the merge commit (ep-commit
+4. **Adapt** each needs-update cluster in its own commit after the merge commit (ep-commit-and-push
    conventions, `fix`/`refactor`, body naming the base commit, no attribution). If more
    than one reasonable fix behaves differently, do not choose: stop with `needs_decision`
    and the options.

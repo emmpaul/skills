@@ -72,7 +72,7 @@ Stop at the first that fails:
 
 1. **Detached HEAD**, or the current branch is the base itself: stop and say so.
 2. **Dirty working tree** (staged, unstaged, or untracked files): stop and ask the user
-   to commit (offer `ep-commit`) or stash first. Leave the stashing to them.
+   to commit (offer `ep-commit-and-push`) or stash first. Leave the stashing to them.
 3. **Up to date:** `git rev-list --count HEAD..$base_ref` is 0. Report that the branch is
    up to date, change nothing, and end with outcome `up_to_date`.
 
@@ -137,7 +137,7 @@ base (for example: update every call site of a renamed function, pass the new re
 argument, read the renamed config key).
 
 - Commit each adaptation **separately from the merge commit**, after it, following
-  `ep-commit` conventions: Conventional Commit, type `fix` or `refactor`, the repo's
+  `ep-commit-and-push` conventions: Conventional Commit, type `fix` or `refactor`, the repo's
   scope convention (with OpenSpec, the active change name), and a body naming the base
   commit that caused it. Group interactions from one cluster into one commit.
 
