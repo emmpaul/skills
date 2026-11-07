@@ -196,8 +196,12 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   runs it. Run the window's stop item as usual. To verify the crash, re-run the same
   confirmed start command once (it is already in the confirmed plan, so this is not an
   unplanned command): check the port is free, start and wait for readiness as above, send
-  the crashing probe alone, then run the same stop item. It crashes again: reproduced.
-  It does not: flaky, and the blocked items run in this second window before its stop.
+  the crashing probe alone. It crashes again: reproduced, with that probe alone as the
+  steps. It does not: in the same re-start, replay the window's earlier probes in their
+  original order, then the crashing probe; a crash now is reproduced, with that whole
+  sequence as the steps (the crash depends on state the earlier probes left). No crash
+  either way: flaky, with both runs as evidence, and the blocked items run in this second
+  window. Then run the same stop item.
   Never more than that one re-start per window; a crash in it blocks the rest the same
   way.
 - **Stop items:** plan each start's stop right after that start's window (its probes and
