@@ -132,7 +132,7 @@ the group, in order, finish the task before starting the next:
 2. **Implement** only that task. Keep the change minimal and inside what the specs and
    design describe.
 3. **Verify** with the task's stated verification (command, test, observable check). On
-   failure, fix the code and re-run, at most 3 attempts. Tests pass as written: never
+   failure, fix and re-run, at most 3 attempts. Keep every test at full strength: never
    skip, delete, loosen, or xfail a test to pass.
 4. **Tick** `- [ ]` → `- [x]` on that task's line only.
 5. **Commit** the task on its own (the commit rhythm below).
@@ -218,10 +218,10 @@ Runs once, after every task is done and before the first review round.
 5. **When `large_predicted: yes`:** split removals per task group, as in fix step 5, so
    no commit mixes stack layers.
 
-Specs, design, proposal, and tests stay as they are: never touch the plan, and never
-weaken a test. A test that exists only for removed dead code goes in the same commit as
-the code. The phase is done when every candidate is removed and committed, restored, or
-reported.
+Specs, design, and proposal stay as they are, and tests keep their full strength: never
+touch the plan, and never weaken a test. A test that exists only for removed dead code is
+removed with it, in the same commit as the code. The phase is done when every candidate is
+removed and committed, restored, or reported.
 
 ```
 <!-- ep-orchestrate-deadcode
@@ -315,10 +315,10 @@ For each critical or major finding, and each minor one that is cheap to fix:
    its `instances:`**, all in the finding's one commit: a fix that leaves an instance
    unfixed is not done. Group findings that share one root cause and fix them once.
    `pre-existing:` lines are never passed here and never fixed.
-2. Fix the code, not the tests or the plan: never weaken tests to pass, and never edit
-   specs, design, or proposal to match the code. A finding whose fix needs a spec
-   change is not fixed: count it as deferred and
-   set `blocker: spec: <finding id> <one line>`.
+2. Keep tests at full strength and the plan as it is: a fix may change code or tests to
+   fix the cause, but never weakens tests to pass, and never edits specs, design, or
+   proposal to match the code. A finding whose fix needs a spec change is not fixed:
+   count it as deferred and set `blocker: spec: <finding id> <one line>`.
    A finding with an open choice that the specs, design, and `answers` do not settle,
    and that is not a spec change, is not deferred: leave its work uncommitted, set
    `blocker: needs input: <finding id>: <question> | <option> ; <option>` (the form in
