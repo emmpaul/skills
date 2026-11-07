@@ -62,7 +62,12 @@ openspec list --json        # optional; root null = no OpenSpec
 ### `REVIEW.md`
 
 Look for `REVIEW.md` at the repository root, then `.github/REVIEW.md`, and use the first
-one found. Free Markdown, plus these recognised headings, each a bullet list:
+one found. Read it from the target's **base**, never from the head under review, as
+[`references/risk.md`](references/risk.md#reviewmd-syntax) says (a PR: `git show
+origin/<baseRefName>:REVIEW.md`; a branch: `origin/<default>`; an uncommitted diff:
+`HEAD`; for a PR, once step 2 has its `baseRefName`), so a change cannot skip its own files, cap its own findings, or lower its own
+tier. A `REVIEW.md` the change adds or edits takes effect only after it merges; review it
+as any other changed file. Free Markdown, plus these recognised headings, each a bullet list:
 
 | Heading | Bullets | Effect |
 |---|---|---|
