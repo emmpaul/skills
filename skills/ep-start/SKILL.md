@@ -178,8 +178,12 @@ or **skip**.
 
 Name the change by step 3's slug rule, starting with a verb (`fix-` for type `fix`,
 `add-` for `feat`, otherwise the title's own verb such as `update-`) that appears once
-("add CSV export" gives `add-csv-export`), at most about 40 characters in all. When the
-name is in the probe's `changes`, ask: **use the existing change** or **pick a new name**. Then:
+("add CSV export" gives `add-csv-export`), at most about 40 characters in all.
+`ep-issue-to-change` names its changes by this same rule, so one issue gives one name.
+The change exists when the name is in the probe's `changes`, or, with an issue, when
+`grep -lF "From #<n>:" <root>/openspec/changes/*/proposal.md` lists a proposal (the
+citation `ep-issue-to-change` writes); that directory's name is the existing change.
+When it exists, ask: **use the existing change** or **pick a new name**. Then:
 
 ```bash
 openspec new change "<change>" --json

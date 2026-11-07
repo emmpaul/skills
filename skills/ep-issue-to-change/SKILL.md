@@ -96,10 +96,15 @@ each ask traced to the body or a named comment.
 
 ## 3. Name and create the change
 
-Derive the name from the issue title: lowercase ASCII, kebab-case (`[a-z0-9-]` only),
-starting with a verb (`fix-` for a bug, `add-` for new behavior, otherwise the title's
-own verb such as `remove-` or `update-`), stop words dropped, at most about 40
-characters. For "Login fails with SSO" (#17, a bug): `fix-sso-login`.
+Derive the name from the issue title by the rule `ep-start --change` uses, so both
+skills give one issue one name. Start with a verb that appears once (`fix-` for a bug,
+`add-` for new behavior, otherwise the title's own verb such as `remove-` or
+`update-`). Then slug the title: drop a leading bracketed tag (`[...]`) and code marks,
+lowercase it, transliterate or drop non-ASCII, split it into words at every run of
+characters outside `[a-z0-9]`, drop empty words and stop words (a, an, the, to, of, for,
+in, on, is, are, be, please, should), and join the rest with single `-`, keeping whole
+words up to about 40 characters in all. For "Login fails with SSO" (#17, a bug):
+`fix-login-fails-with-sso`.
 
 When the name is in the probe's `changes` (or `openspec list --json`), ask the user:
 **continue `<name>`** or **pick a new name**. A new name goes through the same check.
