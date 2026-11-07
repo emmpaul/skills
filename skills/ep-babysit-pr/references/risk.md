@@ -52,7 +52,7 @@ Give one reason per match, naming the path and the rule, for example
 
 ## Low
 
-The tier is `low` only when both conditions hold:
+The tier is `low` only when all three conditions hold:
 
 1. **Paths:** every changed path is documentation-only (below) or matches a `low:` glob in
    the `REVIEW.md` `## Risk` section, and no changed path matches a `medium:` glob there.
