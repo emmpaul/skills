@@ -111,7 +111,9 @@ authenticated `gh` user, their logins under `## Trusted authors`:
 - octocat
 ```
 
-A `low:` glob never lowers a built-in high match.
+A `low:` glob never lowers a built-in high match. The skills read `REVIEW.md` from the
+PR's base branch, never from the PR itself, and a PR that changes `REVIEW.md` is at least
+medium, so a PR cannot lower its own tier or trust its own author.
 
 Because the reviewer it relies on is also an agent, **enable branch protection
 requiring at least one human approval** on any repo where an unreviewed merge
