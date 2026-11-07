@@ -75,7 +75,7 @@ branch's behaviour.
 ### 5. Spec overlap (only with an OpenSpec root and an active change for this branch)
 
 Run this check only when the repository has an OpenSpec root and the branch implements
-an active change. Otherwise skip it and leave it, and OpenSpec, out of the report.
+an active change. Otherwise skip it and mention neither it nor OpenSpec anywhere.
 
 Otherwise, take the capabilities the active change touches (its
 `openspec/changes/<name>/specs/<capability>/` folders). Report each base commit that:

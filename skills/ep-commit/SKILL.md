@@ -111,7 +111,8 @@ Format: `type(scope): subject`
   - A change unrelated to the diff: derive the scope from paths, as below.
 - **No OpenSpec** (`openspec` is null): derive the scope from the changed paths (the
   package, module, or top-level directory). Omit it when changes sit at the repo root or
-  history mostly omits scopes. Leave OpenSpec out of the messages and the report.
+  history mostly omits scopes. Mention OpenSpec nowhere: not in the plan, questions,
+  messages, or report.
 
 ### Ticking OpenSpec tasks
 

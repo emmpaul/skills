@@ -78,8 +78,8 @@ Stop at the first that fails:
 
 **OpenSpec:** if the repository has an OpenSpec root, find the active change this branch
 implements (used as commit scope, touched by the branch, or named in the PR body).
-Without a root or a matching change, skip every OpenSpec step and leave OpenSpec out of
-the report.
+Without a root or a matching change, skip every OpenSpec step and mention OpenSpec
+nowhere.
 
 Done when the audit inputs are recorded, before integrating anything
 ([`references/audit.md`](references/audit.md#inputs)): the merge base, B (incoming base

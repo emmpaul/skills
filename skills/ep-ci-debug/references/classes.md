@@ -23,7 +23,7 @@ A failing test is classed `test` (test is wrong, code is right) only when the ne
 behaviour is documented: in the PR title or body, in the branch's commit messages, or,
 when the repository has an OpenSpec root, in the active change's specs (find the change
 the branch implements; read its `specs/**/spec.md`). Without an OpenSpec root, use only
-the PR and commits, and leave OpenSpec out of the report. With no such documentation, the
+the PR and commits, and mention OpenSpec nowhere. With no such documentation, the
 class is `code`.
 
 ## Re-run
