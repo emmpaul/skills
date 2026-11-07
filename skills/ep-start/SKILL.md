@@ -99,10 +99,12 @@ description), and the issue number or none are known.
 3. Otherwise `feat`.
 
 **Slug:** from the title, drop a leading bracketed tag (`[...]`) and code marks, lowercase
-it, transliterate or drop non-ASCII, turn every run of other characters into `-`, drop stop
-words (a, an, the, to, of, for, in, on, is, are, be, please, should), and cut at a word
-boundary to at most about 40 characters. "Login fails with SSO" gives
-`login-fails-with-sso`.
+it, and transliterate or drop non-ASCII. Split it into words at every run of characters
+outside `[a-z0-9]`, drop empty words and stop words (a, an, the, to, of, for, in, on, is,
+are, be, please, should), and join the rest with single `-`, keeping whole words up to
+about 40 characters. The slug starts and ends with a letter or digit and has no `--`.
+"Login fails with SSO" gives `login-fails-with-sso`; "Crash on save (Windows)" gives
+`crash-save-windows`.
 
 **Name:** `<type>/<n>-<slug>` with an issue, `<type>/<slug>` without. An empty slug gives
 `<type>/<n>` with an issue; without one, ask the user for a short name. A name the user
@@ -170,10 +172,10 @@ says only "`--change` was ignored; no change was created."
 With `--change`, create the change. Without it, ask once: **create a change** `<change>`
 or **skip**.
 
-Name the change from the title: kebab-case `[a-z0-9-]` only, starting with a verb (`fix-`
-for type `fix`, `add-` for `feat`, otherwise the title's own verb such as `update-`),
-stop words dropped, at most about 40 characters. When the name is in the probe's
-`changes`, ask: **use the existing change** or **pick a new name**. Then:
+Name the change by step 3's slug rule, starting with a verb (`fix-` for type `fix`,
+`add-` for `feat`, otherwise the title's own verb such as `update-`) that appears once
+("add CSV export" gives `add-csv-export`), at most about 40 characters in all. When the
+name is in the probe's `changes`, ask: **use the existing change** or **pick a new name**. Then:
 
 ```bash
 openspec new change "<change>" --json
