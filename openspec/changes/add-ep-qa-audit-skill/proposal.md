@@ -10,7 +10,7 @@ No `ep-*` skill checks whether an app or repository actually works. `ep-review` 
   - Audits the whole repository at its current checkout (default), one path inside it (for example one package of a monorepo), or a running app at a URL the user gives (`--url`).
   - Discovers how the project is meant to be set up, built, checked, tested, and run from its manifests, task runners, CI workflow, and docs, and turns that into a test plan of exact commands and probes.
   - Shows the plan and runs project commands only after the user confirms it (or passes `--yes`). It never runs commands that deploy, publish, release, push, migrate or touch non-local services, or need credentials, and it never installs global tools.
-  - Executes the plan: install, build, lint, typecheck, and tests; starts the app where possible and probes its main flows plus edge cases (empty, invalid, large, and unicode input, missing config); checks documented commands, flags, and examples against observed behavior. With an OpenSpec root, the main specs' scenarios are also used as expected behavior.
+  - Executes the plan: install, build, lint, typecheck, and tests; starts the app where possible and probes its main flows plus edge cases (empty, invalid, large, and unicode input, missing config); checks documented commands, flags, and examples against observed behavior. One action-route filter, shared by local apps and `--url`, keeps every documented route whose path or docs name an action (send, cron, webhook, delete, ...) or an effect outside the app from being requested at all, whatever its method; such routes are listed under "Not covered". With an OpenSpec root, the main specs' scenarios are also used as expected behavior.
   - Reports only verified findings: each one was observed (command output, HTTP response, or crash) and reproduced on a re-run, with severity (critical, major, minor), area, reproduction steps, expected versus actual, and evidence. A failure that does not reproduce is reported as flaky with both runs as evidence. Problems caused only by the auditing machine (a missing tool, no network) go to a "Not covered" list, not to findings.
   - Writes the audit file, `qa-audit.md` at the repository root by default (`--out <path>` overrides). It overwrites only a file that an earlier `ep-qa` run wrote, and never commits it.
   - Read-only toward source: it edits no source, test, config, or lock file. Files that the confirmed commands write (build output, caches, installed dependencies) are listed in the report and left in place.
@@ -21,7 +21,7 @@ No `ep-*` skill checks whether an app or repository actually works. `ep-review` 
 - `ep-qa` ships its own synced copy of `scripts/context.sh` (through the existing `scripts/sync-shared.sh`). `shared/context.sh` does not change.
 - README: add `ep-qa` to the skills table and install commands, and document `--full`, the run record, and regression test proposals.
 
-**Outward effects on GitHub:** none. `ep-qa` never posts, pushes, commits, or merges. With `--url`, it sends only read-only HTTP requests (`GET`, `HEAD`) to that URL.
+**Outward effects on GitHub:** none. `ep-qa` never posts, pushes, commits, or merges. With `--url`, it sends only read-only HTTP requests (`GET`, `HEAD`) to that URL, and only to clearly read-only routes. On a locally started app it never requests a route that may send, schedule, or notify outside the app.
 
 ## Capabilities
 

@@ -71,7 +71,15 @@ Within the confirmed plan, the skill SHALL install dependencies with the project
 
 #### Scenario: Web server
 - **WHEN** the project starts an HTTP server
-- **THEN** the skill starts it locally, waits until it answers, requests its documented routes plus a missing route and malformed input, records server errors and crashes as candidates, and stops the server at the end
+- **THEN** the skill starts it locally, waits until it answers, requests each documented route that passes the action-route filter plus a missing route and malformed input on those routes, records server errors and crashes as candidates, and stops the server at the end
+
+#### Scenario: Local action route not probed
+- **WHEN** a locally started app documents `GET /api/cron/send-digest`
+- **THEN** the skill sends no request to that route with any method or body, and the report lists it under "Not covered" as `not probed: may change state (GET /api/cron/send-digest)`
+
+#### Scenario: Local write route still probed
+- **WHEN** a locally started app documents `POST /api/greet` and neither its path nor its doc text names an action
+- **THEN** the skill sends it malformed bodies (invalid JSON, wrong types, missing fields) and records a 500 as a candidate
 
 #### Scenario: Start needs an undocumented variable
 - **WHEN** the documented start fails because a non-credential environment variable is missing that no doc mentions
@@ -97,11 +105,26 @@ The skill SHALL check documented setup steps, commands, flags, environment varia
 - **THEN** the report has no finding for that variable
 
 ### Requirement: Read-only probing of a URL
-With `--url`, the skill SHALL send only `GET` and `HEAD` requests to that URL and paths under it, SHALL NOT submit forms, sign in, or send any other method, and SHALL send state-changing requests only to an app it started locally.
+With `--url`, the skill SHALL send only `GET` and `HEAD` requests to that URL and paths under it, SHALL NOT submit forms, sign in, or send any other method, SHALL request a documented route only when it is clearly read-only (documented as `GET` or `HEAD`, passes the action-route filter, and needs no token, signature, or id parameter), and SHALL send state-changing requests only to an app it started locally and never to an action route.
+
+#### Scenario: Action route on a live app
+- **WHEN** the user runs `ep-qa --url https://staging.example.com` and the docs give `GET /api/cron/send-digest`
+- **THEN** the skill sends no request to that route, and the report lists it under "Not covered" as `not probed on --url: may change state (GET /api/cron/send-digest)`
 
 #### Scenario: Probing a live app
 - **WHEN** the user runs `ep-qa --url https://staging.example.com`
 - **THEN** every request sent to that host is a `GET` or `HEAD`, and flows that need writes are listed under "Not covered"
+
+### Requirement: Action-route filter
+The skill SHALL apply one action-route filter, with one shared action-word list, to the documented routes of a locally started app and of a `--url` app. A route SHALL fail it, whatever its method, when its path or doc text names an action from the list or its docs say it changes, sends, schedules, or notifies anything outside the app. A route that fails it SHALL NOT be requested with any method or body.
+
+#### Scenario: Failed route listed as not covered
+- **WHEN** a documented route of a locally started app fails the filter
+- **THEN** the report lists it under "Not covered" as `not probed: may change state (<METHOD> <route>)`, and routes that pass keep the local probes, including malformed bodies on documented write routes
+
+#### Scenario: Action word in the doc text only
+- **WHEN** a locally started app documents `POST /api/preview` whose doc text says it emails the digest to subscribers
+- **THEN** the skill sends no request to that route, and lists it under "Not covered" as `not probed: may change state (POST /api/preview)`
 
 ### Requirement: Verified, reproducible findings
 Each reported finding SHALL be observed by the skill and reproduced by running its reproduction steps again. Each SHALL include an id, severity, area, title, location (file and line, command, or URL), reproduction steps, expected and actual results, and quoted evidence. Code reading alone SHALL NOT produce a finding.
