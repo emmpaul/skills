@@ -78,10 +78,18 @@ fix commit `<fix>`:
    window, lines blamed to the fix's own PR, and boundary lines (`boundary` in the
    porcelain output).
 4. Group the remaining lines by PR and file. For each group, find the lines at the PR
-   head: `git blame -w --porcelain <head> -- <file>` and keep the final line numbers of
-   lines with the same blamed sha and original line. The bug range is the smallest range
-   that covers them; with lines far apart (more than 20 lines), make one range per
-   cluster and propose the largest, naming the rest in the description.
+   head. When the blamed sha is in the head's history
+   (`git merge-base --is-ancestor <sha> <head>` succeeds), match by commit:
+   `git blame -w --porcelain <head> -- <file>` and keep the final line numbers of lines
+   with the same blamed sha and original line. Otherwise the PR was squash- or
+   rebase-merged and the blamed sha is the default-branch commit, which the head never
+   contains, so match by content: take each blamed line's text at that commit
+   (`git show <sha>:<file>`, line `<orig-line>`) and keep the head lines that
+   `git diff -U0 <base> <head> -- <file>` adds with the same text, ignoring whitespace;
+   when one text matches several added lines, keep the one nearest `<orig-line>`. The
+   bug range is the smallest range that covers the kept lines; with lines far apart
+   (more than 20 lines), make one range per cluster and propose the largest, naming the
+   rest in the description. A group with no kept line gives no proposal.
 
 The proposal: `kind: incident`, `source: {type: fix, sha: <fix>}`, `bug.file`,
 `bug.lines` (at the PR head), and `bug.description` from the fix's subject and the first
