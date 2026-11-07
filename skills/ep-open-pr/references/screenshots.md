@@ -15,6 +15,7 @@ into a form. Capture is sequential: no subagents.
 |---|---|
 | `--no-screenshots` | Skip the whole step: nothing started or pushed, no `## Screenshots` section. |
 | No UI file changed | Same as `--no-screenshots`. |
+| Uncommitted changes in the working tree | Nothing started or pushed. Section: `Not captured: working tree differs from branch head`. |
 | No start command | Section: `Not captured: no start command found`. |
 | No browser | Nothing started or pushed. Section: `Not captured: no browser available`. |
 | Gate 1 declined (Skip), or non-interactive without `--screenshots` | Nothing started. Section: `Not captured: not confirmed`. |
@@ -39,6 +40,12 @@ when some path matches any of:
 Ignore test files: a path whose file name contains `test` or `spec`, or that lies under a
 `__tests__/` directory. When no path is left, skip this whole step: start nothing, push
 nothing, and add no `## Screenshots` section.
+
+The app is started from the working tree, but the images must show the branch head they
+are filed under. So when `git status --porcelain` lists anything (staged, unstaged, or
+untracked files, for example after the user declined to commit in `SKILL.md` step 2),
+start nothing and push nothing, write `Not captured: working tree differs from branch
+head`, and skip to [Body](#8-body).
 
 ## 2. Start command
 

@@ -67,7 +67,8 @@ Stop at the first that fails:
    a new one. Stop unless the user accepts.
 3. **Uncommitted changes** (staged or unstaged files; the probe's `unstaged_files`
    includes untracked files): offer to run `ep-commit`
-   first. If the user declines, continue with committed work only and say so.
+   first. If the user declines, continue with committed work only and say so; step 5
+   then captures no screenshots, since the running app would show uncommitted work.
 4. **No commits ahead of base**: `git fetch origin <base>` then
    `git rev-list --count origin/<base>..HEAD`. If 0, stop: there is nothing to open a PR for.
 
