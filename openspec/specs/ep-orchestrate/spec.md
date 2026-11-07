@@ -141,7 +141,7 @@ After all tasks are done and before the first review round, the skill SHALL chec
 - **THEN** no commit is made and the review rounds start
 
 ### Requirement: Review rounds
-After all tasks are done, the skill SHALL run `ep-review` on the branch and fix its verified findings, for at most 3 rounds. It SHALL stop early when a round has no verified critical or major findings and spec conformance passes. Fixes SHALL be committed separately from the apply commits, one commit per finding or shared root cause.
+After all tasks are done, the skill SHALL run `ep-review` on the branch and fix its verified findings, for at most 3 rounds. The first round SHALL review the whole branch; later rounds SHALL review only the commits since the previous round's head, with the earlier findings as known findings. It SHALL stop early when a round has no verified critical or major introduced findings and spec conformance passes.
 
 #### Scenario: Clean first round
 - **WHEN** the first review round reports `critical=0 major=0` and `spec_conformance: passed`
@@ -149,7 +149,15 @@ After all tasks are done, the skill SHALL run `ep-review` on the branch and fix 
 
 #### Scenario: Findings fixed
 - **WHEN** a round reports verified critical or major findings
-- **THEN** the skill fixes them with one commit per finding, or per root cause when several findings share one, and runs the next round on the updated branch
+- **THEN** the skill fixes them in commits separate from the apply commits, one commit per finding, or per root cause when several findings share one, covering every listed instance of each finding's class, and runs the next round on the updated branch
+
+#### Scenario: Later round is diff-only
+- **WHEN** round 1 ran on head `A` and its fix round moved the branch to head `B`
+- **THEN** round 2 reviews only `A..B` and passes round 1's findings as known findings
+
+#### Scenario: Pre-existing findings only
+- **WHEN** a round's only critical or major findings are pre-existing
+- **THEN** the round counts as clean, and the pre-existing findings are listed in the final report and not fixed
 
 #### Scenario: Round limit reached
 - **WHEN** the third round still reports critical or major findings
@@ -178,11 +186,11 @@ When it cannot spawn subagents, the skill SHALL run the same phases inline in th
 - **THEN** the skill runs plan, gate, apply batches, and review rounds itself in sequence, writes the state file after each, and prints the command to resume
 
 ### Requirement: Optional Workflow path
-In Claude Code with a Workflow tool, the skill SHALL run the review rounds as a Workflow only when the user opts in with `--workflow`, and SHALL keep each Workflow under 10 agents. Without the flag or the tool, it SHALL use the subagent or inline path.
+In Claude Code with a Workflow tool, the skill SHALL run the review rounds as a Workflow only when the user opts in with `--workflow`, and SHALL keep each Workflow under 10 agents: four dimension agents and 3 voter agents. Without the flag or the tool, it SHALL use the subagent or inline path.
 
 #### Scenario: --workflow in Claude Code
 - **WHEN** the user passes `--workflow` and a Workflow tool is available
-- **THEN** the review and verification run as one Workflow script and its confirmed findings feed the fix round
+- **THEN** the review and a 3-voter verification run as one Workflow script of at most 7 agents, and its confirmed findings feed the fix round
 
 #### Scenario: --workflow without a Workflow tool
 - **WHEN** the user passes `--workflow` and no Workflow tool exists
@@ -191,6 +199,10 @@ In Claude Code with a Workflow tool, the skill SHALL run the review rounds as a 
 #### Scenario: Group passes with --workflow
 - **WHEN** the user passes `--workflow` and a group review pass runs
 - **THEN** the pass runs on the subagent or inline path, not as a Workflow; only the end-of-run review rounds use the Workflow
+
+#### Scenario: Agent without subagents
+- **WHEN** the host agent has no subagent capability
+- **THEN** the review rounds verify each finding once inline, as `ep-review` does without subagents, and the rounds' diff-only scope and known findings still apply
 
 ### Requirement: Resumable state
 The skill SHALL keep run state in `.git/ep-orchestrate/<change>.json`, updated after every phase, and SHALL resume from the first unfinished phase when run again on the same change. An unanswered phase question SHALL be recorded in the state file with the paths its blocked work changed.
