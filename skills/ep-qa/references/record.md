@@ -28,6 +28,7 @@ are left out of "Files changed by the audit". The user deletes the record to sta
   "dirty": false,
   "toolchain": {"node": "v20.11.0", "python3": "Python 3.12.1"},
   "last_id": 3,
+  "generated": ["<untracked path the audit's own commands created>", "..."],
   "checks": [
     {
       "key": "<sha256>",
@@ -61,6 +62,8 @@ are left out of "Files changed by the audit". The user deletes the record to sta
   these is a different check.
 - `sha` is the head the check last ran on. A skipped check keeps the `sha`, `result`, and
   `fingerprint` from the record.
+- `generated` lists untracked, non-ignored paths that the audit's own commands created
+  (a `__pycache__/` folder, a coverage file), kept out of every fingerprint.
 - `last_id` is the highest `QA-<n>` number any run of this record has issued, including
   findings since fixed and dropped from `findings`.
 - `regression_test` is present only when a test was proposed (`references/audit.md`,
@@ -116,6 +119,14 @@ done | sha256sum
 Add the `git hash-object` of each env file the item reads (`.env` and similar), even when
 it is ignored: its hash only, never its contents. Exclude the audit file and the record
 themselves.
+
+Also exclude files the audit itself creates, so a run does not invalidate the next one:
+leave out every untracked path that is under the record's `generated` list, or that is
+not in this run's step 1 before-snapshot (it appeared during the run). A path that is
+tracked by git is never excluded. When writing the record, set `generated` to the
+loaded record's paths that are still present and untracked, plus the untracked paths of
+the after-snapshot (step 9) that are not in the before-snapshot, collapsing a created
+folder to one entry.
 
 ## Skipping unchanged checks (step 3)
 
