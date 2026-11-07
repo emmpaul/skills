@@ -310,10 +310,13 @@ current head commit (compare `last_review.head` with `headRefOid`):
    (correctness, spec conformance, tests, security), verify each finding, apply `--since`
    and the known findings the same way, and produce the `ep-review-summary` block. Inline,
    also:
-   - tag each verified finding's origin: **pre-existing** only when its lines are not
-     among the PR's added lines and `git blame -M -C <base>..<head> -L <start>,<end> --
-     <file>` marks every one as a boundary line (`^`); otherwise, or when unsure,
-     **introduced**. Count pre-existing ones only in `pre_existing:`, never in `verified:`;
+   - tag each verified finding's origin: **pre-existing** only when the defect would
+     occur at the base too (the PR did not cause it), its lines are not among the PR's
+     added lines, and `git blame -M -C <base>..<head> -L <start>,<end> -- <file>` marks
+     every one as a boundary line (`^`); a defect the PR causes in unchanged lines (an
+     unchanged caller of a changed callee, a `CLAUDE.md` line a rename makes stale), any
+     other case, or doubt means **introduced**. Count pre-existing ones only in
+     `pre_existing:`, never in `verified:`;
    - compute the tier and reasons from [`references/risk.md`](references/risk.md) over the
      whole PR's changed paths, both sides of each rename (`gh api
      repos/{owner}/{repo}/pulls/<n>/files --paginate --jq '.[] | .filename,
