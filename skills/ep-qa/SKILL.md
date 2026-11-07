@@ -163,10 +163,15 @@ the other confirmed
 items one at a time, in plan order, from this context, following
 "Running" in `plan.md`: 10-minute timeout per command, exit code and decisive lines
 recorded, items depending on a failed setup or build become `not covered: blocked by
-P<n>`. Start servers in the background, record each PID, and wait for readiness up to
-2 minutes, counting it only while the started process still runs. A port another process
-already holds means no start and no probes on it: environment, not a finding. Run a placeholder start (`plan.md`) only after the documented start's
-process group is stopped and its port is free, never while it still runs. A server that
+P<n>`. Start servers in the background only on a free port: a port another process
+already holds means no start and no probes on it, environment, not a finding. Record
+each PID and session and wait for readiness up to 2 minutes: the port answers while the
+started process still runs, or after it exited 0 (a detached start such as
+`docker compose up -d`, `pm2 start`, or a daemonizing script); a non-zero exit is a failed
+start, whatever the port answers. Each start has a stop item in the plan (`docker compose
+down`, `pm2 delete <name>`, or killing the recorded session and process group; "Running"
+in `plan.md`). Run a placeholder start (`plan.md`) only after the documented start's
+stop item ran and its port is free, never while it still runs. A server that
 needs a service you cannot run locally is not started: its runtime probes become not
 covered with that reason.
 
@@ -208,7 +213,8 @@ Done when every candidate has an outcome.
 
 ## 9. Report and clean up
 
-1. Stop every process this run started, with its process group; check its port is free.
+1. Run every start's stop item that has not run, so nothing this run started (detached
+   ones included) keeps running; check each port is free.
    Delete the scratch copies (regression tests, library examples) and large-input files
    under the system temp dir.
 2. Take the after-snapshot with the same command as step 1 and compare it with the

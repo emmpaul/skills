@@ -37,7 +37,7 @@ Plan the documented start command as written. When it needs variables no doc or 
 env file names, also plan a **placeholder start** after it that sets each of those to a
 harmless placeholder (`X=qa-placeholder`, never a real secret), so the probes can run;
 the probes depend on that item. The placeholder start runs only after the documented
-start's process and its process group are stopped and its port is free (checked, not
+start is stopped (its stop item, "Running") and its port is free (checked, not
 assumed); the two starts never run at the same time. **Credentials win over
 placeholders** ("Never-run list", Credentials): a variable whose name looks like a
 credential is never filled with a placeholder; when the start requires any such
@@ -168,16 +168,30 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   or a refused connection). When another process already listens on it, do not start
   and do not probe that port: the start is `failed: environment (port <n> in use by
   <process>)` and its probes are `not covered: blocked by P<n>`, never a finding
-  (`references/audit.md`, Verification). Otherwise start in the background in their own
-  process group (`setsid` where available), record the PID, and poll the documented
-  port or health route for up to 2 minutes. The app is ready only while the started
-  process is still running; when it exits first (for example `Address already in use`),
-  the start failed, whatever the port answers. Not ready by then: a failed item, with
-  the last output lines as evidence.
-  Stop every process you started, with its process group, before the run ends, also when
-  a later step fails. Confirm the port is free afterwards.
+  (`references/audit.md`, Verification). Otherwise start in the background in its own
+  session and process group (`setsid` where available), record the PID and session id,
+  and poll the documented port or health route for up to 2 minutes. The app is ready
+  when the port answers and either the started process is still running (a foreground
+  start) or it exited 0 (a **detached start**: `docker compose up -d`, `pm2 start`, a
+  script that daemonizes with `nohup ... &`). The port was free before this start, so a
+  later answer comes from what this run launched. When the started process exits
+  non-zero during the wait (for example `Address already in use`), the start failed,
+  whatever the port answers. Not ready by then: a failed item, with the last
+  output lines as evidence.
+- **Stop items:** plan each start's stop right after its probes, area `runtime`, source
+  the start's source, and run it also when the start or a later step fails: for a
+  foreground start, `kill -- -<pgid>` of the recorded process group; for a detached
+  start, the matching stop command, `docker compose down` (with the same `-f`/`-p`
+  options as the start, never `-v`) for `docker compose up -d`, `pm2 delete <name>` for
+  `pm2 start` (the names it started), and for a daemonizing script the processes still in
+  the recorded session (`ps -o pid= -s <sid>`, which `nohup ... &` children keep) plus
+  the process listening on the port (`lsof -t -iTCP:<n> -sTCP:LISTEN`), each stopped with
+  its process group. When `docker compose ps -a -q` (or `pm2 jlist`) already listed
+  containers (or processes of that name) before the start, stop with `docker compose
+  stop` (or `pm2 stop <name>`) instead, so what existed before stays. Confirm the port is
+  free afterwards.
 - **One server at a time:** before any later start of the same app (the placeholder
-  start), stop the earlier start's process group and confirm its port is free.
+  start), run the earlier start's stop item and confirm its port is free.
 
 ## Probes per project type
 

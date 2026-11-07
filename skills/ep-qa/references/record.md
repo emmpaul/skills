@@ -193,6 +193,8 @@ run.
   that runs: when a probe must run, the server start it needs runs too, and so does that
   start's install and build. It is shown as run, never as skipped. Walk `prereqs` down
   from every item that runs and clear the skip on each one reached.
+- A server's stop item (`references/plan.md`, "Running"): it runs whenever its start
+  runs, and is never skipped on its own.
 
 In step 5, a skipped item whose toolchain matched does not run; its result is copied
 from the record. The shown plan marks it `skip if toolchain unchanged: unchanged since
