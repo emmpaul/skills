@@ -1,6 +1,6 @@
 ---
 name: ep-orchestrate
-description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch: plan, an evidence-scored gate (85, and nothing hard to undo), one commit per task, a review pass per task group, dead-code removal, and up to 3 ep-review fix rounds, each phase in a fresh subagent and resumable from a state file. Large changes are offered as a stack of PRs. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
+description: Run one OpenSpec change end to end, from a description or an existing change to a reviewed, committed local branch: plan, an evidence-scored gate, one commit per task, a review pass per task group, dead-code removal, and ep-review fix rounds, each phase in a fresh subagent and resumable from a state file. Large changes are offered as a stack of PRs. Use when the user asks to orchestrate, run end to end, or take a change or idea from plan to reviewed branch.
 ---
 
 # ep-orchestrate
