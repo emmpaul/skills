@@ -157,9 +157,16 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   is a failed item with the timeout as evidence.
 - Record exit code, duration, and the decisive output lines (the first error, the failing
   assertion, the summary line).
-- **Servers:** start in the background in their own process group (`setsid` where
-  available), record the PID, and poll the documented port or health route for up to
-  2 minutes. Not ready by then: a failed item, with the last output lines as evidence.
+- **Servers:** before starting, check the documented port is free (`ss -ltn`, `lsof -i`,
+  or a refused connection). When another process already listens on it, do not start
+  and do not probe that port: the start is `failed: environment (port <n> in use by
+  <process>)` and its probes are `not covered: blocked by P<n>`, never a finding
+  (`references/audit.md`, Verification). Otherwise start in the background in their own
+  process group (`setsid` where available), record the PID, and poll the documented
+  port or health route for up to 2 minutes. The app is ready only while the started
+  process is still running; when it exits first (for example `Address already in use`),
+  the start failed, whatever the port answers. Not ready by then: a failed item, with
+  the last output lines as evidence.
   Stop every process you started, with its process group, before the run ends, also when
   a later step fails. Confirm the port is free afterwards.
 - **One server at a time:** before any later start of the same app (the placeholder

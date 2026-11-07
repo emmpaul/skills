@@ -144,7 +144,8 @@ items one at a time, in plan order, from this context, following
 "Running" in `plan.md`: 10-minute timeout per command, exit code and decisive lines
 recorded, items depending on a failed setup or build become `not covered: blocked by
 P<n>`. Start servers in the background, record each PID, and wait for readiness up to
-2 minutes. Run a placeholder start (`plan.md`) only after the documented start's
+2 minutes, counting it only while the started process still runs. A port another process
+already holds means no start and no probes on it: environment, not a finding. Run a placeholder start (`plan.md`) only after the documented start's
 process group is stopped and its port is free, never while it still runs. A server that
 needs a service you cannot run locally is not started: its runtime probes become not
 covered with that reason.
