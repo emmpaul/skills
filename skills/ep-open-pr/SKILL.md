@@ -78,8 +78,8 @@ Done when every check passed, or the skill stopped at one and said why.
 - No upstream: `git push -u origin HEAD`.
 - Upstream exists and `ahead > 0`: `git push`.
 - Upstream exists and `ahead == 0`: already pushed; skip.
-- Push rejected (the remote has new commits): stop and report. Rebase only when the user
-  asks.
+- Push rejected (the remote has new commits): stop, report, and offer a rebase; rebase
+  only after the user says yes.
 
 Done when the remote branch holds the local head.
 
