@@ -320,7 +320,8 @@ Compute the merge confidence score exactly as in
 `ep-review-summary` block, commits, comments, the probe's task counts, and the PR's
 changed paths. Never use self-assessed confidence. Without OpenSpec, drop the OpenSpec
 items and move their weight to tests as described there. For a documentation-only PR
-(path rules in `references/score.md`), the tests item is met as not applicable. Print the breakdown (each item,
+(path rule in [`references/risk.md`](references/risk.md#documentation-only-paths)), the
+tests item is met as not applicable. Print the breakdown (each item,
 its weight, met or not) and save it to `last_score`.
 
 ## 7. Decide
@@ -336,6 +337,23 @@ Merge only when **all** hold:
   Commits pushed after the last review round (CI fixes, review fixes, a sync's
   adaptations) need a review before merging. With rounds left, run one; at `round >= 3`,
   stop and report the unreviewed commits instead of merging
+- the **risk gate** passes, checked last, after every condition above (details in
+  [`references/score.md`](references/score.md#risk-gate)). The tier is the `risk:` line of
+  `last_review.summary`; a summary without one counts as `medium`:
+  - **low:** nothing extra; merge.
+  - **medium:** the user's explicit yes for this exact head. Unless `human_ok.head` equals
+    `headRefOid`, ask one structured question showing the tier, its reasons, the score
+    breakdown, and the head sha, with the options **Merge**, **Wait**, and **Stop**. Merge
+    records `human_ok: { "head": "<headRefOid>" }`; Wait keeps waiting and asks again
+    later; Stop sets `outcome: stopped: user declined merge`. `human_ok` is cleared
+    whenever `headRefOid` changes, so a new push needs a new yes.
+  - **high:** the same yes, and an `APPROVED` review whose `commit_id` equals `headRefOid`,
+    from a login other than the PR author whose `user.type` is `User`. Bot and app
+    approvals never count. Without one, do not merge: notify the user once
+    (`blocked_notified`) that a human approval is needed, and wait as on `BLOCKED`.
+  - **Unattended** (a scheduled or looping run with no user present to answer): do not ask
+    and do not merge; notify the user once (`blocked_notified`) and wait. Ask on the next
+    run where the user is present.
 
 Before merging, check whether the PR is in a GitHub native stack (`.stack` on the REST PR
 object, as in [`references/score.md`](references/score.md), "Stacked PRs"). A stacked PR
@@ -403,12 +421,17 @@ Otherwise:
   stop and tell the user to re-run after they clear (non-scheduling agents). Do not start
   another review round on an unchanged head.
 - `round >= 3` and the merge condition is not met: stop, post one summary comment on the
-  PR (rounds run, what was fixed, remaining findings, score breakdown, blocking gates;
-  no attribution), and notify the user.
+  PR, and notify the user. The comment states the rounds run, what was fixed, remaining
+  findings, pre-existing findings left unfixed, the score breakdown, and the blocking
+  gates, and asks the author to step back and reconsider the approach rather than
+  continue patching findings (three rounds that did not converge suggest the approach,
+  not the details, needs another look). No attribution.
+- Only the risk gate fails (score >= 85, every other condition met): this is waiting on
+  humans, not a reason for another review round. Wait as described in the gate.
 
 ## 8. Stop conditions and final report
 
-Stop when: merged; closed; the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
+Stop when: merged; closed; the user chose Stop at the risk gate (step 7); the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
 meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 

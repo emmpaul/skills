@@ -44,23 +44,18 @@ final round had zero minor findings, item 2 is met.
 ### Documentation-only PRs
 
 A PR with no code has nothing to test, so item 5 counts as **met (not applicable)** when
-the PR is documentation-only. Decide from paths alone (`gh pr diff <n> --name-only`; for
-renames, check both the old and new path):
+the PR is documentation-only: **every** changed path (`gh pr diff <n> --name-only`; for
+renames, both the old and new path) is documentation-only by the rule in
+[`risk.md`](risk.md#documentation-only-paths), the same rule the risk tier uses.
 
-- **Every** changed path matches one of: `*.md`, `*.mdx`, `*.rst`, `*.txt`, `docs/**`,
-  `openspec/**`, `LICENSE*`, `CHANGELOG*`; and
-- **no** changed path is an agent instruction file: `AGENTS.md` or `CLAUDE.md` at any depth,
-  anything under `.claude/` or `.agents/`, or any file in or below a directory that
-  contains a `SKILL.md` (the whole skill folder, including `references/` and `scripts/`).
-
-If either condition fails, item 5 needs test evidence as usual. Only item 5 changes: the
+If any path is not, item 5 needs test evidence as usual. Only item 5 changes: the
 review round, the other items, the gates, and the threshold apply unchanged.
 
 ## Threshold
 
 Merge is allowed only when **score >= 85**, all hard gates pass, the merge state allows
-it (below), and the review the score uses ran on the current head (`last_review.head`
-equals `headRefOid`). Note that with OpenSpec, missing items 4+5 (25) or item 3 alone (20) is enough
+it (below), the review the score uses ran on the current head (`last_review.head`
+equals `headRefOid`), and the [risk gate](#risk-gate) passes. Note that with OpenSpec, missing items 4+5 (25) or item 3 alone (20) is enough
 to block; without OpenSpec, missing tests (45) blocks.
 
 ## Report format
@@ -82,6 +77,51 @@ For a documentation-only PR, item 5 reads:
 ```
   [✓] 45  Tests added or touched (n/a: no code changed; 12 files, all docs/planning)
 ```
+
+## Risk gate
+
+Evaluated after the score and the other merge conditions, just before the merge call. The
+tier is the `risk:` line of the latest `ep-review-summary` (`last_review.summary`), which
+ran on the current head. A summary with no `risk:` line (an older `ep-review`) counts as
+`medium`. The tier rules themselves are in [`risk.md`](risk.md); this skill never lowers
+the tier the review reported.
+
+| Tier | Needs | Recorded in state |
+|---|---|---|
+| low | nothing extra | nothing |
+| medium | the user's yes for `headRefOid` | `human_ok: { "head": "<headRefOid>" }` |
+| high | the user's yes for `headRefOid`, and a human approval of that head (below) | `human_ok`, and the approval's review id in the status report |
+
+**The ask.** When `human_ok.head` does not equal `headRefOid`, ask one structured question
+(the host's question tool when it has one, else a plain message) showing the tier, its
+`risk_reasons`, the score breakdown, and the head sha, with three options:
+
+- **Merge:** set `human_ok` to `{ "head": "<headRefOid>" }` and continue to the merge.
+- **Wait:** do not merge; keep the loop running and ask again on a later tick.
+- **Stop:** do not merge; set `outcome: stopped: user declined merge` and stop.
+
+A yes counts only for the head it named. Whenever `headRefOid` changes (a fix, a sync, a
+reviewer's commit), clear `human_ok` to `null`, so the new head needs a new yes.
+
+**Human approval (high only).** List the reviews:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/<n>/reviews --paginate \
+  --jq '.[] | {id, state, commit_id, login: .user.login, type: .user.type}'
+```
+
+An approval counts only when `state` is `APPROVED`, `commit_id` equals `headRefOid`,
+`login` is not the PR author, and `type` is `User` (an account of type `Bot`, or an app,
+never counts, nor does any review this skill could post, since it never approves). With
+no counting approval, do not merge: notify the user once (`blocked_notified`) that a human
+approval of this head is needed, and wait as on `BLOCKED`.
+
+**Unattended runs.** When the skill runs from a schedule or loop wakeup with no user
+present to answer, it does not ask and does not merge: it notifies the user once
+(`blocked_notified`) with the tier, reasons, and head sha, and waits. The next run where
+the user is present asks the question.
+
+The gate adds no GitHub write; it only removes merges.
 
 ## Merge-state mapping
 
