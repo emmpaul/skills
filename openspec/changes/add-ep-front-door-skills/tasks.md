@@ -2,7 +2,7 @@
 
 ## 1. ep-issue
 
-- [ ] 1.1 Write `skills/ep-issue/references/door.md` with the one-way/two-way rules adapted from `ep-open-pr` section 4 for requested work (design D2); verify each rule bullet in `skills/ep-open-pr/SKILL.md` has a counterpart in `door.md`
+- [x] 1.1 Write `skills/ep-issue/references/door.md` with the one-way/two-way rules adapted from `ep-open-pr` section 4 for requested work (design D2); verify each rule bullet in `skills/ep-open-pr/SKILL.md` has a counterpart in `door.md`
 - [ ] 1.2 Write `skills/ep-issue/SKILL.md` (frontmatter, probe usage with inline fallback, new and triage modes, body structure with open questions, existing-labels-only via `gh label list`, duplicate search with subagent path and sequential fallback per design D5, confirmation gate and `--yes`, `--body-file`, no attribution, `ep-issue-summary` block per design D8); verify every requirement in `specs/ep-issue/spec.md` maps to a section
 - [ ] 1.3 Run `scripts/sync-shared.sh` and `scripts/check-shared.sh`; verify `skills/ep-issue/scripts/context.sh` exists and the check passes
 - [ ] 1.4 Verify on a sandbox GitHub repo: a default run writes nothing until confirmed; a description matching an existing issue surfaces it before creating; a created issue uses only existing labels, includes the door call, and has no attribution in `gh issue view --json body`
