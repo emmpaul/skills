@@ -150,18 +150,20 @@ the issue onto the template:
 - End with `## Open questions`, one bullet per open question from step 2. Drop the
   section only when there are none.
 
-Leave `.openspec.yaml` as the CLI wrote it. Then check the result:
+Leave `.openspec.yaml` as the CLI wrote it. Then check the result (`openspec validate`
+fails on the missing deltas whatever the proposal holds, so it cannot judge it):
 
 ```bash
-openspec validate <name>
+openspec show <name> --json --type change   # exit 0 only with Why and What Changes filled
+grep -F "#<n>:" "<resolvedOutputPath>"     # the Why line citing the issue
 ```
 
-Expected now: errors only about missing deltas or specs, which the propose workflow
-fills. Fix any other error in `proposal.md` and validate again.
+A non-zero `show` names the missing section in its `status` message; fix `proposal.md`
+and check again.
 
-Done when `proposal.md` cites `#<n>`, every ask has a bullet, every capability is either
-an existing spec path or a new kebab-case one, and validation reports only
-missing-delta errors.
+Done when `show` exits 0, the `grep` prints the Why line, every ask has a bullet under
+What Changes, and every capability is either an existing spec path or a new kebab-case
+one.
 
 ## 5. Link comment
 
