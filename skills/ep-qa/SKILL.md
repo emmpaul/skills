@@ -64,9 +64,11 @@ From the repository root, run the probe bundled in this skill's folder:
 bash <skill-dir>/scripts/context.sh
 ```
 
-Use its `git` (branch, dirty state) and `openspec.root` (null means no OpenSpec); ignore
-the rest. Entries in `warnings` are informational. If bash is unavailable, or the probe
-exits non-zero or prints invalid JSON, run inline:
+Use its `git` (branch, dirty state) and `openspec.root`; ignore the rest. Entries in
+`warnings` are informational. `openspec` is also null when the openspec tool is not
+installed, so null alone does not mean no OpenSpec: when it is null, an `openspec/` folder
+at the repository root is the OpenSpec root, and only with neither is there no OpenSpec.
+If bash is unavailable, or the probe exits non-zero or prints invalid JSON, run inline:
 
 ```bash
 git status --porcelain=v1 -b
