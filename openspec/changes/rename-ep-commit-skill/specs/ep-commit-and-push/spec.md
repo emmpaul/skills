@@ -128,6 +128,13 @@ When `gh` is authenticated, the skill SHALL take the default branch from `gh rep
 - **WHEN** `origin/HEAD` points at `master` but `gh` reports `main` as the default branch
 - **THEN** the skill treats the default branch as unknown and asks before pushing
 
+### Requirement: Secret-like files are staged only on a yes
+An untracked file whose name looks like a secret (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `*credentials*`, `*.p12`) SHALL be staged only after the user says yes to it by name, even when the user said to just commit. Until then the skill SHALL leave it untracked and list it in the plan and the report.
+
+#### Scenario: Untracked env file
+- **WHEN** the working tree has an un-ignored, untracked `.env.local` beside other changes and the user says to just commit
+- **THEN** the skill commits and pushes the other changes, leaves `.env.local` untracked, and lists it in the plan and the report as left out
+
 ### Requirement: No-push mode
 With `--no-push`, or when the user or a calling skill says to commit without pushing, the skill SHALL create and verify its commits as usual, push nothing, and report the commits as local.
 

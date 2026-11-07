@@ -78,6 +78,10 @@ The new description front-loads the behavior and keeps one trigger per branch: c
 
 The probe reads the local `origin/HEAD` symref first and asks `gh` only when it is missing, so a symref left stale by a renamed default (`master` to `main`) would pass as known and let a push to the real default through without asking. The skill therefore runs `gh repo view --json defaultBranchRef` itself whenever `gh` is authenticated: GitHub's answer outranks the symref, and a disagreement makes the default branch unknown, which asks (D3). Without an answer from `gh` (missing, unauthenticated, not a GitHub remote), the probe's value stands, and a null or guessed value is unknown. `shared/context.sh` stays as it is, since every skill shares it and only this skill gates a push on it.
 
+### D10. Secret-like untracked files need a yes
+
+Committing every non-ignored untracked file was safe while commits stayed local; with the push, an un-ignored `.env.local` would reach the remote with no human review when the user says "just commit". Untracked files whose names look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `*credentials*`, `*.p12`) are staged only after the user says yes to them by name; until then they stay untracked and the plan and report list them as left out. The skill reads their names, not their contents. Tracked files are already in history and keep the normal flow.
+
 ## Risks / Trade-offs
 
 - [A user expecting the old commit-only behavior pushes unfinished work] → The plan prompt names the push; the README migration note states the new behavior and `--no-push`; the default branch always asks.

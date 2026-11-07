@@ -25,6 +25,10 @@ Turn the current changes into well-scoped Conventional Commits, then push the br
 - **The default branch asks first.** Before a push whose target (step 7) is the
   repository's default branch, ask the user, even when told to just commit; push it
   only on a yes. An unknown default branch (step 1) counts as the target: ask.
+- **Secret-like files ask first.** An untracked file whose name looks like a secret
+  (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `*credentials*`, `*.p12`) is staged only after
+  the user says yes to it by name, even when told to just commit. Until then it stays
+  untracked, and the plan and report list it as left out.
 - **Hooks run**, commit and pre-push alike. On a commit hook failure, fix the cause and
   commit again. Use `--no-verify` only when the user asks.
 
@@ -64,7 +68,8 @@ git diff                   # unstaged
 git log -n 15 --format='%s%n%b---'   # recent style
 ```
 
-and the contents of untracked files from `git status`.
+and the contents of untracked files from `git status`, except secret-like files (hard
+rules), whose names are enough.
 
 Then settle the default branch. When `gh auth status` succeeds, run
 `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`: GitHub's answer
@@ -106,6 +111,7 @@ subagents, work through the diff file by file yourself and produce the same plan
    - test/parser.test.ts
 2. docs: document --strict flag
    - README.md
+Left out (secret-like, staged only on your yes): .env.local
 Push: feature/strict to origin, 3 commits (2 new, 1 already unpushed)
 ```
 
@@ -116,7 +122,8 @@ plus the planned commits; without an upstream, add
 differently from the current branch, or a default-branch target, unknown default
 branch included), the push line says it will ask first. With `--no-push`, it reads `Push: none (--no-push)`.
 
-Done when every changed file or hunk in scope sits in exactly one planned commit.
+Done when every changed file or hunk in scope sits in exactly one planned commit, except
+secret-like untracked files without a yes, which sit on the left-out line.
 Proceed when the user approves, or at once if they said to just commit.
 
 ## 4. Write messages
@@ -218,5 +225,5 @@ declined, default branch declined, detached `HEAD`, no remote, rejected, hook fa
 ## 8. Report
 
 Report the commits created (hash and subject), any tasks ticked, and anything left
-uncommitted. Then the push: the remote branch and the commits pushed, or that the
-commits are local and why.
+uncommitted, naming any secret-like files left out. Then the push: the remote branch
+and the commits pushed, or that the commits are local and why.
