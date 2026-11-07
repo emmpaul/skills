@@ -61,8 +61,8 @@ Stop at the first that fails:
 1. **On the default branch, or detached HEAD**: stop and ask the user to create or
    switch to a feature branch; leave creating it to them.
 2. **An open PR exists** (`pr` not null, `state` `OPEN`): report its URL and offer to
-   regenerate its body (steps 4 and 5, then `gh pr edit <n> --body-file <file>`). Stop
-   unless the user accepts.
+   regenerate and update its body instead of creating a new one. Stop unless the user
+   accepts; on yes, continue through checks 3-4 and steps 3-6, editing at step 6.
 3. **Uncommitted changes** (staged or unstaged files; the probe's `unstaged_files`
    includes untracked files): offer to run `ep-commit` first. If the user declines,
    continue with committed work only and say so; step 5 then captures no screenshots,
