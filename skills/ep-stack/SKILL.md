@@ -193,8 +193,11 @@ short kebab-case summary of the layer, unless the user names the branches.
    Say which commits were rewritten (they are unpushed).
 5. **Open PRs** bottom-up, each based on the previous layer's branch (the first on the
    base), following `ep-open-pr` conventions: Conventional Commit title for that layer's
-   commits, body with Summary, Changes, (with OpenSpec) the OpenSpec section,
-   Reversibility, and How to test, no attribution footer. Append the stack section:
+   commits, and the body template from `ep-open-pr` step 4 built from that layer's
+   commits and paths: Summary, Changes, (with OpenSpec) the OpenSpec section,
+   Reversibility with its **How to revert:** line, Risk (the tier and reasons for that
+   layer's changed paths, by `ep-open-pr`'s risk rules), and Testing (**Run:** evidence
+   and **Steps:**), no attribution footer. Append the stack section:
 
    ```bash
    gh pr create --base <prev-or-base> --head <layer-branch> --title "<title>" --body-file <file>
