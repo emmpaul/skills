@@ -22,7 +22,7 @@
 ## 4. ep-open-pr issue reference
 
 - [x] 4.1 Update `skills/ep-open-pr/SKILL.md` section 4 to read `branch.<branch>.ep-issue`, fall back to the `<type>/<n>-` branch pattern, and add `Closes #n` (feat/fix) or `Refs #n` (other types) to the body per design D3; verify the `specs/ep-open-pr/spec.md` delta scenarios map to the new text
-- [ ] 4.2 Verify on the sandbox repo: a PR from a branch made by `ep-start 17` contains `Closes #17`, and a PR from a branch without an issue has no issue reference and an otherwise unchanged body
+- [x] 4.2 Verify on the sandbox repo: a PR from a branch made by `ep-start 17` contains `Closes #17`, and a PR from a branch without an issue has no issue reference and an otherwise unchanged body
 
 ## 5. Docs and integration
 
