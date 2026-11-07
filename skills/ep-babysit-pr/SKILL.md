@@ -315,7 +315,9 @@ current head commit (compare `last_review.head` with `headRefOid`):
      <file>` marks every one as a boundary line (`^`); otherwise, or when unsure,
      **introduced**. Count pre-existing ones only in `pre_existing:`, never in `verified:`;
    - compute the tier and reasons from [`references/risk.md`](references/risk.md) over the
-     whole PR's changed paths (`gh pr diff <n> --name-only`, even on a `--since` round), the
+     whole PR's changed paths, both sides of each rename (`gh api
+     repos/{owner}/{repo}/pulls/<n>/files --paginate --jq '.[] | .filename,
+     (.previous_filename // empty)'`, even on a `--since` round), the
      PR author, and the base's `REVIEW.md`, and write them as `risk:` and `risk_reasons:`;
      the block always has a `risk:` line, with `verification: inline`.
 
