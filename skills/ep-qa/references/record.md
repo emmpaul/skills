@@ -90,7 +90,13 @@ toolchain the plan uses); they are a global invalidator below.
 
 For each check, `deps` is the whole target, minus Markdown files and `docs/` for items
 outside the `docs` area. Narrower sets are not used: which files a test reads needs
-coverage data the audit cannot trust.
+coverage data the audit cannot trust. For a path target, `deps` also holds the files
+outside the target that configure it: the lockfiles and manifests (the Lockfiles and
+Manifests rows of `references/plan.md`) in each folder from the target's parent up to the
+repository root, so a workspace root's `pnpm-lock.yaml` or `package.json` is included,
+and every other root file discovery read for the target (a workspace file such as
+`pnpm-workspace.yaml` or `go.work`, the root CI workflow or task runner an item came
+from).
 
 Compute the fingerprint from the **working tree**, not `HEAD`, so uncommitted edits,
 added files, and deleted files all change it:
@@ -114,9 +120,13 @@ Mark a plan item `skip: unchanged since <sha>` (the check's recorded `sha`) only
    `flaky` check always runs again.
 2. Its fingerprint, recomputed now, equals the recorded one.
 3. No **global invalidator** changed since the record: the lockfiles and manifests in the
-   target (the Lockfiles and Manifests rows of `references/plan.md`), the toolchain
-   versions recorded in step 1, and the CI or task-runner file the item came from (a
-   changed `Makefile` test recipe changes the item).
+   target and, for a path target, in each folder above it up to the repository root (the
+   Lockfiles and Manifests rows of `references/plan.md`), the toolchain versions recorded
+   in step 1, and the CI or task-runner file the item came from (a changed `Makefile`
+   test recipe changes the item). The files among these are in every check's `deps`
+   (Fingerprint), so a change to any of them, inside the target or above it, changes the
+   fingerprint of every check; the toolchain versions are compared with the record's
+   `toolchain`.
 4. Every prerequisite (by `prereqs`) has the same key as before. A changed or new
    prerequisite command invalidates every item that depends on it.
 
