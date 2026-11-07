@@ -439,9 +439,13 @@ bottom layer merges:
 4. Leave the head branch in place. GitHub rebases the PRs above onto it. The final report
    says the branch was kept and that the repository's auto-delete setting still applies.
 
-Otherwise:
+Otherwise, apply the first rule below that matches. The waiting rules come before the
+round rules, so a PR that only needs a person (GitHub, a reviewer, or the risk gate) waits
+at any round, including after round 3:
 
-- Gates or score not met and `round < 3`: continue the loop (next fix or review round).
+- Only the risk gate fails (score >= 85, every other condition met): this is waiting on
+  humans, not a reason for another review round or a round-cap stop. Wait as described in
+  the gate.
 - `BLOCKED` with score >= 85: wait, notify the user once, and merge when GitHub reports the
   PR mergeable.
 - **Waiting on humans:** score >= 85 and the only failing gates are ones a person must clear
@@ -450,19 +454,19 @@ Otherwise:
   (`blocked_notified`) naming the threads and reviewers, then wait (scheduling agents) or
   stop and tell the user to re-run after they clear (non-scheduling agents). Do not start
   another review round on an unchanged head.
+- Gates or score not met and `round < 3`: continue the loop (next fix or review round).
 - `round >= 3` and the merge condition is not met: stop, post one summary comment on the
   PR, and notify the user. The comment states the rounds run, what was fixed, remaining
   findings, pre-existing findings left unfixed, the score breakdown, and the blocking
   gates, and asks the author to step back and reconsider the approach rather than
   continue patching findings (three rounds that did not converge suggest the approach,
   not the details, needs another look). No attribution.
-- Only the risk gate fails (score >= 85, every other condition met): this is waiting on
-  humans, not a reason for another review round. Wait as described in the gate.
 
 ## 8. Stop conditions and final report
 
 Stop when: merged; closed; the user chose Stop at the risk gate (step 7); the PR is mid-stack, stack detection failed, its async merge was rejected or failed, or it left the merge queue (step 7); a sync returned `needs_decision` or `needs_attention`; a check fails after 3 fix attempts; 3 rounds done without
-meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
+meeting the merge condition (not when only a person is left to act: those waiting rules in
+step 7 come first); `UNKNOWN` for 3 ticks; session cap reached (non-scheduling
 agents); or the user interrupts.
 
 On every stop, report to the user: PR URL, outcome, rounds run, fixes pushed (shas),
