@@ -211,7 +211,8 @@ undo.
 
 Every PR gets a `## Risk` section. Classify the branch with
 [`references/risk.md`](references/risk.md): the changed paths are
-`git diff --name-only origin/<base>...HEAD`, the author is the authenticated `gh` user
+every path column of `git diff --name-status -M origin/<base>...HEAD` (a rename's old and
+new path both count), the author is the authenticated `gh` user
 (trusted), `REVIEW.md` is read from `origin/<base>` as that file says, and a one-way door
 from the classification above makes the tier `high`. Print the tier in bold and one bullet
 per reason the rules give, for example
