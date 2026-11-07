@@ -15,9 +15,10 @@ Each in-scope finding has an origin:
   because of the diff (a changed caller now reaches an old bug it never reached before
   counts as introduced at the caller).
 - **pre-existing**: the defect's lines are not among the diff's added lines and
-  `git blame -M -C <base> -L <start>,<end> -- <file>` shows them already present at the
-  target's base. `-M -C` follows moved and copied lines, so a file move does not make an
-  old bug look new.
+  `git blame -M -C <base>..<head> -L <start>,<end> -- <file>` (line numbers of the head
+  version) marks every one of them as a boundary line (`^` before the sha), meaning
+  they were already present at the target's base. `-M -C` follows moved and copied
+  lines, so a file move does not make an old bug look new.
 
 When blame is unavailable or the result is unclear, the origin is **introduced**: erring
 that way asks for a fix rather than hiding one. Decide origin during verification.

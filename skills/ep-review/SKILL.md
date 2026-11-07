@@ -36,8 +36,10 @@ ep-review ... --effort high       # thorough mode (see Workflow path)
 finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario>
 ```
 
-The leading `finding: ` and the trailing `| <scenario>` are optional. Lines that do not
-fit are ignored, and the report says how many.
+The leading `finding: ` and the trailing `| <scenario>` are optional. After the scenario,
+a line may add `| class: <label>` and `| instances: <file>:<line>,<file>:<line>` (the
+finding's class and other locations, as the report prints them). Lines that do not fit
+are ignored, and the report says how many.
 
 ## 1. Gather context
 
@@ -115,7 +117,7 @@ judge behavior, not just the hunks.
 ## 3. Find the OpenSpec change (spec conformance input)
 
 - `openspec` is null: spec conformance is **not applicable**. Run the other three
-  dimensions normally and do not mention OpenSpec beyond that line.
+  dimensions normally and do not mention OpenSpec anywhere in the report or comments.
 - Otherwise pick the active change the target relates to: its folder is in the diff, the
   commits use it as scope, or the PR body names it. If several fit, review against each
   one that fits; if none fits, spec conformance is not applicable.
@@ -148,11 +150,13 @@ stays accurate. To avoid double reports on tests: an untested **spec scenario** 
 the spec dimension only; the tests dimension covers test gaps for code-level behavior and
 weak or missing assertions.
 
-**Known findings (`--known`).** Each known finding becomes a verification candidate too,
-marked `known`, whatever the narrowed diff covers. Then drop every new candidate that
-duplicates a known one: same file, lines within 3 of each other, and the same defect
-(same class; when the known line names no class, judge it from the summary). The known
-finding is the one that goes to verification, so it is never reported as new.
+**Known findings (`--known`).** Each **location** of a known finding (its `file:line` and
+each of its `instances`) becomes a verification candidate too, marked `known`, whatever
+the narrowed diff covers. Then drop every new candidate that duplicates a known one: same
+file, within 3 lines of one of its locations (follow moved code, not only line numbers),
+and the same defect (same class; when the known line names no class, judge it from the
+summary). The known finding is the one that goes to verification, so it is never reported
+as new.
 
 ## 5. Verify each finding
 
@@ -168,9 +172,9 @@ For every candidate, try to **disprove** it:
 - Decide the origin (`introduced` or `pre-existing`) with the blame rule in
   `references/dimensions.md`, and check each listed instance; drop instances that do
   not have the defect.
-- For a `known` candidate, check it at the new head: it is `fixed` when the defect no
-  longer occurs there (moved lines count: follow the code, not the line number), and
-  `still open` otherwise.
+- For a `known` candidate (one location), check it at the new head: it is `fixed` when
+  the defect no longer occurs there (moved lines count: follow the code, not the line
+  number), and `still open` otherwise.
 
 Running tests must not modify tracked files; if the runner is not installed, skip running
 and rely on reading. Each check ends in one verdict per candidate, with a reason:
@@ -199,9 +203,11 @@ Combine the 3 verdicts of each candidate:
 - **Origin** and **instances** follow the majority of the kept verdicts; on a tie, the
   origin is `introduced`.
 - A **known** candidate that is dropped is counted as `fixed`, not in
-  `dropped_in_verification`. One that is kept is `still open`: it is reported once,
-  marked `still open`, and counts in `verified:` like any introduced finding (or in
-  `pre_existing` when its origin is pre-existing).
+  `dropped_in_verification`. One that is kept is `still open`. The still-open locations
+  of one known finding are reported together as **one** finding, marked `still open`, at
+  its first remaining location with the others as `instances`, and it counts once in
+  `verified:` like any introduced finding (or in `pre_existing` when its origin is
+  pre-existing).
 
 The summary records `verification: vote`.
 
@@ -254,7 +260,7 @@ the number of pre-existing findings, for example
 findings, it is the plain line **"Nothing to fix."**, followed by
 `Pre-existing: <n>.` only when `<n>` is not zero. Below it, when they apply, one line
 each: the paths skipped by `REVIEW.md`, the minor findings omitted by the cap, the known
-findings (`Known findings: <n> fixed, <n> still open.`), and the `--known` lines that
+locations (`Known findings: <n> fixed, <n> still open.`), and the `--known` lines that
 could not be read.
 
 ```
@@ -285,7 +291,8 @@ Risk: high
 ```
 
 Every dimension appears, with findings, **"No findings."**, or (spec only)
-**"Not applicable: no OpenSpec change."** The `### pre-existing` section appears only when
+**"Not applicable."** (with an OpenSpec root but no change that fits:
+**"Not applicable: no matching OpenSpec change."**). The `### pre-existing` section appears only when
 there are pre-existing findings. A known finding that is still open is marked
 `(still open)` after its severity, for example `- [major] (still open) src/calc.py:3 — ...`.
 Every finding shows its class and instances (`Instances: none` when there are none).
@@ -313,8 +320,9 @@ scope: full | since:<sha>
 is `HEAD`. `verified` and `by_dimension` count only **introduced** findings, including known
 findings that are still open; pre-existing findings are counted only in `pre_existing`.
 `dropped_in_verification` counts only new candidates refuted in step 5, not those merged
-during deduplication and not known findings found fixed. `known` is `fixed=0 still_open=0`
-without `--known`. `risk_reasons` separates reasons with ` ; `. `verification` is `vote` on
+during deduplication and not known findings found fixed. `known` counts known locations (a
+known finding's line and each instance), so fixing one of two instances gives `fixed=1`
+and `still_open=1`; it is `fixed=0 still_open=0` without `--known`. `risk_reasons` separates reasons with ` ; `. `verification` is `vote` on
 the subagent and Workflow paths and `inline` otherwise. `scope` is `since:<sha>` with
 `--since` and `full` without it (or when step 2 fell back to a full review).
 
