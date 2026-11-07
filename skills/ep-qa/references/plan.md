@@ -184,9 +184,22 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   contradicting the docs) is re-run alone and classified there, by the rules of
   `SKILL.md` step 8 and "Verification" in `references/audit.md`; then each re-check item
   whose reproduction needs this start (`references/record.md`, "Earlier findings").
-  Only then its stop item. A server is never restarted for verification: a candidate or
-  re-check item that needs a start whose stop already ran is not re-run (re-check:
-  `not re-checked`). Everything that needs no server is verified in step 8.
+  Only then its stop item. A server is never restarted for verification, except once for
+  a crash (below): a candidate or re-check item that needs a start whose stop already ran
+  is not re-run (re-check: `not re-checked`). Everything that needs no server is verified
+  in step 8.
+- **Crash in a window:** when the started process dies during its window (or, for a
+  detached start, the port stops answering), the crash is itself a candidate, with the
+  probe sent just before it and the process exit code or last log lines as evidence. The
+  window's remaining items are not sent to the dead port: each becomes `not covered:
+  blocked by crash (P<n>)` (a re-check item: `not re-checked`), unless the re-start below
+  runs it. Run the window's stop item as usual. To verify the crash, re-run the same
+  confirmed start command once (it is already in the confirmed plan, so this is not an
+  unplanned command): check the port is free, start and wait for readiness as above, send
+  the crashing probe alone, then run the same stop item. It crashes again: reproduced.
+  It does not: flaky, and the blocked items run in this second window before its stop.
+  Never more than that one re-start per window; a crash in it blocks the rest the same
+  way.
 - **Stop items:** plan each start's stop right after that start's window (its probes and
   their verification, above), area `runtime`,
   source the start's source, and run it also when the start or a later step fails: for a
@@ -211,7 +224,9 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   daemon). At the `pm2 start`, use that record: run `pm2 jlist` only when a daemon ran
   before. When no daemon ran before, this run launched it:
   the stop also runs `pm2 kill`. Confirm the port is free afterwards, by the same check
-  as before the start.
+  as before the start. When no daemon ran before and any `pm2` command ran (the version
+  item alone spawns one), step 9's cleanup runs `pm2 kill` at the end, even when no
+  `pm2 start` ran or its stop did not run.
 - **One server at a time:** each start of the same app is its own start item with its own
   stop item: the documented start, the placeholder start, and each missing-config start
   ("Probes per project type", Local HTTP server). Order them: the documented start, its

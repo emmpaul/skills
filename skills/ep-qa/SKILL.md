@@ -181,7 +181,10 @@ down`, `pm2 delete <name>`, or killing the recorded session and process group; "
 in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the run's first `pm2` command). A
 start's stop item runs only after that start's window: its probes (step 6), then the
 verification of the candidates they raised and the re-check items that need it
-("Running", Start window, in `plan.md`). Every
+("Running", Start window, in `plan.md`). When the started process dies during its
+window, the crash is a candidate and the window's remaining items are `not covered:
+blocked by crash (P<n>)` unless its one verifying re-start runs them ("Running", Crash in
+a window, in `plan.md`). Every
 later start of the same app (the placeholder start, each missing-config start) is its own
 start item with its own stop item, and runs only after the previous start's stop item ran
 and its port is confirmed free, never while it still runs. When no tool can find the
@@ -199,8 +202,13 @@ unhelpful error, output contradicting the docs or a spec scenario) is a candidat
 failed plan item from step 5 is a candidate too. Before a start's stop item runs, while
 that start is still up: re-run each candidate its probes raised alone and classify it as
 step 8 says, and run the re-check items that need that start; then run the stop item.
-Never restart a stopped server to verify. Read `references/audit.md` before the first
-such window.
+Never restart a stopped server to verify, except once for a crash: when the started
+process dies during its window, the crash is a candidate (the probe, the exit code or last
+log lines); send nothing more to the dead port, run the stop item, then re-run the same
+confirmed start once (port check, start, the crashing probe alone, the same stop). It
+crashes again: reproduced; it does not: flaky, and the window's blocked items run in that
+second window, else they stay `not covered: blocked by crash (P<n>)` ("Running", Crash in
+a window, in `plan.md`). Read `references/audit.md` before the first such window.
 
 ## 7. Docs check
 
@@ -215,7 +223,8 @@ undocumented env variable is a candidate only as "Undocumented env variables" in
 
 Read `references/audit.md`, if step 6 has not. Candidates and re-check items that need
 a server were already re-run in that start's window (step 6) and keep that outcome;
-never restart a server for them. Re-run each other candidate's reproduction alone and
+never restart a server for them (a crash got its one re-start there; items it blocked
+stay `not covered: blocked by crash (P<n>)` or `not re-checked`). Re-run each other candidate's reproduction alone and
 classify it reproduced, flaky, environment, or refuted, as "Verification" there
 describes. Keep
 reproduced and flaky ones as findings in the finding shape, assign severity and area,
@@ -236,8 +245,12 @@ Done when every candidate has an outcome.
 
 ## 9. Report and clean up
 
-1. Run every start's stop item that has not run, so nothing this run started (detached
-   ones included) keeps running; check each port is free.
+1. Clean up every process this run started, not only through stop items: run every
+   start's stop item that has not run, so nothing this run started (detached ones
+   included) keeps running, and run `pm2 kill` when the pid-file check before the run's
+   first `pm2` command showed no daemon and any `pm2` command ran, even when no
+   `pm2 start` ran or its stop did not ("Running", Stop items, in `plan.md`); check each
+   port is free.
    Delete the scratch copies (regression tests, library examples) and large-input files
    under the system temp dir.
 2. Take the after-snapshot with the same command as step 1 and compare it with the
