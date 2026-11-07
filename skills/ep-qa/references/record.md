@@ -1,0 +1,172 @@
+# Run record reference
+
+Where the run record lives, what it holds, when a check is skipped, and how earlier
+findings carry over. Read in step 1 (load), step 3 (mark skips and re-check items), and
+step 9 (write).
+
+## Location
+
+The record is `<audit-file stem>.state.json` in the same folder as the **requested** audit
+path: `qa-audit.md` pairs with `qa-audit.state.json`, `--out reports/qa.md` with
+`reports/qa.state.json`. The requested path is the default or `--out` path, never the
+dated fallback (`qa-audit-<YYYY-MM-DD-HHMM>.md`), so a run that had to write a dated
+report still loads and updates `qa-audit.state.json`. Each `--out` path keeps its own
+record.
+
+The record is never committed and never added to `.gitignore`, like the audit file. Both
+are left out of "Files changed by the audit". The user deletes the record to start fresh.
+
+## Format
+
+```json
+{
+  "tool": "ep-qa",
+  "version": 1,
+  "target": "repo | path:<p>",
+  "report": "<audit file path written this run>",
+  "head": "<sha>",
+  "dirty": false,
+  "toolchain": {"node": "v20.11.0", "python3": "Python 3.12.1"},
+  "checks": [
+    {
+      "key": "<sha256>",
+      "id": "P4",
+      "result": "passed | failed | flaky",
+      "sha": "<head the check actually ran on>",
+      "deps": ["<path>", "..."],
+      "fingerprint": "<sha256>",
+      "prereqs": ["<key>", "..."]
+    }
+  ],
+  "findings": [
+    {
+      "id": "QA-3",
+      "title": "...",
+      "severity": "critical | major | minor",
+      "area": "setup | build | lint | types | tests | runtime | docs",
+      "check_key": "<key of the check that found it>",
+      "repro": ["<step>", "..."],
+      "first_seen": "<sha>",
+      "status": "open | fixed",
+      "fixed_at": "<sha, when fixed>",
+      "regression_test": {"path": "...", "framework": "...", "code": "..."}
+    }
+  ]
+}
+```
+
+- `key` is the sha256 of the check's area, its exact command or probe, the directory it
+  runs in, and the sorted **names** of the env variables it sets. Any change to one of
+  these is a different check.
+- `sha` is the head the check last ran on. A skipped check keeps the `sha`, `result`, and
+  `fingerprint` from the record.
+- `regression_test` is present only when a test was proposed (`references/audit.md`,
+  "Regression test proposals"); it holds code with placeholders, never a secret.
+- The record holds **no command output, no env values, and no secrets**: results, shas,
+  paths, hashes, and the reproduction steps only (the steps are redacted as in the report).
+
+## Loading (step 1)
+
+With `--full`, do not read the record at all: every check runs, finding ids start at
+`QA-1`, and the record is replaced at the end. The report's "Run record" line says
+`previous record ignored: --full`.
+
+Otherwise the record is **usable** only when all hold:
+
+| Check | When it fails | Report says | Record path at the end |
+|---|---|---|---|
+| the file exists | no record | nothing to ignore; first run | written |
+| it parses as JSON | **corrupt** | `previous record ignored: corrupt` | left untouched; no record written this run |
+| `"tool": "ep-qa"` and a known `version` (1) | **foreign** | `previous record ignored: not an ep-qa record` | left untouched; no record written this run |
+| `target` equals this run's target | **other target** | `previous record ignored: other target (<its target>)` | replaced |
+
+An unusable record counts as absent: nothing is skipped and there are no earlier findings
+to re-check. For a corrupt or foreign file, the report and output also say how to fix it:
+move or delete `<record path>` and run again. Record the toolchain versions now
+(`node --version`, `python3 --version`, `go version`, `cargo --version`, ... for each
+toolchain the plan uses); they are a global invalidator below.
+
+## Fingerprint
+
+For each check, `deps` is the whole target, minus Markdown files and `docs/` for items
+outside the `docs` area. Narrower sets are not used: which files a test reads needs
+coverage data the audit cannot trust.
+
+Compute the fingerprint from the **working tree**, not `HEAD`, so uncommitted edits,
+added files, and deleted files all change it:
+
+```bash
+git ls-files -co --exclude-standard -- <deps> | LC_ALL=C sort | while IFS= read -r f; do
+  [ -f "$f" ] && printf '%s %s\n' "$f" "$(git hash-object -- "$f")"
+done | sha256sum
+```
+
+Add the `git hash-object` of each env file the item reads (`.env` and similar), even when
+it is ignored: its hash only, never its contents. Exclude the audit file and the record
+themselves.
+
+## Skipping unchanged checks (step 3)
+
+Mark a plan item `skip: unchanged since <sha>` (the check's recorded `sha`) only when
+**every** condition holds; any doubt means it runs:
+
+1. The record has a check with the same `key` whose `result` is `passed`. A `failed` or
+   `flaky` check always runs again.
+2. Its fingerprint, recomputed now, equals the recorded one.
+3. No **global invalidator** changed since the record: the lockfiles and manifests in the
+   target (the Lockfiles and Manifests rows of `references/plan.md`), the toolchain
+   versions recorded in step 1, and the CI or task-runner file the item came from (a
+   changed `Makefile` test recipe changes the item).
+4. Every prerequisite (by `prereqs`) has the same key as before. A changed or new
+   prerequisite command invalidates every item that depends on it.
+
+Items the record does not know run. Items marked `not covered` are decided afresh each
+run.
+
+## Checks never skipped
+
+- A check that failed or was flaky on its last run.
+- A `--url` probe: the remote app changes without the repository changing.
+- A re-check item for an earlier finding (below).
+- A **prerequisite that produces state** (install, build, a started server) of any item
+  that runs: when a probe must run, the server start it needs runs too, and so does that
+  start's install and build. It is shown as run, never as skipped. Walk `prereqs` down
+  from every item that runs and clear the skip on each one reached.
+
+In step 5, a skipped item does not run; its result is copied from the record. The plan
+table shows `skipped, unchanged since <short sha>`.
+
+## Earlier findings (steps 3 and 8)
+
+Each finding with `status: open` in a usable record gets one re-check plan item (area of
+the finding, command: its `repro`, source: `record <id>`), which runs whatever the
+fingerprints say. In step 8 it ends in one of:
+
+| Outcome | When | Report |
+|---|---|---|
+| **still failing** | the reproduction fails again (a flaky finding: fails in either of two runs) | keeps its `QA-<n>` id and `first_seen`, gets fresh evidence, `Status: still failing (first seen <sha>)` |
+| **fixed** | the reproduction passes (a flaky finding: passes twice) | listed under "Fixed since last run" with the current head sha; `status: fixed` and `fixed_at` in the record |
+| **not re-checked** | the reproduction could not run (toolchain missing, blocked prerequisite, plan declined, item dropped) | stays `open`, listed under "Not covered" with the reason |
+
+A new candidate with the same root cause as an open finding is that finding, not a new
+one. New findings take ids after the **highest** `QA-<n>` in the record (fixed ones
+included), so an id is never reused. The findings section is still ranked by severity,
+area, and plan order; ids do not follow rank.
+
+## Writing (step 9)
+
+Write the record after the audit file, and only when this run executed at least one
+check:
+
+- **Plan declined, or not confirmed:** nothing executed; leave the record exactly as it
+  was (or absent).
+- **Corrupt or foreign file at the record path:** leave it untouched and write none; the
+  summary says `record: none`.
+- Otherwise write the full record: every check of this run (skipped ones with their
+  carried-over `sha`, `result`, and `fingerprint`; run ones with the fingerprint computed
+  before they ran), every open finding, and the findings fixed this run with `status:
+  fixed`. Drop findings fixed in an earlier run.
+
+Write atomically: a temp file in the same folder (`<record path>.tmp-<pid>`), then rename
+it over the record path, so an interrupted run leaves the old record or the new one,
+never half of one. Never commit the record.
