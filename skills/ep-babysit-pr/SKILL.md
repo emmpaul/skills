@@ -85,7 +85,8 @@ the raw `ep-review-summary` block, so a later run can score without re-reviewing
 `last_review.findings` is the path of the findings file the latest round wrote,
 `.git/ep-babysit/<pr>.findings` (step 5d). `last_review.synced_after` is the head sha of a
 base sync pushed after `last_review.head` (step 5c), or `null` when none was; it tells the
-next round to review the full PR again. `human_ok` is `{ "head": "<sha>" }` after the user
+next round to review the full PR again (step 5d also detects base merges this skill did
+not make). `human_ok` is `{ "head": "<sha>" }` after the user
 said yes to merging that exact head (step 7), or `null`; it is cleared to `null` whenever
 `headRefOid` changes.
 `merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
@@ -284,9 +285,22 @@ current head commit (compare `last_review.head` with `headRefOid`):
    - **Round 1** (`last_review.head` is `null`): `ep-review <n>`, the full PR.
    - **Later rounds:** `ep-review <n> --since <last_review.head> --known <last_review.findings>`,
      so only the commits since the last reviewed head are reviewed and the earlier
-     findings are re-checked instead of reported again. When `last_review.synced_after` is
-     set (a base sync was pushed after that head), drop `--since` and review the full PR,
-     still passing `--known <last_review.findings>`.
+     findings are re-checked instead of reported again. When base code entered the branch
+     after that head, drop `--since` and review the full PR, still passing
+     `--known <last_review.findings>`. That is the case when `last_review.synced_after` is
+     set (this skill pushed a base sync), and also when the base arrived another way (GitHub's
+     "Update branch", a merge a person pushed, then fast-forwarded in step 4). Check it
+     every later round, after `git fetch origin <baseRefName>`:
+
+     ```bash
+     git rev-list --count --merges <last_review.head>..<headRefOid>            # merge commits
+     git rev-list --count <last_review.head>..<headRefOid> --not origin/<baseRefName>
+     git rev-list --count <last_review.head>..<headRefOid>
+     ```
+
+     A merge commit in the range (first count above 0), or a range holding commits that are
+     already on the base (second count below the third), means base code came in: review
+     the full PR. If a command fails, review the full PR too.
 
    If `ep-review` is installed, invoke it (with subagents, delegate the round to a
    subagent running that skill); otherwise perform its steps inline: four dimensions
