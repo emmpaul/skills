@@ -9,7 +9,7 @@
 
 ## 2. ep-issue-to-change
 
-- [ ] 2.1 Write `skills/ep-issue-to-change/SKILL.md` (issue input via `gh issue view --json title,body,labels,comments`, OpenSpec-root check that stops without init, name derivation and existing-name prompt, `openspec new change`, proposal from `openspec instructions proposal` with existing capability paths per design D7, planning-only stop with pointer to the propose workflow, gated `--comment` link, `ep-issue-to-change-summary` block); verify every requirement in `specs/ep-issue-to-change/spec.md` maps to a section
+- [x] 2.1 Write `skills/ep-issue-to-change/SKILL.md` (issue input via `gh issue view --json title,body,labels,comments`, OpenSpec-root check that stops without init, name derivation and existing-name prompt, `openspec new change`, proposal from `openspec instructions proposal` with existing capability paths per design D7, planning-only stop with pointer to the propose workflow, gated `--comment` link, `ep-issue-to-change-summary` block); verify every requirement in `specs/ep-issue-to-change/spec.md` maps to a section
 - [ ] 2.2 Run `scripts/sync-shared.sh` and `scripts/check-shared.sh`; verify the copy exists and the check passes
 - [ ] 2.3 Verify in a scratch OpenSpec repo linked to a sandbox issue: the change is created by the CLI (`.openspec.yaml` present), the proposal references the issue number, `openspec validate <change>` reports only missing-spec errors, no comment is posted without confirmation; and in a repo without OpenSpec the skill stops with no `openspec/` directory created
 
