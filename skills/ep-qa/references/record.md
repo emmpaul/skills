@@ -172,8 +172,9 @@ section is still ranked by severity, area, and plan order; ids do not follow ran
 
 ## Writing (step 9)
 
-Write the record after the audit file, and only when this run executed at least one
-check:
+Write the record after the audit file whenever the plan was confirmed, even when every
+check was skipped as unchanged (the record is then written again with the carried-over
+checks, so the summary names it rather than `none`):
 
 - **Plan declined, or not confirmed:** nothing executed; leave the record exactly as it
   was (or absent).

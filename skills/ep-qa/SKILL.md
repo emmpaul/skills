@@ -197,8 +197,9 @@ Done when every candidate has an outcome.
    same folder instead; when that name is taken too, add `-2`, `-3`, ... before `.md`
    (never overwrite a dated file). Do not commit it or add it to `.gitignore`.
 4. Write the run record after the audit file, as "Writing" in `record.md` says: beside
-   the requested path (not a dated fallback), atomically, only when a check executed and
-   no corrupt or foreign file holds the path. Do not commit it or add it to `.gitignore`.
+   the requested path (not a dated fallback), atomically, whenever the plan was
+   confirmed (even if every check was skipped) and no corrupt or foreign file holds the
+   path. Do not commit it or add it to `.gitignore`.
 5. Print a short summary: counts by severity, the top findings (id, severity, title), the
    report path (and, for a dated name, why), and a suggestion to commit the report (for
    example with `ep-commit`) or delete it.
