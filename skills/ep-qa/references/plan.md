@@ -1,8 +1,8 @@
 # Plan reference
 
 Where to find a project's commands, how to write each plan item, which commands never run,
-and what to probe per project type. Read in step 2 (discover) and step 3 (plan); use the
-probe and edge-input sections again in step 6.
+and what to probe per project type. Read in step 2 (discover) and step 3 (plan); "Running"
+governs steps 5, 6, and 9, and the probe and edge-input sections step 6.
 
 ## Discovery sources
 
@@ -158,15 +158,15 @@ A task-runner target that calls a never-run command (a `make check` that ends in
 
 ## Running
 
-- Run items one at a time, in plan order, from the main context. Never run two at once:
-  they fight over ports, caches, databases, and build output.
+- Run items one at a time, in plan order, from the main context: two at once fight over
+  ports, caches, databases, and build output.
 - Each command gets a 10-minute timeout (`timeout 600 <cmd>` where available). A timeout
   is a failed item with the timeout as evidence.
 - Record exit code, duration, and the decisive output lines (the first error, the failing
   assertion, the summary line).
 - **Servers:** before starting, check the documented port is free (`ss -ltn`, `lsof -i`,
-  or a refused connection). When another process already listens on it, do not start
-  and do not probe that port: the start is `failed: environment (port <n> in use by
+  or a refused connection). When another process already listens on it, leave that port
+  alone, with no start and no probe: the start is `failed: environment (port <n> in use by
   <process>)` and its probes are `not covered: blocked by P<n>`, never a finding
   (`references/audit.md`, Verification). Otherwise start in the background in its own
   session and process group (`setsid` where available), record the PID and session id,

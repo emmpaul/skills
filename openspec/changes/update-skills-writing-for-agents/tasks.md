@@ -19,7 +19,7 @@ Every rewrite task loads the `writing-for-agents` skill (`.agents/skills/writing
 
 - [x] 3.1 Rewrite `skills/ep-open-pr/SKILL.md` and `references/screenshots.md`, keeping the `#5-screenshots` and `#8-body` anchors and the PR body sections. Verify the interface checks for `ep-open-pr` pass and the PR body section headings at base are unchanged. Also check that `skills/ep-orchestrate/references/confidence.md`, which cites `ep-open-pr/SKILL.md`, still matches what it cites.
 - [x] 3.2 Rewrite `skills/ep-a11y/SKILL.md`, `references/audit.md`, and `references/checks.md`, leaving `references/wcag/` untouched. Verify the interface checks for `ep-a11y` pass, `python3 scripts/wcag.py check` and `python3 -m unittest scripts/test_wcag.py` pass, and `git diff 6704efa -- skills/ep-a11y/references/wcag/` is empty.
-- [ ] 3.3 Rewrite `skills/ep-qa/SKILL.md` and `references/plan.md`, `audit.md`, `record.md`, keeping the state-file and audit-file formats. Verify the interface checks for `ep-qa` pass and every fenced format template in `record.md` and `audit.md` at base is still present byte-identical.
+- [x] 3.3 Rewrite `skills/ep-qa/SKILL.md` and `references/plan.md`, `audit.md`, `record.md`, keeping the state-file and audit-file formats. Verify the interface checks for `ep-qa` pass and every fenced format template in `record.md` and `audit.md` at base is still present byte-identical.
 
 ## 4. Review skills and shared risk reference
 

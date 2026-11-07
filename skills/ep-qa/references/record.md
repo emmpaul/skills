@@ -14,8 +14,8 @@ dated fallback (`qa-audit-<YYYY-MM-DD-HHMM>.md`), so a run that had to write a d
 report still loads and updates `qa-audit.state.json`. Each `--out` path keeps its own
 record.
 
-The record is never committed and never added to `.gitignore`, like the audit file. Both
-are left out of "Files changed by the audit". The user deletes the record to start fresh.
+Like the audit file, the record stays uncommitted and out of `.gitignore`. Both are left
+out of "Files changed by the audit". The user deletes the record to start fresh.
 
 ## Format
 
@@ -252,4 +252,4 @@ checks, so the summary names it rather than `none`):
 
 Write atomically: a temp file in the same folder (`<record path>.tmp-<pid>`), then rename
 it over the record path, so an interrupted run leaves the old record or the new one,
-never half of one. Never commit the record.
+never half of one.

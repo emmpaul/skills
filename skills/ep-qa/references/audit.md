@@ -1,8 +1,8 @@
 # Audit reference
 
 Finding shape, areas, severity, verification, redaction, wording, and the report template.
-Read in step 6 (verification in a start's window), step 8 (verify), and step 9 (report). The run record and how earlier findings
-carry over are in `record.md`.
+Read in step 6 (verification in a start's window), step 8 (verify), and step 9 (report).
+The run record and how earlier findings carry over are in `record.md`.
 
 ## Finding shape
 
@@ -149,9 +149,10 @@ Propose no test, and write `No test proposed: <reason>`, when:
 
 ## Secrets
 
-Never copy secret values into the report or the output: tokens, passwords, API keys,
-private keys, connection strings with credentials, cookies, and every value from a `.env`
-file. Name the variable and replace the value with `[REDACTED]` in quoted evidence:
+The report and the output name secrets but never carry their values: tokens, passwords,
+API keys, private keys, connection strings with credentials, cookies, and every value from
+a `.env` file. Name the variable and replace the value with `[REDACTED]` in quoted
+evidence:
 `Authorization: Bearer [REDACTED]`, `postgres://app:[REDACTED]@db:5432/app`. Never quote
 a `.env` file; example env files are quoted by variable name only.
 
@@ -159,8 +160,8 @@ a `.env` file; example env files are quoted by variable name only.
 
 "Not covered" lists every plan item that did not run or whose result could not be
 judged, each with its reason: skipped, unchanged since <short sha> (result carried over
-from the run record, not exercised this run), never run (what it does), tool not installed, blocked by
-P<n>, not confirmed, dropped by the user, environment (the cause), service not available
+from the run record, not exercised this run), never run (what it does), tool not
+installed, blocked by P<n>, not confirmed, dropped by the user, environment (the cause), service not available
 locally, needs a browser, needs writes to a `--url` app, `not probed: may change state
 (<METHOD> <route>)` for a local app's route and `not probed on --url: may change state
 (<METHOD> <route>)` for a `--url` route that failed the "Action-route filter" in
