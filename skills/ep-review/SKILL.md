@@ -1,6 +1,6 @@
 ---
 name: ep-review
-description: Review a local diff, a branch, or a GitHub PR across correctness, OpenSpec spec conformance, tests, and security, report only findings that survive a 3-verifier vote, and classify the risk tier in a summary block that ep-babysit-pr and ep-orchestrate read. Use when the user asks to review changes, a branch, or a PR, to re-review only new commits, or to post review comments on a PR.
+description: Review a local diff, a branch, or a GitHub PR across correctness, OpenSpec spec conformance, tests, and security, report only findings that survive a verifier vote, and classify the risk tier in a summary block that ep-babysit-pr and ep-orchestrate read. Use when the user asks to review changes, a branch, or a PR, to re-review only new commits, or to post review comments on a PR.
 ---
 
 # ep-review
