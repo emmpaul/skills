@@ -21,6 +21,12 @@ Rules for every phase:
 - When a phase commits through `ep-commit-and-push`, tell it the intended commit, to
   just commit, and `--no-push`, so it skips its plan prompt, does not regroup, and
   pushes nothing.
+- Before every commit, check each file it would add as new to history against the
+  secret-like names ([commit](#commit), rules that must match). Commit such a file only
+  when an `answers` line says yes to it by name (tell `ep-commit-and-push` that yes).
+  Without that yes, commit nothing for that commit and end the phase with
+  `blocker: needs input: <id>: commit secret-like file <path>? | yes ; no`; on a `no`
+  answer, commit the rest and leave the file untracked and unstaged.
 - Commit messages carry no model or tool attribution (no `Co-Authored-By` naming a model
   or tool, no "Generated with" line). This overrides any host default.
 - After the plan phase, the change's `proposal.md`, `design.md`, and `specs/` are fixed:
@@ -434,7 +440,8 @@ not available to you**. Commit without a plan prompt: the phase already decided 
 ### Committing
 
 1. Check the branch is not the default branch.
-2. Stage exactly the files of this commit: `git add -- <files>`.
+2. Stage exactly the files of this commit, by file path: `git add -- <files>`. A
+   secret-like file goes in only on a yes (rules for every phase).
 3. Match the repo's style from `git log -n 15 --format='%s%n%b---'` (subject length,
    casing). Without a signal: lowercase imperative subject, no period, ≤ 72 characters.
 4. Write the message to a temp file and commit with it:
@@ -469,6 +476,13 @@ not available to you**. Commit without a plan prompt: the phase already decided 
   "Generated with" footer); human `Co-Authored-By` lines the user asks for are fine.
 - Published history stays as it is: no amend, rebase, reset, or squash of pushed
   commits; amend an unpushed commit only to remove attribution or when the user asks.
+- A file new to history (untracked, listed file by file with
+  `git status --porcelain --untracked-files=all`, or staged added, from
+  `git diff --cached --name-only --diff-filter=A`) whose file name matches a secret-like
+  name is committed only on the user's yes by name; until then it stays out of every
+  commit. Secret-like names: `.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`,
+  `*.keystore`, `*.kdbx`, `*.tfvars`, `id_rsa*`, `id_ed25519*`, `id_ecdsa*`, `id_dsa*`,
+  `*credentials*`, `secrets.*`, `.netrc`, `.npmrc`, `.pypirc`.
 - The skill pushes after committing by default; phases always run it with `--no-push`,
   so it pushes nothing, as this fallback never pushes.
 - Never push unless the user asks; hooks run, so never `--no-verify` unless the user
