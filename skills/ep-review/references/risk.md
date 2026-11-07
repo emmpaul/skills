@@ -50,9 +50,12 @@ The tier is `low` only when both conditions hold:
 1. **Paths:** every changed path is documentation-only (below) or matches a `low:` glob in
    the `REVIEW.md` `## Risk` section, and no changed path matches a `medium:` glob there.
 2. **Author:** the author is trusted (below).
+3. **No risk-rule change:** the change does not add, edit, delete, or rename `REVIEW.md` or
+   `.github/REVIEW.md`, even when a `low:` glob matches it.
 
 When condition 1 holds but condition 2 does not, the tier is `medium` with the reason
-`author not trusted`.
+`author not trusted`. When condition 3 fails, the tier is `medium` with the reason
+`<path> changes REVIEW.md`: a change that edits the risk rules always needs a person.
 
 ### Documentation-only paths
 
@@ -63,6 +66,7 @@ A path is documentation-only when:
 - it is **not** an agent instruction file: `AGENTS.md` or `CLAUDE.md` at any depth,
   anything under `.claude/` or `.agents/`, or any file in or below a directory that
   contains a `SKILL.md` (the whole skill folder, including `references/` and `scripts/`).
+- it is **not** `REVIEW.md` or `.github/REVIEW.md`, which set these rules.
 
 `ep-babysit-pr` uses this same rule for its documentation-only test-evidence item.
 
@@ -86,6 +90,7 @@ Everything that is neither high nor low is `medium`. Reasons:
 
 - a changed path matches a `medium:` glob in `REVIEW.md`: name the path and the glob;
 - the path rules give low but the author is not trusted: `author not trusted`;
+- the change edits `REVIEW.md` (Low condition 3): `<path> changes REVIEW.md`;
 - otherwise: `ordinary change`.
 
 ## Raising the tier
@@ -106,7 +111,16 @@ treats the change as `medium`.
 ## `REVIEW.md` syntax
 
 Look for `REVIEW.md` at the repository root, then `.github/REVIEW.md`; use the first one
-found. The sections the risk rules read are bullet lists:
+found. Read it from the **base** of the change, never from the head under review, so a
+change cannot set its own tier or trust its own author:
+
+- a PR: `git fetch origin <baseRefName>`, then `git show origin/<baseRefName>:REVIEW.md`
+  (then `:.github/REVIEW.md`);
+- a branch: the same from `origin/<default>` (or `<default>` with no remote);
+- an uncommitted diff: the committed version, `git show HEAD:REVIEW.md`.
+
+A `REVIEW.md` that exists only on the head has no effect until it is merged. The sections
+the risk rules read are bullet lists:
 
 ```markdown
 ## Risk
