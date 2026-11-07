@@ -63,8 +63,8 @@ All in this skill's folder (the directory containing this SKILL.md):
 | File | What it holds | When to read |
 |---|---|---|
 | `references/plan.md` | discovery sources, plan item shape, showing the plan, lockfile installs, never-run list, running and server rules, probes per project type, edge inputs | step 2, always |
-| `references/audit.md` | finding shape, areas, severity, verification outcomes, regression test proposals, secrets, coverage, wording, report template | step 8, always |
-| `references/record.md` | run record path and format, fingerprints, skip and invalidation rules, checks never skipped, earlier findings, unusable records, atomic write | steps 1, 3, 5, and 9, always |
+| `references/audit.md` | finding shape, areas, severity, verification outcomes, regression test proposals, secrets, coverage, wording, report template | step 6 when a server starts, step 8, always |
+| `references/record.md` | run record path and format, fingerprints, skip and invalidation rules, checks never skipped, earlier findings, unusable records, atomic write | steps 1, 3, 5, 6, 8, and 9, always |
 
 ## 1. Context
 
@@ -178,7 +178,10 @@ started process still runs, or after it exited 0 (a detached start such as
 `docker compose up -d`, `pm2 start`, or a daemonizing script); a non-zero exit is a failed
 start, whatever the port answers. Each start has a stop item in the plan (`docker compose
 down`, `pm2 delete <name>`, or killing the recorded session and process group; "Running"
-in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the start). Every
+in `plan.md`; it also runs `pm2 kill` when no PM2 daemon ran before the start). A
+start's stop item runs only after that start's window: its probes (step 6), then the
+verification of the candidates they raised and the re-check items that need it
+("Running", Start window, in `plan.md`). Every
 later start of the same app (the placeholder start, each missing-config start) is its own
 start item with its own stop item, and runs only after the previous start's stop item ran
 and its port is confirmed free, never while it still runs. When no tool can find the
@@ -193,7 +196,11 @@ Run the probe items for the project type ("Probes per project type" in `plan.md`
 this context, one at a time. Never send a request, with any method or body, to a route
 that fails the "Action-route filter" in `plan.md`, on a local app or `--url`. Each surprise (crash, stack trace, 5xx, wrong exit code,
 unhelpful error, output contradicting the docs or a spec scenario) is a candidate. Every
-failed plan item from step 5 is a candidate too.
+failed plan item from step 5 is a candidate too. Before a start's stop item runs, while
+that start is still up: re-run each candidate its probes raised alone and classify it as
+step 8 says, and run the re-check items that need that start; then run the stop item.
+Never restart a stopped server to verify. Read `references/audit.md` before the first
+such window.
 
 ## 7. Docs check
 
@@ -206,12 +213,15 @@ undocumented env variable is a candidate only as "Undocumented env variables" in
 
 ## 8. Verify
 
-Read `references/audit.md`. Re-run each candidate's reproduction alone and classify it
-reproduced, flaky, environment, or refuted, as "Verification" there describes. Keep
+Read `references/audit.md`, if step 6 has not. Candidates and re-check items that need
+a server were already re-run in that start's window (step 6) and keep that outcome;
+never restart a server for them. Re-run each other candidate's reproduction alone and
+classify it reproduced, flaky, environment, or refuted, as "Verification" there
+describes. Keep
 reproduced and flaky ones as findings in the finding shape, assign severity and area,
-rank and number them `QA-<n>`. Re-run each re-check item and mark the earlier finding
-still failing, fixed, or not re-checked (`record.md`, "Earlier findings"); new findings
-take ids after the highest the record has issued. For each reproduced finding, draft a
+rank and number them `QA-<n>`. Re-run each re-check item not run in a start's window
+and mark the earlier finding still failing, fixed, or not re-checked (`record.md`,
+"Earlier findings"); new findings take ids after the highest the record has issued. For each reproduced finding, draft a
 regression test and run it in a scratch copy under the system temp dir to show it fails
 today for the finding's reason, or record why no test is proposed ("Regression test
 proposals" in `audit.md`); never write it into the working tree. With the plan not

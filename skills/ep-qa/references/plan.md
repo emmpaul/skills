@@ -178,7 +178,17 @@ A task-runner target that calls a never-run command (a `make check` that ends in
   non-zero during the wait (for example `Address already in use`), the start failed,
   whatever the port answers. Not ready by then: a failed item, with the last
   output lines as evidence.
-- **Stop items:** plan each start's stop right after that start's probes, area `runtime`,
+- **Start window:** a start stays up until its own runtime work is done, so nothing that
+  needs it runs against a stopped server. In plan order: the start, its probes, then its
+  **verification**: each candidate those probes raised (a surprise, a failed probe, output
+  contradicting the docs) is re-run alone and classified there, by the rules of
+  `SKILL.md` step 8 and "Verification" in `references/audit.md`; then each re-check item
+  whose reproduction needs this start (`references/record.md`, "Earlier findings").
+  Only then its stop item. A server is never restarted for verification: a candidate or
+  re-check item that needs a start whose stop already ran is not re-run (re-check:
+  `not re-checked`). Everything that needs no server is verified in step 8.
+- **Stop items:** plan each start's stop right after that start's window (its probes and
+  their verification, above), area `runtime`,
   source the start's source, and run it also when the start or a later step fails: for a
   foreground start, `kill -- -<pgid>` of the recorded process group; for a detached
   start, the matching stop command, `docker compose down` (with the same `-f`/`-p`
@@ -203,7 +213,8 @@ A task-runner target that calls a never-run command (a `make check` that ends in
 - **One server at a time:** each start of the same app is its own start item with its own
   stop item: the documented start, the placeholder start, and each missing-config start
   ("Probes per project type", Local HTTP server). Order them: the documented start, its
-  probes, its stop; then each later start, its probes, its stop, one after another. A
+  probes and their verification, its stop; then each later start, its probes and their
+  verification, its stop, one after another. A
   later start runs only after the previous start's stop item ran and its port is
   confirmed free; two starts of the app never run at the same time.
 

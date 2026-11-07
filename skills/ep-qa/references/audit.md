@@ -1,7 +1,7 @@
 # Audit reference
 
 Finding shape, areas, severity, verification, redaction, wording, and the report template.
-Read in step 8 (verify) and step 9 (report). The run record and how earlier findings
+Read in step 6 (verification in a start's window), step 8 (verify), and step 9 (report). The run record and how earlier findings
 carry over are in `record.md`.
 
 ## Finding shape

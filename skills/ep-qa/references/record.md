@@ -2,7 +2,8 @@
 
 Where the run record lives, what it holds, when a check is skipped, and how earlier
 findings carry over. Read in step 1 (load), step 3 (version items, skips, and re-check
-items), step 5 (toolchain comparison), and step 9 (write).
+items), step 5 (toolchain comparison), steps 6 and 8 (re-check outcomes), and step 9
+(write).
 
 ## Location
 
@@ -205,7 +206,12 @@ when step 5 cleared the skip.
 
 Each finding with `status: open` in a usable record gets one re-check plan item (area of
 the finding, command: its `repro`, source: `record <id>`), which runs whatever the
-fingerprints say. In step 8 it ends in one of:
+fingerprints say. A re-check item whose reproduction needs a server this run starts
+(a request to it, a start of it) is placed in that start's window, after its probes and
+before its stop item, and runs there (`references/plan.md`, "Running", Start window);
+when that start does not run or is not ready, the item is `not re-checked` (blocked
+prerequisite), and no server is restarted for it. The others run in step 8. Either
+way it ends in one of:
 
 | Outcome | When | Report |
 |---|---|---|
