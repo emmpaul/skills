@@ -242,7 +242,8 @@ exists, use the subagent path above.
 
 Classify the change as `low`, `medium`, or `high` with the rules in
 [`references/risk.md`](references/risk.md), and list the reasons it gives. Use the paths
-the **whole** target changes (its base to its head, as in the table in step 2), even with
+the **whole** target changes (its base to its head, as in the table in step 2, with both
+the old and the new path of each rename, listed as `references/risk.md` shows), even with
 `--since`, and including paths skipped by `REVIEW.md`: a narrowed re-review never lowers the
 tier. The author is the PR's author for a PR target, and the user running the review
 otherwise. You may raise the tier with a stated reason when the change needs a person
