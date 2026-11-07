@@ -115,7 +115,9 @@ for each case, one at a time:
    `status: failed: commit missing`, next case.
 2. `git worktree add --detach <scratch>/ep-review-evals/<run-id>/<case-id> <head>`.
 3. Review it with `ep-review --since <base>` (no other flags, never `--comment`), run
-   from the worktree's root, so the reviewed diff is `<base>..<head>`.
+   from the worktree's root, so the reviewed diff is `<base>..<head>`. Tell it that `<base>`
+   is also the base for origin and blame: the head is already on the default branch, so
+   the merge base would be the head itself and every finding would look pre-existing.
 4. Record the result from the report and its `ep-review-summary` block ("Reading a
    review", "Hit rule").
 5. `git worktree remove --force <path>`, also when the review failed.
