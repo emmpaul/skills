@@ -64,7 +64,7 @@ The skill SHALL NOT skip, delete, loosen, or mark tests as expected-to-fail, and
 - **THEN** the skill updates the test only when the intended behaviour is documented in the PR or the active OpenSpec change, and says so in the report
 
 ### Requirement: Fix and push gate
-The skill SHALL propose the fix and apply it when the user agrees, committing it following `ep-commit` conventions with no attribution. It SHALL push only after the user confirms or when its caller owns pushing.
+The skill SHALL propose the fix and apply it when the user agrees, committing it following `ep-commit-and-push` conventions with no attribution. It SHALL push only after the user confirms or when its caller owns pushing.
 
 #### Scenario: Direct invocation
 - **WHEN** the user runs `ep-ci-debug` directly

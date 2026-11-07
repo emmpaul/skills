@@ -18,7 +18,7 @@ The skill SHALL select, for each fix in the working tree, the commit on the bran
 
 #### Scenario: No branch commit to target
 - **WHEN** the fixed lines come from the base, not from branch commits
-- **THEN** the skill proposes a normal commit following `ep-commit` conventions instead of a fixup
+- **THEN** the skill proposes a normal commit following `ep-commit-and-push` conventions instead of a fixup
 
 ### Requirement: Fixup commits
 The skill SHALL create `fixup!` commits whose subject matches the target commit's subject, with no model or tool attribution.

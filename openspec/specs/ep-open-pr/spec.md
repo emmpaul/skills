@@ -19,7 +19,7 @@ The skill SHALL verify the branch is not the default branch, has commits ahead o
 
 #### Scenario: Uncommitted changes
 - **WHEN** the working tree has uncommitted changes
-- **THEN** the skill offers to run `ep-commit` first, or proceeds with committed work only if the user declines
+- **THEN** the skill offers to run `ep-commit-and-push` first, or proceeds with committed work only if the user declines
 
 ### Requirement: Push before opening
 The skill SHALL push the branch to the remote with upstream tracking if it is not yet pushed or is ahead of its upstream, and SHALL NOT force-push.

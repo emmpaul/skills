@@ -21,7 +21,7 @@ The skill SHALL repeatedly observe the PR's checks, reviews, comments, and merge
 - **THEN** the skill waits and re-observes without taking action
 
 ### Requirement: Fix CI failures
-When a check fails, the skill SHALL diagnose it from the check logs, apply a fix, commit via `ep-commit` conventions, and push to the PR branch. It SHALL delegate diagnosis and fixing to `ep-ci-debug` when that skill is installed, and otherwise SHALL perform the equivalent steps inline.
+When a check fails, the skill SHALL diagnose it from the check logs, apply a fix, commit via `ep-commit-and-push` conventions, and push to the PR branch. It SHALL delegate diagnosis and fixing to `ep-ci-debug` when that skill is installed, and otherwise SHALL perform the equivalent steps inline.
 
 #### Scenario: Failing test
 - **WHEN** a required check fails with a test failure
@@ -64,7 +64,7 @@ The skill SHALL classify each new reviewer comment as fix, reply, or scope chang
 
 #### Scenario: Fix in a merge-commit or rebase repository
 - **WHEN** a fix-class comment is handled and the repository's merge method is merge or rebase
-- **THEN** the fix is a normal commit following `ep-commit` conventions, so no `fixup!` subject reaches the base branch
+- **THEN** the fix is a normal commit following `ep-commit-and-push` conventions, so no `fixup!` subject reaches the base branch
 
 #### Scenario: Never autosquash
 - **WHEN** the skill creates fixup commits
