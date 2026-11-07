@@ -75,7 +75,7 @@ a guidance bullet, which `ep-review` passes to every dimension:
 
 When every finding in the path, of any class, was answered `wrong` or `did not matter`
 on 3 or more PRs and the path is generated or vendored code, propose a `## Skip` bullet
-for the glob instead. Never write these lines: print them, and say they go in
+for the glob instead. Print these lines rather than writing them, and say they go in
 `REVIEW.md` at the repository root (or the existing `.github/REVIEW.md`) when the user
 agrees. Fewer than 3 PRs: no proposal, only the counts.
 

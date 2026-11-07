@@ -1,6 +1,6 @@
 ---
 name: ep-review-evals
-description: Measure ep-review against the repository's own history. collect proposes incident cases (merged PRs later reverted or fixed forward, found through git blame of the fix) and an equal sample of clean PRs, and saves only the cases the user accepts, edits, or keeps. run reviews each case with ep-review in a temporary worktree outside the checkout and scores recall (the bug found within 3 lines) and noise (critical or major findings per clean PR) into a labelled run file. compare says keep or drop for a reviewer change from two runs, on their shared cases. noise classifies how authors answered posted ep-review findings and proposes REVIEW.md lines. Read-only on GitHub; writes only under review-evals/ after confirmation, never commits. Ends with an ep-review-evals-summary block. Use when the user asks to evaluate, benchmark, or measure ep-review, build a review eval set, or check whether a reviewer change helps.
+description: Measure ep-review against the repository's own history. collect proposes incident and clean cases from merged PRs and saves only those the user confirms; run reviews them with ep-review and scores recall and noise; compare says keep or drop for a reviewer change from two runs; noise classifies how authors answered posted ep-review findings. Use when the user asks to evaluate, benchmark, or measure ep-review, build a review eval set, or check whether a reviewer change helps.
 ---
 
 # ep-review-evals
@@ -10,11 +10,11 @@ tell whether a reviewer change is worth keeping.
 
 ## Hard rules
 
-- **No GitHub writes.** Read PRs, commits, and reviews only: no comment, review, issue,
+- **Read-only on GitHub.** Read PRs, commits, and reviews only: no comment, review, issue,
   label, or PR change, and never `ep-review --comment`. Never push or fetch-and-write any
   remote.
-- **No commits.** Case and run files stay uncommitted and out of `.gitignore`. Change no
-  branch, index, or tracked file of the user's checkout.
+- **The user's checkout stays as it was.** Case and run files stay uncommitted and out of
+  `.gitignore`; the branch, index, and tracked files are unchanged.
 - **Confirmation first.** Show what will be written (path and contents in short) before
   writing any file, and write it only after the user confirms. `run` states the case
   count and its cost and starts only after confirmation. Each collected case is
@@ -39,30 +39,6 @@ ep-review-evals ... --dir <path>                 # eval directory (default revie
 `<dir>/runs/`. With no subcommand or an unknown one, print these four lines with their
 descriptions, change nothing, and end with the summary block (`subcommand: none`).
 
-## References
-
-All in this skill's folder (the directory containing this SKILL.md):
-
-| File | What it holds | When to read |
-|---|---|---|
-| `references/collect.md` | GitHub and local sources, window, revert and fix-forward detection, blame to PR mapping, clean sampling, confirmation, cases file format | `collect`, always; `run` for the source |
-| `references/scoring.md` | case picking for `--limit`, reading a review, hit and noise rules, reviewer version, run file format, compare verdict | `run` and `compare`, always |
-| `references/noise.md` | posted reviews, response classes, `REVIEW.md` suggestion rule, report | `noise`, always |
-
-## Cleanup (applies to every step that creates a worktree)
-
-Read this before `run` starts and act on it whenever `run` ends, finishes or not (a
-failed case, a declined confirmation after a worktree exists, an error, or an
-interruption you can still act on):
-
-1. Every temporary worktree this run added lives under `<scratch>/ep-review-evals/`,
-   where `<scratch>` is the host's scratch directory, else `$TMPDIR`, else `/tmp`, never
-   inside the repository.
-2. Remove each one: `git worktree remove --force <path>`, then `git worktree prune`.
-3. Check `git worktree list --porcelain` matches the list taken before the run, and that
-   the branch (`git rev-parse --abbrev-ref HEAD`), `HEAD`, and `git status --porcelain`
-   match the before-snapshot. Report any difference; never fix it with reset or checkout.
-
 ## 1. Context
 
 From the repository root, run the probe bundled in this skill's folder:
@@ -75,11 +51,12 @@ Use its `git` (branch, dirty state, default branch). Entries in `warnings` are
 informational. If bash is unavailable, or the probe exits non-zero or prints invalid
 JSON, run `git status --porcelain=v1 -b` and
 `git symbolic-ref --short refs/remotes/origin/HEAD` (else `main`, else `master`) inline.
-This skill ignores `openspec` and never mentions OpenSpec; `ep-review` decides on its own
-whether spec conformance applies to a case.
+Leave the probe's `openspec` aside and OpenSpec out of the output; `ep-review` decides on
+its own whether spec conformance applies to a case.
 
 Decide the source (`references/collect.md`, Sources): `github` when `origin` is a GitHub
-repository and `gh auth status` succeeds, `local` otherwise. Resolve `<dir>`.
+repository and `gh auth status` succeeds, `local` otherwise. Resolve `<dir>`. Done when
+the default branch, the source, and `<dir>` are known.
 
 ## 2. collect
 
@@ -92,6 +69,9 @@ that would be written and ask once; write it only on yes ("Cases file"). With ev
 case rejected, write nothing. Print the accepted cases, the rejected count, and the
 path. Leave the file uncommitted and suggest the user review it before committing it,
 if they want to keep it in the repository.
+
+Done when every proposal has an answer and the cases file is written or, with nothing
+accepted or the write declined, left as it was.
 
 ## 3. run
 
@@ -110,9 +90,10 @@ for each case, one at a time:
 1. Validate the case's fields before using any of them: `base` and `head` are 40 or 64
    lowercase hex characters, `pr` is `null` or a positive integer, and `id` matches
    `^[A-Za-z0-9._-]+$` and is not `.` or `..`. Any other value: `status: failed:
-   invalid case`, next case, with nothing run for it. Then check `head` and `base` exist (`git cat-file -e <sha>^{commit}`); for the GitHub
-   source, `git fetch origin pull/<pr>/head` first when the head is missing. Missing:
-   `status: failed: commit missing`, next case.
+   invalid case`, next case, with nothing run for it. Then check `head` and `base` exist
+   (`git cat-file -e <sha>^{commit}`); for the GitHub source, `git fetch origin
+   pull/<pr>/head` first when the head is missing. Missing: `status: failed: commit
+   missing`, next case.
 2. `git worktree add --detach <scratch>/ep-review-evals/<run-id>/<case-id> <head>`.
 3. Review it with `ep-review --since <base>` (no other flags, never `--comment`), run
    from the worktree's root, so the reviewed diff is `<base>..<head>`. Tell it that `<base>`
@@ -122,11 +103,11 @@ for each case, one at a time:
    review", "Hit rule").
 5. `git worktree remove --force <path>`, also when the review failed.
 
-**With subagents:** run each case in a fresh subagent, one case at a time (not in
-parallel: each `ep-review` already starts its own 7 agents). Give it the repository
-path, the case (id, base, head), the worktree path, and steps 2-5, and ask for the
-report and summary block back. The subagent posts nothing and changes nothing outside
-its worktree. After it returns, check the worktree is gone and remove it if not.
+**With subagents:** run each case in a fresh subagent, one case at a time (sequentially:
+each `ep-review` already starts its own 7 agents). Give it the repository path, the case
+(id, base, head), the worktree path, and steps 2-5, and ask for the report and summary
+block back. The subagent posts nothing and changes nothing outside its worktree. After
+it returns, check the worktree is gone and remove it if not.
 
 **Without subagents:** run the cases inline, one after another, with the same steps,
 using absolute paths so nothing runs in the user's checkout. `ep-review` then uses its
@@ -138,17 +119,36 @@ file ("Run file"). Print recall, noise, each case's id, kind, status, and hit, a
 path. A run that stopped partway still writes the cases that finished, with the others
 as `status: failed: not run`.
 
+### Cleanup
+
+Act on this whenever `run` ends, finished or not (a failed case, a declined
+confirmation after a worktree exists, an error, or an interruption you can still act
+on):
+
+1. Every temporary worktree this run added lives under `<scratch>/ep-review-evals/`,
+   where `<scratch>` is the host's scratch directory, else `$TMPDIR`, else `/tmp`, never
+   inside the repository.
+2. Remove each one: `git worktree remove --force <path>`, then `git worktree prune`.
+3. Check `git worktree list --porcelain` matches the list taken before the run, and that
+   the branch (`git rev-parse --abbrev-ref HEAD`), `HEAD`, and `git status --porcelain`
+   match the before-snapshot. Report any difference as it stands, without reset or
+   checkout.
+
+Done when every case has a status, no worktree of this run is left, the checkout matches
+the before-snapshot (or the difference is reported), and the run file is written.
+
 ## 4. compare
 
 Read `references/scoring.md` and follow "Compare". Read-only: write nothing. Print the
 table, the shared-case note when the case sets differ, and the verdict with what
-decided it.
+decided it. Done when the verdict is printed with what decided it.
 
 ## 5. noise
 
 Read `references/noise.md` and follow it. Read-only: write nothing and post nothing.
 With no posted `ep-review` review in range, say so and suggest
-`ep-review <pr> --comment`. Print the report and the proposed `REVIEW.md` lines.
+`ep-review <pr> --comment`. Print the report and the proposed `REVIEW.md` lines. Done when
+every posted finding in range has a response class.
 
 ## 6. Summary block
 

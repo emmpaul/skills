@@ -63,7 +63,7 @@ The version of the `ep-review` that ran: its skill folder (the one the host load
 
 `<dir>/runs/<YYYYMMDD-HHMMSS>-<label>.json`, where the label is `--label <label>`
 (letters, digits, `.`, `_`, `-`; default `run`). The time is the run's start, in UTC.
-Never overwrite: when the name exists, add `-2`, `-3`, ... before `.json`.
+Each run gets a new file: when the name exists, add `-2`, `-3`, ... before `.json`.
 
 ```json
 {
@@ -105,8 +105,8 @@ Never overwrite: when the name exists, add `-2`, `-3`, ... before `.json`.
 `limit` is `null` without `--limit`. `hit` is `null` for clean and failed cases. The
 run's `verification` is `vote` or `inline` when every case that ran used it, and `mixed`
 otherwise. `value` is `null` where the rule above gives `n/a`. Write it with 2-space
-indentation, through a temporary file in the same folder renamed over it. Never commit
-it.
+indentation, through a temporary file in the same folder renamed over it, and leave it
+uncommitted.
 
 ## Compare
 
