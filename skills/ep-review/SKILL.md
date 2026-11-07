@@ -104,7 +104,9 @@ uncommitted diff, `git diff <sha>`), and for a PR `headRefOid` after
 (`git merge-base --is-ancestor <sha> <head>` fails, for example after a force-push), say
 so and review the full diff instead, with `scope: full`. Still read the code around the
 narrowed diff as usual; only the hunks under review shrink. The base for origin and
-blame (`references/dimensions.md`) stays the target's base, not `<sha>`. Record the scope
+blame (`references/dimensions.md`) stays the target's base, not `<sha>`, unless the caller
+names the base for origin explicitly (as `ep-review-evals` does for a head that is already
+on the default branch, where the merge base would be the head itself): then use that base. Record the scope
 for the summary: `since:<sha>` with `--since`, `full` without it.
 
 **Skipped paths.** Remove from the diff every changed path that matches a `## Skip` glob in
