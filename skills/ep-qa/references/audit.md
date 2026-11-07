@@ -53,8 +53,8 @@ area when the code is what is wrong.
 
 | Severity | Meaning | Examples |
 |---|---|---|
-| critical | The project cannot be set up, built, or started from its docs, a core flow is broken, or data is lost or exposed. | install or build fails on a clean checkout; app crashes on start; main command crashes on documented input; secret printed in normal output |
-| major | Wrong in a realistic case, or a check the project defines fails. | failing test; lint or typecheck errors in a configured check; documented command or flag fails; 500 on malformed input; crash with a stack trace on empty input to a secondary command; flaky test; undocumented required env variable |
+| critical | The project cannot be set up, built, or started from its docs, a core flow is broken, or data is lost or exposed. | install or build fails on a clean checkout; app crashes on start, including from an undocumented required env variable; main command crashes on documented input; secret printed in normal output |
+| major | Wrong in a realistic case, or a check the project defines fails. | failing test; lint or typecheck errors in a configured check; documented command or flag fails; 500 on malformed input; crash with a stack trace on empty input to a secondary command; flaky test; undocumented env variable that only a secondary feature needs |
 | minor | Real but low impact. | invalid input rejected correctly but with a misleading message; doc typo in a flag name with an obvious fix; warning noise from the project's own code |
 
 Rank findings by severity, then area in the table order above, then plan order. Number
