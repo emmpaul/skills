@@ -231,9 +231,11 @@ head: <sha>
 **Inputs:** branch, base sha, change name, and one of:
 
 - a round number, for an end-of-run round: the range is the base sha to the branch head
-- `group: <n>` and the group's head sha, for a **group pass** after apply group `<n>`:
-  the base sha is the group's start sha, and the range is `<start>...<head>`, only that
-  group's commits
+- `group: <n>`, the group's head sha, and `origin base: <sha>` (the run's base sha), for
+  a **group pass** after apply group `<n>`: the base sha is the group's start sha, and
+  the range is `<start>...<head>`, only that group's commits. Origin is measured from
+  the origin base, not the start, so code an earlier group of the run added is
+  `introduced`
 
 For an end-of-run round *k* > 1, also `since: <sha>` (the previous round's head) and
 `known: <path>` (the previous round's findings file). Then only the changes from `since`
@@ -251,7 +253,7 @@ Review the range. Post nothing to GitHub.
 - **Otherwise** (not installed, or the base sha differs, for example a run started on a
   branch that already had commits, or any group pass after the first group) follow
   [review](#review-fallback) with the base sha, and `since` and `known` when given; for a
-  group pass, diff `git diff <start>...<head>`.
+  group pass, diff `git diff <start>...<head>` and pass the `origin base`.
 
 **Group pass rules:**
 
@@ -438,7 +440,8 @@ including every group pass after the first group), even with `ep-review` install
 not invoke `ep-review` from here: it would review from the merge base instead of the
 base sha. Read-only: change no files and post nothing. `since` and `known` are the
 inputs [review](#review) names for round *k* > 1; without them, `scope` is `full` and
-`known` is `fixed=0 still_open=0`.
+`known` is `fixed=0 still_open=0`. `<origin-base>` is the `origin base` input of a group
+pass, else the base sha.
 
 1. **`REVIEW.md`:** the first of `REVIEW.md` and `.github/REVIEW.md` on the default
    branch (`git show origin/<default>:<path>`, `<default>` with no remote), never from
@@ -508,7 +511,7 @@ inputs [review](#review) names for round *k* > 1; without them, `scope` is `full
    test when cheap and safe. Drop what cannot occur, downgrade what is smaller than
    claimed, drop listed instances without the defect. **Origin:** `pre-existing` only
    when the lines are not among the diff's added lines and
-   `git blame -M -C <base-sha>..<head> -L <start>,<end> -- <file>` marks every one as a
+   `git blame -M -C <origin-base>..<head> -L <start>,<end> -- <file>` marks every one as a
    boundary line (`^`); unclear means `introduced`. A `known` candidate is `fixed` when
    its defect no longer occurs at the head (not counted in `dropped_in_verification`),
    else `still open`; the still-open locations of one known finding are one finding,

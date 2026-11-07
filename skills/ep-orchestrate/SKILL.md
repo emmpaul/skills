@@ -360,7 +360,8 @@ re-run) and before the next group starts; for the last group, before step 7. A g
 never reviewed twice: the next group's pass and step 8 cover its fix commits.
 
 1. **Review.** Run the `review` phase with `group: <n>`, the group's `start` as the base
-   sha, and HEAD as its head. It never runs as a Workflow, with or without `--workflow`.
+   sha, HEAD as its head, and `origin base: <base-sha>` (the run's `base` sha), so a
+   defect an earlier group of this run added is never classed pre-existing. It never runs as a Workflow, with or without `--workflow`.
    Append a `group_reviews` entry with its counts and `head` (`fixed` and `unfixed`
    `null`); when the group already has an entry (a pass re-run on resume), replace it
    instead, so each group keeps one entry. Then overwrite `<change>.findings` with label
