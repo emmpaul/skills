@@ -167,7 +167,9 @@ Show the user the full draft: title, body, labels, and the duplicate candidates 
 number, title, state, and last update.
 
 - **Duplicates found:** ask whether to **create anyway**, **comment on #<m> instead**, or
-  **stop**. `--yes` does not skip this question.
+  **stop**. `--yes` does not skip this question. On **comment on #<m> instead**, draft the
+  comment from the new details (what this report adds), show its full text, and ask to
+  post it, edit it, or stop.
 - **No duplicates, no `--yes`:** ask to create (or, in triage, to apply the additions),
   edit the draft, or stop.
 - **No duplicates, `--yes`:** proceed.
@@ -176,7 +178,8 @@ Nothing is written to GitHub before this step resolves to a write. A stop leaves
 draft printed with `outcome: drafted` (or `outcome: duplicate` when the user stopped for
 a duplicate).
 
-Done when the user has picked one option, or `--yes` applies.
+Done when the user has picked one option (for a comment, after seeing its text), or
+`--yes` applies.
 
 ## 6. Write
 
@@ -192,9 +195,9 @@ gh issue comment <m> --body-file "$body"                                        
 rm -f "$title" "$body"
 ```
 
-In triage, the body file holds the author's body unchanged followed by the additions. For
-a comment on a duplicate, draft it from the new details (what this report adds) and show
-it before posting; the comment gives `outcome: duplicate`.
+In triage, the body file holds the author's body unchanged followed by the additions. The
+comment on a duplicate is the text the user confirmed in step 5; it gives
+`outcome: duplicate`.
 
 Read the result back with `gh issue view <n> --json number,title,body,labels,url`. Done
 when the title, body, and comment contain no "Generated with" or model attribution line
