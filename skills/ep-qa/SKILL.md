@@ -23,10 +23,14 @@ what was not covered.
 - **Install nothing on the machine.** Dependency installs only with the project's
   lockfile-respecting command, as confirmed plan items; never a global or system install
   or a tool the project does not declare.
+- **Action routes get no request.** A documented route that fails the action-route
+  filter (`references/plan.md`, "Action-route filter": a cron, send, webhook, or other
+  action route, whatever its method) is never requested, on a local app or `--url`. It
+  goes under "Not covered" as `not probed: may change state (<METHOD> <route>)` for a
+  local app, or `not probed on --url: may change state (<METHOD> <route>)` for `--url`.
 - **`--url` is read-only:** `GET` and `HEAD` only, to the root, a missing route, and
-  documented routes that are clearly read-only. State-changing requests, including a
-  `GET` that may change state (a cron or webhook route), go only to an app this run
-  started locally.
+  documented routes that pass the action-route filter and need no token, signature, or
+  id. Write requests and malformed bodies go only to an app this run started locally.
 - **No git or GitHub writes:** no commit, push, merge, issue, PR, or comment. The audit
   file and the run record stay uncommitted and out of `.gitignore`.
 - **No all-clear.** The report says what was exercised and found; it never says the
@@ -130,9 +134,13 @@ unchanged checks" and "Checks never skipped" in `record.md`; not covered
 is for never-run commands, missing tools (`command -v`), and services the audit cannot run
 locally. Add one re-check item per open
 finding in a usable record (`record.md`, "Earlier findings"). Probes come from
-the project type and the edge inputs in `plan.md`; with `--url`, add `GET`/`HEAD` probes of
-that URL's root, a missing route, and only the documented routes that are clearly
-read-only (`plan.md`, "`--url`"); the others are not covered. When the project defines
+the project type and the edge inputs in `plan.md`. Apply the "Action-route filter" in
+`plan.md` to every documented route, on a local app and `--url` alike: a route that fails
+it gets no probe item and goes under not covered as `not probed: may change state
+(<METHOD> <route>)` (local app) or `not probed on --url: may change state (<METHOD>
+<route>)` (`--url`). With `--url`, add `GET`/`HEAD` probes of that URL's root, a missing
+route, and only the documented routes that pass the filter and the other `--url` criteria
+(`plan.md`, "`--url`"); the others are not covered. When the project defines
 no runnable command, say so; the audit continues with docs checks only.
 
 Done when every documented or scripted command has a plan item, every one with a source
@@ -178,7 +186,8 @@ covered with that reason.
 ## 6. Probe
 
 Run the probe items for the project type ("Probes per project type" in `plan.md`), from
-this context, one at a time. Each surprise (crash, stack trace, 5xx, wrong exit code,
+this context, one at a time. Never send a request, with any method or body, to a route
+that fails the "Action-route filter" in `plan.md`, on a local app or `--url`. Each surprise (crash, stack trace, 5xx, wrong exit code,
 unhelpful error, output contradicting the docs or a spec scenario) is a candidate. Every
 failed plan item from step 5 is a candidate too.
 

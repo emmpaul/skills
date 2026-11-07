@@ -209,12 +209,29 @@ docs or a spec scenario) is a candidate for step 8.
 - Check the exit code: 0 on success, non-zero on error, and an error message that names
   the problem.
 
+**Action-route filter** (local apps and `--url`)
+
+A route can change state outside the app whatever its method: a
+`GET /api/cron/send-digest` still sends real email, fires webhooks, or schedules jobs,
+on a locally started app too. A documented route **fails the filter** when its path or
+doc text names an action: `send`, `run`, `trigger`, `cron`, `job`, `task`, `queue`,
+`webhook`, `hook`, `callback`, `sync`, `import`, `refresh`, `notify`, `email`, `mail`,
+`digest`, `invoke`, `execute`, `exec`, `create`, `new`, `add`, `update`, `edit`,
+`delete`, `remove`, `reset`, `purge`, `clear`, `flush`, `approve`, `cancel`, `confirm`,
+`verify`, `unsubscribe`, `subscribe`, `login`, `logout`, `auth`, `token`, `deploy`,
+`publish`, `restart`, `shutdown`, `migrate`, `seed`, `admin`, and the like; or when its
+docs say it changes, sends, schedules, or notifies anything outside the app. Any doubt
+means it fails. A route that fails gets no request at all, with any method or body,
+malformed or not. The sections below say how each target lists it under "Not covered".
+
 **Local HTTP server** (started by the audit)
 
-- Each documented route, with the documented method.
+- Each documented route that passes the "Action-route filter" above, with the
+  documented method. A route that fails it is not requested and goes under "Not
+  covered" as `not probed: may change state (<METHOD> <route>)`.
 - A missing route (expect 404, not 500).
-- Malformed bodies on documented write routes: invalid JSON, wrong types, missing
-  required fields, the edge inputs below.
+- Malformed bodies on documented write routes that pass the filter: invalid JSON, wrong
+  types, missing required fields, the edge inputs below.
 - Start with a required env variable or config missing (one variable at a time), when the
   docs or example env file name them, to see whether the failure is clear.
 - Write requests go only to this locally started app.
@@ -230,20 +247,12 @@ docs or a spec scenario) is a candidate for step 8.
 
 - `GET` and `HEAD` only, to that URL and paths under it: the root, a missing route, and
   each documented route that is **clearly read-only**.
-- A `GET` can still change state (a cron trigger, a webhook, an unsubscribe or
-  email-confirmation link), and that app is not one this run started, so a documented
-  route is probed only when all hold; any doubt means it is not probed:
+- That app is not one this run started, so a documented route is probed only when all
+  hold; any doubt means it is not probed:
+  - it passes the "Action-route filter" above;
   - the docs give it as `GET` or `HEAD` (or name no method for a page), never another
     method;
-  - neither its path nor its doc text names an action: `send`, `run`, `trigger`, `cron`,
-    `job`, `task`, `queue`, `webhook`, `hook`, `callback`, `sync`, `import`, `refresh`,
-    `notify`, `email`, `mail`, `digest`, `invoke`, `execute`, `exec`, `create`, `new`,
-    `add`, `update`, `edit`, `delete`, `remove`, `reset`, `purge`, `clear`, `flush`,
-    `approve`, `cancel`, `confirm`, `verify`, `unsubscribe`, `subscribe`, `login`,
-    `logout`, `auth`, `token`, `deploy`, `publish`, `restart`, `shutdown`, `migrate`,
-    `seed`, `admin`, and the like;
-  - the docs do not say it changes, sends, or schedules anything, and it needs no token,
-    signature, or id parameter.
+  - it needs no token, signature, or id parameter.
   A documented route left out goes under "Not covered" as
   `not probed on --url: may change state (<METHOD> <route>)`.
 - No forms, no sign-in, no other method, no request bodies, and no query strings beyond

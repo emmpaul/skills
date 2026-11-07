@@ -161,7 +161,10 @@ a `.env` file; example env files are quoted by variable name only.
 judged, each with its reason: skipped, unchanged since <short sha> (result carried over
 from the run record, not exercised this run), never run (what it does), tool not installed, blocked by
 P<n>, not confirmed, dropped by the user, environment (the cause), service not available
-locally, needs a browser, needs writes to a `--url` app. It also lists project kinds with
+locally, needs a browser, needs writes to a `--url` app, `not probed: may change state
+(<METHOD> <route>)` for a local app's route and `not probed on --url: may change state
+(<METHOD> <route>)` for a `--url` route that failed the "Action-route filter" in
+`references/plan.md` (no request was sent to it). It also lists project kinds with
 no command at all ("no lint command defined") and code suspicions as `worth testing`.
 
 ## Wording
@@ -234,6 +237,7 @@ build, lint, and tests; started the server and probed 6 routes.">
 - P4 `npm test`: skipped, unchanged since 1a2b3c4 (result carried over from the run record)
 - P7 `npm run deploy`: never run (deploys)
 - Runtime probes: need PostgreSQL at DATABASE_URL, not available locally
+- `GET /api/cron/send-digest`: not probed: may change state (GET /api/cron/send-digest)
 - worth testing: unchecked index in src/parse.ts:88 (no probe reached it)
 
 ## Files changed by the audit
