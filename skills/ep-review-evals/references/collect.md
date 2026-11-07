@@ -29,8 +29,8 @@ Two sources give the merged PRs and their commits:
   has no base and is never a case.
 
 Say which source was used in the output (`source: github` or `source: local`). Both
-give the same case shape. Read only: never fetch from or write to any remote other than
-the reads above.
+give the same case shape. Remote access is read-only and limited to the reads above:
+never fetch from or write to any remote otherwise.
 
 ## Window
 
@@ -201,5 +201,5 @@ its cases and add the new ones; a proposal with the same `merge` and kind (and, 
 incidents, the same bug file and overlapping lines) as an existing case is not proposed
 again. A file that is not valid JSON or has another `tool` is left untouched: stop and
 say so. Write the file with 2-space indentation and a trailing newline, through a
-temporary file in the same folder renamed over it. Never commit it or add it to
+temporary file in the same folder renamed over it. Leave it uncommitted and out of
 `.gitignore`.

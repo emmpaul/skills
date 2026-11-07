@@ -5,9 +5,10 @@ Step 5 of `SKILL.md`. It runs after the title and body are drafted and before
 app at the branch head, publishes the images on the orphan `ep-pr-assets` branch, and adds
 a `## Screenshots` section to the body.
 
-Never change the PR branch or the default branch here: no commit, checkout, stash, or
-reset in the working repository. Never install anything, never sign in, and never type
-into a form. Capture is sequential: no subagents.
+Leave the working repository as it is: the PR branch and the default branch get no
+commit, checkout, stash, or reset; all git writes happen in a scratch worktree. Use only
+tools already present: never install anything, never sign in, and never type into a
+form. Capture runs in sequence, with no subagents.
 
 ## Rules at a glance
 
@@ -45,14 +46,17 @@ A directory alone never makes a file UI: `app/models/user.rb`, `app/main.py`, an
 
 Ignore test files: a file name matching `*.test.*`, `*.spec.*`, `*_test.*`, `*_spec.*`, or
 `test_*`, or a path under a `__tests__/`, `test/`, `tests/`, or `spec/` directory. A name
-that merely contains `test` or `spec` (`Inspector.tsx`, `LatestPosts.tsx`) is not a test. When no path is left, skip this whole step: start nothing, push
-nothing, and add no `## Screenshots` section.
+that merely contains `test` or `spec` (`Inspector.tsx`, `LatestPosts.tsx`) is not a
+test. When no path is left, skip this whole step: start nothing, push nothing, and add no
+`## Screenshots` section.
 
 The app is started from the working tree, but the images must show the branch head they
 are filed under. So when `git status --porcelain` lists anything (staged, unstaged, or
 untracked files, for example after the user declined to commit in `SKILL.md` step 2),
 start nothing and push nothing, write `Not captured: working tree differs from branch
 head`, and skip to [Body](#8-body).
+
+Done when you hold the list of changed UI files and the working tree is clean.
 
 ## 2. Start command
 
@@ -61,8 +65,8 @@ Take the first that exists:
 1. a `package.json` script, in this order: `dev`, `start`, `preview`, `storybook`; run it
    with the package manager the lockfile names (`pnpm-lock.yaml` → `pnpm run`,
    `yarn.lock` → `yarn`, `bun.lockb` → `bun run`, else `npm run`);
-2. a command the README documents for starting the app locally (a dev or serve command,
-   never a deploy, publish, or install command).
+2. a command the README documents for starting the app locally: a dev or serve command,
+   never a deploy, publish, or install command.
 
 Find the port from the command or script (`--port`, `-p`, a bare port argument such as
 `http.server 8000`), else the README, else the framework's default (Vite 5173, Next.js
@@ -80,9 +84,9 @@ Use the first available, in this order:
    Capture with `npx --no-install playwright screenshot`. `--no-install` makes `npx` fail
    rather than download.
 
-Never install a browser, a Playwright package, or browser binaries (`npm install`,
-`npx playwright install`, `pip install`, a system package manager). When nothing is
-available, start nothing and push nothing, write `Not captured: no browser available`,
+Use what is already there: never install a browser, a Playwright package, or browser
+binaries (`npm install`, `npx playwright install`, `pip install`, a system package
+manager). When nothing is available, start nothing and push nothing, write `Not captured: no browser available`,
 and skip to [Body](#8-body).
 
 ## 4. Pages
@@ -102,6 +106,8 @@ be derived (a changed shared component or stylesheet), use `/`. Take at most **5
 in changed-file order, each at **1280×800** and **390×844**, so at most **10** images.
 Pages past the cap are listed in the section as `Not captured: over the 5-page limit`.
 
+Done when you hold at most 5 routes, each with its two widths.
+
 ## 5. Gate 1: run the app
 
 Show, then ask **Run**, **Skip**, or **Stop**:
@@ -113,6 +119,8 @@ Show, then ask **Run**, **Skip**, or **Stop**:
 `--screenshots` answers Run. In a non-interactive run without `--screenshots`, answer
 Skip. Skip writes `Not captured: not confirmed` and goes to [Body](#8-body). Stop ends the
 skill before the PR is created or edited, and says so.
+
+Done when the gate has an answer: Run continues to capture.
 
 ## 6. Capture
 
@@ -171,15 +179,18 @@ earlier run: it would hold images gate 2 never showed.
 
   and the same with `--viewport-size=390,844`.
 
-**Sign-in:** when a page ends on a sign-in page, do not capture it and list it as
+**Sign-in:** when a page ends on a sign-in page, leave it uncaptured and list it as
 `Not captured: needs sign-in`. It ends on one when the final URL is on another host, or
 one of its path segments is exactly (ignoring case) `login`, `log-in`, `signin`,
 `sign-in`, `sign_in`, `auth`, `oauth`, or `sso`, or the page shows only a sign-in form.
 Match whole segments, never substrings: `/authors`, `/lessons`, and `/professors` are
-ordinary pages. Never type into any field.
+ordinary pages. Type into no field.
 
 A page that errors (HTTP 4xx/5xx, a blank page) is captured as it is and noted
 `(page returned <status>)` next to its images; it is evidence for the reviewer.
+
+Done when every page has its two images or a `Not captured:` reason, and the app is
+stopped with its port free (or the report names what is still running).
 
 ## 7. Publish (gate 2)
 
@@ -215,15 +226,15 @@ rm -f "$msg"
 git -C "$wt" push origin HEAD:refs/heads/ep-pr-assets
 ```
 
-- The branch name reaches the shell only through `$branch`, set from `git rev-parse`:
-  never paste the name itself into a command, since git allows `$`, `(`, `)`, and `|` in
-  branch names and a double-quoted name would run them.
+- The branch name reaches the shell only through `$branch`, set from `git rev-parse`.
+  Pasting the name itself into a command is unsafe: git allows `$`, `(`, `)`, and `|` in
+  branch names, and a double-quoted name would run them.
 - The commit holds only PNG files under `<branch-slug>/<head-short-sha>/`. The message
   carries no model or tool attribution: check it with `git -C "$wt" log -1 --format=%B`.
 - When any step before the push fails (creating the worktree, `add`, or `commit`, for
   example a repository hook rejecting the commit), push nothing and
   fall back to local paths; say in the final report which step failed and its first
-  error line. Never retry the commit with `--no-verify`.
+  error line. Hooks always run: never retry the commit with `--no-verify`.
 - A plain push only: never `--force`, `--force-with-lease`, or a `+` refspec.
 - A non-fast-forward rejection (someone pushed meanwhile) gets one retry: `git fetch
   origin ep-pr-assets`, `git -C "$wt" rebase origin/ep-pr-assets` (the temporary branch
@@ -232,11 +243,14 @@ git -C "$wt" push origin HEAD:refs/heads/ep-pr-assets
 - **Always remove the worktree**, on success or failure: `git worktree remove --force
   "$wt"`, then `git branch -D ep-pr-assets-tmp`, then check that `git worktree list` no
   longer shows it.
-- Never delete `ep-pr-assets` or anything in it. It grows over time; the user may delete
-  it whenever they like.
+- `ep-pr-assets` and everything in it stay: the branch grows over time, and deleting it
+  is the user's call.
 
 **Updating a PR** after new commits: the head sha is new, so the images go in a new
 `<branch-slug>/<new-sha>/` folder and the body links only the new ones. Older folders stay.
+
+Done when the images are on `ep-pr-assets` (note the commit sha) or the run falls back to
+local paths, and `git worktree list` no longer shows the scratch worktree.
 
 ## 8. Body
 

@@ -1,7 +1,7 @@
 # Audit reference
 
 Finding shape, severity scale, verification checklist, and the default manual-check list.
-Criterion names and levels always come from `wcag/index.md`. The maintainer's check
+Criterion names and levels always come from `wcag/index.md`. `scripts/wcag.py check`
 confirms that every criterion number in this file exists, is not obsolete, and that a name
 written after it matches the index.
 
@@ -23,10 +23,10 @@ fix:        the concrete change, as code when it is short
 decision:   none | wording | colour | design     (what the fix needs from a human)
 ```
 
-A finding with no concrete scenario is not a finding. "Could be more accessible" is not a
-finding. Scope is what the target adds or touches; for a path target it is the whole file.
-Pre-existing issues in untouched code are out of scope unless the change makes them
-reachable.
+A finding names a concrete scenario: a person, a task, and what blocks them. "Could be
+more accessible" is not a finding. Scope is what the target adds or touches; for a path
+target it is the whole file. Pre-existing issues in untouched code are out of scope
+unless the change makes them reachable.
 
 Write the scenario in terms of people and tasks, for example: "A screen reader user tabs
 to the search field and hears 'edit text, blank'; they cannot tell what to type."
@@ -72,8 +72,8 @@ Try to disprove each candidate before keeping it. Drop it if any of these hold:
 - [ ] **Decorative use.** Images with `alt=""`, icons next to visible text, and CSS
       backgrounds that carry no information need no text alternative.
 - [ ] **Native element.** A native `<button>`, `<a href>`, `<input>`, `<select>`, or
-      `<summary>` already provides keyboard support and role; do not ask for `tabindex`
-      or `role` on it.
+      `<summary>` already provides keyboard support and role; it needs no added
+      `tabindex` or `role`.
 - [ ] **Handled elsewhere in CSS.** An `outline: none` is replaced by `:focus-visible`
       styles, a `box-shadow` ring, or a border change in the same or a global stylesheet.
 - [ ] **Code cannot settle it.** If the result depends on rendered colours, layout, real
@@ -84,8 +84,7 @@ Then check the citation:
 
 - [ ] The criterion number is a row in `wcag/index.md` and is not obsolete. If not, cite
       the right row or drop the finding. Parsing (obsolete in WCAG 2.2) is never cited:
-      do not report markup validity issues (duplicate IDs, unclosed tags) on their own;
-      report them only through the
+      report markup validity issues (duplicate IDs, unclosed tags) only through the
       criterion they break, for example a duplicate `id` that breaks a label association
       under SC 1.3.1 or SC 4.1.2.
 - [ ] The level is within the requested level (default A and AA).
@@ -129,6 +128,7 @@ At `--level AAA` also consider:
 
 ## No conformance claim
 
-A code audit cannot show that a page conforms to WCAG. Never write "conformant",
-"compliant", "passes WCAG", or "meets AA". With no findings, write: "No issues found in the
+A code audit cannot show that a page conforms to WCAG. Report what was found and what a
+person still has to check; never write "conformant", "compliant", "passes WCAG", or
+"meets AA". With no findings, write: "No issues found in the
 audited code at WCAG 2.2 <level>. The manual checks below still need a person."

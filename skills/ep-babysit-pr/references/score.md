@@ -1,11 +1,11 @@
 # Merge confidence score
 
-The score is computed only from verifiable evidence. Never add, remove, or adjust points
-based on your own sense of how good the change is.
+Score only from verifiable evidence: every point traces to a source in the tables below.
+Your own sense of how good the change is never adds, removes, or adjusts points.
 
 ## Hard gates
 
-All must pass, regardless of score. Any failure means **no merge**.
+Every gate must pass, whatever the score. Any failure means **no merge**.
 
 | Gate | Check | Source |
 |---|---|---|
@@ -61,8 +61,9 @@ review round, the other items, the gates, and the threshold apply unchanged.
 
 Merge is allowed only when **score >= 85**, all hard gates pass, the merge state allows
 it (below), the review the score uses ran on the current head (`last_review.head`
-equals `headRefOid`), and the [risk gate](#risk-gate) passes. Note that with OpenSpec, missing items 4+5 (25) or item 3 alone (20) is enough
-to block; without OpenSpec, missing tests (45) blocks.
+equals `headRefOid`), and the [risk gate](#risk-gate) passes. With OpenSpec, missing
+items 4+5 (25) or item 3 alone (20) is enough to block; without OpenSpec, missing tests
+(45) blocks.
 
 ## Report format
 
@@ -89,8 +90,8 @@ For a documentation-only PR, item 5 reads:
 Evaluated after the score and the other merge conditions, just before the merge call. The
 tier is the `risk:` line of the latest `ep-review-summary` (`last_review.summary`), which
 ran on the current head. A summary with no `risk:` line (an older `ep-review`) counts as
-`medium`. The tier rules themselves are in [`risk.md`](risk.md); this skill never lowers
-the tier the review reported.
+`medium`. The tier rules themselves are in [`risk.md`](risk.md). Use the tier the review
+reported as it is: this skill never lowers it.
 
 | Tier | Needs | Recorded in state |
 |---|---|---|
@@ -129,7 +130,7 @@ no counting approval, do not merge: notify the user that a human approval of thi
 needed, once per head (skip it when `risk_notified` equals `headRefOid`, else send it and
 set `risk_notified` to `headRefOid`), and wait as on `BLOCKED`.
 
-**Unattended runs.** A run is **unattended** when either holds:
+**Unattended runs.** A run is **unattended** when any of these holds:
 
 - no way to ask exists: the host has no question tool and the session takes no reply
   from the user (a headless or non-interactive run, such as `claude -p` or CI); or
@@ -177,73 +178,10 @@ commit.
 
 Prefer the repo's configured default when it is known (for example from a
 `CONTRIBUTING.md` or the user's instruction); otherwise use the first allowed method in the
-order above. Never pass `--admin`. Do not use `--auto`: the skill itself decides when to merge.
+order above. Merge with this explicit call, never `--admin` and never `--auto`: the skill
+itself decides when to merge.
 
 ### Stacked PRs
 
-A PR in a GitHub native stack merges through the async merge API instead of `gh pr merge`
-(GitHub names it the required API for stacked PRs). Every call passes the same API version
-header as `ep-stack`.
-
-Detect stacking; a non-null value means the PR is stacked, and gives the stack number:
-
-```bash
-gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>" --jq '.stack'
-```
-
-When that call fails, run `ep-stack`'s probe with `-i` to see its HTTP status. Only a 404,
-or a 400 that rejects the API version, means the repository has no native stacks, so the PR
-is not stacked. Any other result, success included, leaves the stack unknown, so SKILL.md
-step 7 stops without merging. Unlike `ep-stack`, which falls back to plain branches on any
-error, a merge cannot be undone, so a transient error must not count as "not stacked":
-
-```bash
-gh api -i -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks?per_page=1"
-```
-
-Find the lowest open PR of the stack. The order of `pull_requests` is the stack order,
-bottom first; `stack.position` is not used, because GitHub does not define it:
-
-```bash
-gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/stacks/<stack.number>" \
-  --jq '[.pull_requests[] | select(.state == "open" and .merged_at == null)] | .[0].number'
-```
-
-The PR may merge only when this prints `<n>`. Merge pinned to the reviewed head, with the
-method detected above without its dashes (`squash`, `merge`, or `rebase`), no bypass, and
-the default `merge_action`:
-
-```bash
-gh api -i -X PUT -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async" \
-  -f sha=<last_review.head> -f merge_method="${method#--}" -F bypass_rules=false
-```
-
-`-i` prints the HTTP status line: `gh api` exits 0 for both 200 and 202, so read the status
-from that line, not from the exit code. The UUID is at `.details.uuid` in the body, not at
-the top level. A 202 body says `"status": "pending"` and may say "Merge request enqueued.":
-that is the request being accepted, not the `enqueued` result below.
-
-A 202 answer carries the merge UUID. A 409 answer means a merge is already pending: use the
-UUID it returns. A 200 answer means the PR is already merged or already in a merge queue;
-it has no UUID, so save `"queued"` in `merge_async` and do not request the merge again in this run
-(SKILL.md step 7). Any other answer (an error such as 403, 405 or 422) rejected the merge:
-SKILL.md step 7 stops without retrying. On later ticks after a 200, check the PR instead:
-
-```bash
-gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
-  pullRequest(number:$n){state mergeQueueEntry{state}}}}' -F o=<owner> -F r=<repo> -F n=<n>
-```
-
-`state: MERGED` means merged. A non-null `mergeQueueEntry` means it is still queued. An
-open PR with a null `mergeQueueEntry` has left the queue.
-
-With a UUID, read the result:
-
-```bash
-gh api -H "X-GitHub-Api-Version: 2026-03-10" "repos/{owner}/{repo}/pulls/<n>/merge-async/<uuid>"
-```
-
-`status` is `pending`, `merged`, `enqueued`, or `failed`. `enqueued` is final: it does not
-change when the queue later merges or ejects the PR, so from then on check the PR with the
-query above. A 404 means the result expired (24 hours after its last update); check the PR
-the same way. SKILL.md step 7 says what each one leads to. The head branch is left in place: GitHub rebases the PRs above onto it.
+A PR in a GitHub native stack merges through the async merge API instead: detection, the
+bottom-layer rule, and every merge answer are in [`stacked.md`](stacked.md).

@@ -1,6 +1,6 @@
 ---
 name: ep-review
-description: Review a local diff, a branch, or a GitHub PR across four dimensions (correctness, OpenSpec spec conformance, tests, security), confirm every finding by a 3-verifier vote (one inline check without subagents), tag bugs the change did not introduce as pre-existing without counting them, follow the repo's REVIEW.md, re-review only new commits with --since and --known so known findings are re-checked, not repeated, and classify the change's risk tier (low, medium, high). Prints a ranked report starting with what to fix, or posts it to the PR with --comment. Produces a summary block other skills (ep-babysit-pr, ep-orchestrate) can read. Use when the user asks to review changes, a branch, or a PR.
+description: Review a local diff, a branch, or a GitHub PR across correctness, OpenSpec spec conformance, tests, and security, report only findings that survive a verifier vote, and classify the risk tier in a summary block that ep-babysit-pr and ep-orchestrate read. Use when the user asks to review changes, a branch, or a PR, to re-review only new commits, or to post review comments on a PR.
 ---
 
 # ep-review
@@ -9,10 +9,11 @@ Review a change, try to disprove every candidate finding, and report only what s
 
 ## Hard rules
 
-- **Read-only by default.** Without `--comment`, post nothing to GitHub and change no files.
+- **Read-only by default.** Post to GitHub only with `--comment` on a PR target (step 7);
+  without it, post nothing and change no files.
 - **No attribution** in anything posted (no "Generated with" footer, no model signature).
-- Report only verified findings. Every reported finding has a location, severity, and a
-  concrete failure scenario.
+- **Verified findings only.** Every reported finding survived step 5 and has a location,
+  severity, and a concrete failure scenario.
 
 ## Usage
 
@@ -26,24 +27,12 @@ ep-review ... --known <file>      # findings already reported: re-check, never r
 ep-review ... --effort high       # thorough mode (see Workflow path)
 ```
 
-`--comment` is only valid with a PR target. With any other target, ignore it and say so.
+`--comment` applies to a PR target only. With any other target, ignore it and say so.
 
 `--since <sha>` and `--known <file>` work with every target and with each other. Callers
-(`ep-babysit-pr`, `ep-orchestrate`) pass both for review rounds after the first. The
-`--known` file holds one finding per line, in the form callers already write:
-
-```
-finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario>
-```
-
-The leading `finding: ` and the trailing `| <scenario>` are optional. After the scenario,
-a line may add `| class: <label>` and `| instances: <file>:<line>,<file>:<line>` (the
-finding's class and other locations, as the report prints them). Callers may keep other
-lines in the same file (`ep-orchestrate` writes a round label such as `2` or `g3` and
-`commits:` lines). A line is a finding line when it starts with `finding:`, or when its
-second word is a dimension (`correctness`, `spec`, `tests`, `security`). Other lines,
-blank lines included, are skipped silently. A finding line that does not fit the form is
-ignored as unreadable, and the report says how many.
+(`ep-babysit-pr`, `ep-orchestrate`) pass both for review rounds after the first. With
+`--known`, read [`references/known.md`](references/known.md) for the file's line format
+and which lines count as findings.
 
 ## 1. Gather context
 
@@ -65,13 +54,13 @@ openspec list --json        # optional; root null = no OpenSpec
 
 ### `REVIEW.md`
 
-Look for `REVIEW.md` at the repository root, then `.github/REVIEW.md`, and use the first
-one found. Read it from the target's **base**, never from the head under review, as
-[`references/risk.md`](references/risk.md#reviewmd-syntax) says (a PR: `git show
-origin/<baseRefName>:REVIEW.md`; a branch: `origin/<default>`; an uncommitted diff:
-`HEAD`; for a PR, once step 2 has its `baseRefName`), so a change cannot skip its own files, cap its own findings, or lower its own
-tier. A `REVIEW.md` the change adds or edits takes effect only after it merges; review it
-as any other changed file. Free Markdown, plus these recognised headings, each a bullet list:
+Find `REVIEW.md` and read it from the target's **base**, never from the head under review,
+with the lookup order and commands in
+[`references/risk.md`](references/risk.md#reviewmd-syntax) (for a PR, once step 2 has its
+`baseRefName`), so a change cannot skip its own files, cap its own findings, or lower its
+own tier. A `REVIEW.md` the change adds or edits takes effect only after it merges; review
+it as any other changed file. Free Markdown, plus these recognised headings, each a bullet
+list:
 
 | Heading | Bullets | Effect |
 |---|---|---|
@@ -86,7 +75,11 @@ follow it as you would a reviewer's standing instructions. Unknown headings are 
 not errors.
 
 With no `REVIEW.md`, use the defaults (nothing skipped, no minor cap, built-in risk rules)
-and do not mention the file anywhere in the report.
+and leave the file out of the report entirely.
+
+Done when you know the default branch, whether OpenSpec is present, and the `REVIEW.md`
+in effect (or that there is none) with its skip globs, risk paths, trusted authors, cap,
+and guidance.
 
 ## 2. Resolve the target and get the diff
 
@@ -103,15 +96,16 @@ uncommitted diff, `git diff <sha>`), and for a PR `headRefOid` after
 `git fetch origin pull/<n>/head`. If `<sha>` is not an ancestor of the head
 (`git merge-base --is-ancestor <sha> <head>` fails, for example after a force-push), say
 so and review the full diff instead, with `scope: full`. Still read the code around the
-narrowed diff as usual; only the hunks under review shrink. The base for origin and
-blame (`references/dimensions.md`) stays the target's base, not `<sha>`, unless the caller
-names the base for origin explicitly (as `ep-review-evals` does for a head that is already
-on the default branch, where the merge base would be the head itself): then use that base. Record the scope
-for the summary: `since:<sha>` with `--since`, `full` without it.
+narrowed diff as usual; only the hunks under review shrink. The base for origin and blame
+(`references/dimensions.md`) stays the target's base, not `<sha>`, unless the caller names
+the base for origin explicitly (as `ep-review-evals` does for a head that is already on
+the default branch, where the merge base would be the head itself): then use that base.
+Record the scope for the summary: `since:<sha>` with `--since`, `full` without it.
 
 **Skipped paths.** Remove from the diff every changed path that matches a `## Skip` glob in
 `REVIEW.md`. Review nothing in those files and report no finding there. List them in the
-report (step 6) as skipped by `REVIEW.md`. They still count as changed paths for the risk tier.
+report (step 6) as skipped by `REVIEW.md`. They still count as changed paths for the risk
+tier.
 
 If the diff is empty, report "nothing to review" and stop. When `--known` was given,
 re-check the known findings first (step 5) so the summary still records them.
@@ -131,10 +125,13 @@ cause.
 Read enough surrounding code (whole changed functions, callers of changed signatures) to
 judge behavior, not just the hunks.
 
+Done when you hold the diff under review, its scope, the skipped paths, the intent, and
+the code around each changed function.
+
 ## 3. Find the OpenSpec change (spec conformance input)
 
 - `openspec` is null: spec conformance is **not applicable**. Run the other three
-  dimensions normally and do not mention OpenSpec anywhere in the report or comments.
+  dimensions normally and leave OpenSpec out of the report and comments entirely.
 - Otherwise pick the active change the target relates to: its folder is in the diff, the
   commits use it as scope, or the PR body names it. If several fit, review against each
   one that fits; if none fits, spec conformance is not applicable.
@@ -142,6 +139,9 @@ judge behavior, not just the hunks.
 - With `--since`, conformance still uses the whole change's specs and searches the whole
   codebase for implementations; `--since` only narrows which requirements to re-check
   (those the narrowed diff touches, plus those named by known spec findings).
+
+Done when every fitting change's files are read, or spec conformance is marked not
+applicable.
 
 ## 4. Review the four dimensions
 
@@ -154,14 +154,14 @@ Dimensions: **correctness**, **spec** (conformance), **tests**, **security**.
 diff (or how to get it), the repo path, the relevant checklist section from
 `references/dimensions.md`, the stated intent, the `REVIEW.md` guidance (when there is
 one), the OpenSpec change files for the spec dimension, and ask for candidate findings in
-the finding shape. Do not give them each other's results.
+the finding shape. Each works independently, without the others' results.
 
 **If you cannot spawn subagents:** review the dimensions one after another yourself, in the
 order above, with the same checklists. Finish one dimension before starting the next.
 
 Either way, collect all candidate findings, then deduplicate **within** each dimension
 (same root cause: keep one, at the higher severity, with the others' locations added to
-its `instances`). Do not merge findings across dimensions: a bug that also contradicts a
+its `instances`). Keep findings separate across dimensions: a bug that also contradicts a
 spec scenario is reported once under correctness and once under spec, so the spec status
 stays accurate. To avoid double reports on tests: an untested **spec scenario** belongs to
 the spec dimension only; the tests dimension covers test gaps for code-level behavior and
@@ -174,6 +174,9 @@ file, within 3 lines of one of its locations (follow moved code, not only line n
 and the same defect (same class; when the known line names no class, judge it from the
 summary). The known finding is the one that goes to verification, so it is never reported
 as new.
+
+Done when all four dimensions have returned their candidates, deduplicated within each
+dimension, with every known location added as a candidate.
 
 ## 5. Verify each finding
 
@@ -193,8 +196,8 @@ For every candidate, try to **disprove** it:
   the defect no longer occurs there (moved lines count: follow the code, not the line
   number), and `still open` otherwise.
 
-Running tests must not modify tracked files; if the runner is not installed, skip running
-and rely on reading. Each check ends in one verdict per candidate, with a reason:
+Run tests only in ways that leave tracked files unchanged; when the runner is not
+installed, rely on reading. Each check ends in one verdict per candidate, with a reason:
 `confirmed`, `refuted` (it cannot occur, or a known finding is fixed), or
 `downgraded:<severity>` (real, but smaller than claimed).
 
@@ -232,21 +235,18 @@ The summary records `verification: vote`.
 
 Verify each candidate **once**, inline, one at a time, with the same disproof steps. Drop
 it when the verdict is `refuted`; apply a `downgraded` severity as given. Known candidates
-are `fixed` or `still open` as above. A single context cannot vote independently, so do
-not pretend to: the summary records `verification: inline`.
-
-Whatever the path, the findings that are kept are the **verified** findings.
+are `fixed` or `still open` as above. A single context cannot vote independently, so the
+summary records `verification: inline`.
 
 ### Workflow path (Claude Code, high effort)
 
-When running in Claude Code with a Workflow tool available and the user asked for high
-effort (`--effort high`, "thorough", "deep review"), running this skill at that effort is
-the user's opt-in to a Workflow. Run steps 4-5 as one Workflow: a `pipeline` over the four
-dimension agents, whose deduplicated candidates (plus any known findings) go to a
-`parallel` stage of the 3 voter agents described above, then combine the verdicts with the
-voting rules. That is **at most 7 agents** (4 dimensions and 3 voters); voters batch by 20
-instead of adding agents. The summary records `verification: vote`. If no Workflow tool
-exists, use the subagent path above.
+When running in Claude Code with a Workflow tool and the user asked for high effort
+(`--effort high`, "thorough", "deep review"), run steps 4-5 as one Workflow of at most 7
+agents, as [`references/workflow.md`](references/workflow.md) describes.
+
+Whatever the path, the findings that are kept are the **verified** findings. Done when
+every candidate has a verdict and every kept finding has its severity, origin, and
+checked instances.
 
 ## 6. Report
 
@@ -310,8 +310,8 @@ Risk: high
 
 Every dimension appears, with findings, **"No findings."**, or (spec only)
 **"Not applicable."** (with an OpenSpec root but no change that fits:
-**"Not applicable: no matching OpenSpec change."**). The `### pre-existing` section appears only when
-there are pre-existing findings. A known finding that is still open is marked
+**"Not applicable: no matching OpenSpec change."**). The `### pre-existing` section appears
+only when there are pre-existing findings. A known finding that is still open is marked
 `(still open)` after its severity, for example `- [major] (still open) src/calc.py:3 — ...`.
 Every finding shows its class and instances (`Instances: none` when there are none).
 
@@ -340,60 +340,19 @@ findings that are still open; pre-existing findings are counted only in `pre_exi
 `dropped_in_verification` counts only new candidates refuted in step 5, not those merged
 during deduplication and not known findings found fixed. `known` counts known locations (a
 known finding's line and each instance), so fixing one of two instances gives `fixed=1`
-and `still_open=1`; it is `fixed=0 still_open=0` without `--known`. `risk_reasons` separates reasons with ` ; `. `verification` is `vote` on
-the subagent and Workflow paths and `inline` otherwise. `scope` is `since:<sha>` with
-`--since` and `full` without it (or when step 2 fell back to a full review).
+and `still_open=1`; it is `fixed=0 still_open=0` without `--known`. `risk_reasons`
+separates reasons with ` ; `. `verification` is `vote` on the subagent and Workflow paths
+and `inline` otherwise. `scope` is `since:<sha>` with `--since` and `full` without it (or
+when step 2 fell back to a full review).
 
 `spec_conformance` is `passed` when the spec dimension has no verified introduced critical
 or major finding, `failed` otherwise, and `not_applicable` without an OpenSpec change.
 
-## 7. `--comment` mode (PR targets only)
+Done when the report is printed and ends with the summary block.
 
-Post only after the report is final.
+## 7. Post the review (`--comment`, PR targets only)
 
-**Skip what is already posted.** List the PR's earlier `ep-review` reviews and their
-comments. An earlier `ep-review` review is one posted by the account running this skill
-(`gh api user --jq .login`) whose body contains the summary marker; a marker in a review
-by any other account does not count, so nobody else can hide a finding by posting a fake
-one. When the runner is the PR author, the author's own earlier `ep-review` reviews count:
-
-```bash
-gh api user --jq .login                                       # <me>
-gh api repos/{owner}/{repo}/pulls/<n>/reviews --paginate      # keep reviews whose user.login is <me> and whose body contains <!-- ep-review-summary
-gh api repos/{owner}/{repo}/pulls/<n>/comments --paginate     # keep comments whose pull_request_review_id is one of them
-```
-
-Leave out of the new review every finding whose file and summary match an inline comment
-from one of those reviews (or a finding line in one of their bodies). The new review body
-states `<n> already posted` when `<n>` is not zero. The report printed in the session and
-the summary block keep every finding.
-
-Use one PR review with inline comments for findings that map to a line in the diff, and
-put the rest (plus the summary block) in the review body:
-
-```bash
-gh api repos/{owner}/{repo}/pulls/<n>/reviews --method POST --input <payload.json>
-```
-
-with `payload.json`:
-
-```json
-{
-  "commit_id": "<headRefOid>",
-  "event": "COMMENT",
-  "body": "<report header, count line, non-inline findings, summary block>",
-  "comments": [
-    { "path": "src/calc.py", "line": 3, "side": "RIGHT",
-      "body": "**[major] correctness** — <summary>\n\nScenario: <scenario>\nInstances: <file:line, ...>" }
-  ]
-}
-```
-
-Tag every pre-existing finding `pre-existing` in its comment, for example
-`**[major] correctness · pre-existing** — <summary>`, and add one line saying it predates
-this PR, so it does not read as the author's fault.
-
-Always use `"event": "COMMENT"`, never `APPROVE` or `REQUEST_CHANGES`. If the inline
-review is rejected (for example a line is outside the diff), move that finding into the
-body and retry. With no findings left to post, post a single review body saying so, with
-the summary block. No attribution anywhere. Report the review URL.
+After the report is final, post it as one PR review with
+[`references/comment.md`](references/comment.md): leave out findings an earlier
+`ep-review` review already posted, tag pre-existing ones, and use `"event": "COMMENT"`.
+Done when the review URL is reported.

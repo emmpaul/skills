@@ -1,10 +1,10 @@
 # Risk tier rules
 
 Shared by `ep-review`, `ep-open-pr`, `ep-babysit-pr`, and `ep-stack`, so all four give the
-same tier for the same change. The source is `shared/risk.md`; each skill ships a copy as
-`references/risk.md`. Edit the source and run `scripts/sync-shared.sh`.
+same tier for the same change. Each skill ships a copy as `references/risk.md`; the
+source is `shared/risk.md`: edit the source and run `scripts/sync-shared.sh`.
 
-Every change gets one tier: `low`, `medium`, or `high`, with a list of reasons. Decide it
+Every change gets one tier, `low`, `medium`, or `high`, with a list of reasons, decided
 from the changed paths, the PR author, and the repository's `REVIEW.md`. A rename counts
 as two changed paths, the old and the new, so moving `src/auth/session.ts` out of
 `auth/` still matches the auth rule. `--name-only` lists only the new path, so list the
@@ -66,13 +66,13 @@ When condition 1 holds but condition 2 does not, the tier is `medium` with the r
 
 ### Documentation-only paths
 
-A path is documentation-only when:
+A path is documentation-only when all of these hold:
 
 - it matches one of: `*.md`, `*.mdx`, `*.rst`, `*.txt`, `docs/**`, `openspec/**`,
-  `LICENSE*`, `CHANGELOG*`; and
+  `LICENSE*`, `CHANGELOG*`;
 - it is **not** an agent instruction file: `AGENTS.md` or `CLAUDE.md` at any depth,
   anything under `.claude/` or `.agents/`, or any file in or below a directory that
-  contains a `SKILL.md` (the whole skill folder, including `references/` and `scripts/`).
+  contains a `SKILL.md` (the whole skill folder, including `references/` and `scripts/`);
 - it is **not** `REVIEW.md` or `.github/REVIEW.md`, which set these rules.
 
 `ep-babysit-pr` uses this same rule for its documentation-only test-evidence item.
@@ -104,11 +104,11 @@ Everything that is neither high nor low is `medium`. Reasons:
 
 A skill may raise the tier with a stated reason when the change needs a person anyway
 (for example it changes behavior other teams rely on, or its effect cannot be checked from
-the diff). It adds that reason to the list.
+the diff), and adds that reason to the list.
 
-Nothing ever lowers the tier below the result of the rules above: not the reviewer, not a
-`low:` or `medium:` glob in `REVIEW.md` (a built-in high match stays high), and not a
-trusted author.
+The tier only moves up from the result of the rules above. Nothing ever lowers it: not
+the reviewer, not a `low:` or `medium:` glob in `REVIEW.md` (a built-in high match stays
+high), and not a trusted author.
 
 ## Missing tier
 

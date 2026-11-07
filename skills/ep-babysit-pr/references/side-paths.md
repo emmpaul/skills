@@ -5,9 +5,9 @@ sibling skill (`ep-ci-debug`, `ep-fixup`, `ep-sync`) is not available to you**. 
 invoke it in caller mode instead. Each section ends by producing the same summary fields
 the sibling skill would, so the rest of the loop reads both paths the same way.
 
-These are always caller mode: no prompts, no history rewrite, and no force-push. Each
-section's "rules that must match" list is kept identical to the list in the sibling's
-SKILL.md.
+These steps always run in caller mode: no prompts, and history only moves forward (no
+rewrite, no force-push). Each section's "rules that must match" list is kept identical to
+the list in the sibling's SKILL.md.
 
 ## ci-debug
 
@@ -31,17 +31,20 @@ For one failing check:
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.
-   - `flaky-infra`: re-run only the debugged job, once: `gh run rerun <run-id> --job
+   - `flaky-infra`: re-run only the debugged job, once (`gh run rerun <run-id> --job
      <job-id>`, with the job's `databaseId` from `gh run view <run-id> --json jobs`, never
-     `--failed`); if it fails again, report. Do not re-run when that job
-     or any job downstream of it (GitHub re-runs those too) publishes, releases, or
-     deploys; report it instead.
+     `--failed`); if it fails again, report. When that job or any job downstream of it
+     (GitHub re-runs those too) publishes, releases, or deploys, report it instead of
+     re-running.
    - `config`, `secret`: report what is needed; no code change.
 5. **Commit** each cause separately (ep-commit conventions, `git commit -F <file>`, no
    attribution) and push with plain `git push`.
 6. **Result fields**, as in `ep-ci-debug-summary`: `outcome` (`fixed`, `rerun`, or
    `reported`), `head`, and
    `check: <name> class=<class> result=<fixed|rerun|reported> fix=<sha|none>`.
+
+Done when the check is fixed and pushed, re-run once, or reported, and its `check:` line
+is written.
 
 **Rules that must match** (`ep-ci-debug/SKILL.md`):
 
@@ -68,23 +71,28 @@ For one fix-class review comment, in a repository whose merge method is squash:
 2. **Target:** `mb=$(git merge-base HEAD origin/<base>)`; list hunks with
    `git diff -U0 HEAD` and, for each, blame its old-side lines:
    `git blame -s -L <old-start>,+<old-count> $mb..HEAD -- <file>` (for added-only hunks,
-   blame the neighbouring old-side lines). A branch sha is the target; boundary lines
-   (`^<sha>`) come from the base.
+   blame the neighbouring old-side lines; at the top of the file, line 1). A branch sha is
+   the target; boundary lines (`^<sha>`) come from the base.
    - one branch commit: target it.
    - several: one fixup per target (run `git reset -q` first so nothing else is staged),
      staging per file a version built from `HEAD` with only that target's lines changed
      (`git hash-object -w` + `git update-index --cacheinfo <mode from git ls-files -s>`;
-   never `git apply` of `-U0`
-     hunks, whose line numbers shift), splitting a hunk line by line when each
-     changed line replaces one old line. A change that still cannot be separated, or a new
-     file with no clear target, is not guessed: outcome `needs_decision` for that change.
+     never `git apply` of `-U0` hunks, whose line numbers shift), splitting a hunk line by
+     line when each changed line replaces one old line. A change that still cannot be
+     separated is not guessed: outcome `needs_decision` for that change, left uncommitted.
+   - new file (nothing to blame): target the commit that added the code it serves; with no
+     clear target, outcome `needs_decision` for that file, left uncommitted.
    - base lines only: make a normal ep-commit commit instead (listed under `commits:`).
 3. **Commit:** `git commit --fixup=<target-sha>` per target, containing only its hunks.
    Subject is exactly `fixup! <target subject>`; check it has no attribution.
-4. **Push** with plain `git push`. Never autosquash, rebase, or force-push.
+4. **Push** with plain `git push`. The fixups stay as they are: never autosquash, rebase,
+   or force-push.
 5. **Result fields**, as in `ep-fixup-summary`: `outcome` (`created`, `needs_decision`,
    or `nothing_to_do`), `head`, `fixups: <fixup-sha>-><target-sha>,...`,
    `commits: <sha>,...`, `rewritten: false`, `pushed`.
+
+Done when every hunk is in a pushed fixup or normal commit, or left uncommitted under
+`needs_decision`, and the result fields are written.
 
 **Rules that must match** (`ep-fixup/SKILL.md`):
 
@@ -135,6 +143,8 @@ Bring the PR base into the branch (for `BEHIND` and `DIRTY`) and audit it:
    fields as in `ep-sync-summary`: `outcome`, `head`, `mode: merge`,
    `base: origin/<base>@<sha>`, `conflicts`, `audit: needs_update=<n> review=<n>
    no_impact=<n>`, `unresolved_needs_update`, `tests`, `pushed: false`. The loop pushes.
+
+Done when the audit table and the result fields are written, with nothing pushed.
 
 **Rules that must match** (`ep-sync/SKILL.md`):
 

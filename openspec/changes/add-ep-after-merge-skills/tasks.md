@@ -36,6 +36,7 @@
 
 - [ ] 5.1 Install from the local path with `npx skills add ./ --skill ep-land ep-release ep-revert ep-babysit-pr` and verify the three new skills appear in `~/.agents/skills/` and are listed by the agent
 - [ ] 5.2 Run `openspec validate add-ep-after-merge-skills --strict`; verify it passes
+- [ ] 5.3 Write each new or edited `SKILL.md` and reference with the `writing-for-agents` skill; verify descriptions list each trigger branch once and steps end on completion criteria
 
 ## Workflow follow-up
 

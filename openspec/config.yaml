@@ -19,6 +19,7 @@ rules:
   proposal:
     - Name the skills affected and whether each change is new behavior or a modification
     - State any new outward effect on GitHub (push, comment, merge) explicitly
+    - A change that adds or edits a skill applies the `writing-for-agents` skill to its description and body
   specs:
     - One capability per skill, named after the skill (e.g. `ep-commit`)
     - Include a scenario for repositories without OpenSpec when behavior depends on OpenSpec
@@ -27,6 +28,8 @@ rules:
     - Show the subagent path next to its sequential fallback
     - Give every outward or destructive action an explicit gate
     - Keep skills self-contained; justify any file shared across skill folders
+    - A skill design applies the `writing-for-agents` skill and keeps reference that only some branches need in `references/`, behind a pointer that names when to read it
   tasks:
     - Each task ends with a concrete verification step
     - Include `scripts/check-shared.sh` when a task touches the shared probe
+    - A task that writes or rewrites skill prose applies the `writing-for-agents` skill and ends by checking the skill's frontmatter, its summary-block format, and its spec requirements

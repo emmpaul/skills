@@ -29,6 +29,7 @@
 - [ ] 5.1 Add `ep-start`, `ep-issue`, and `ep-issue-to-change` to the README skills table and the "all skills" install command; verify `npx skills add ./ --list` (or the CLI's listing form) shows all seven `ep-*` skills
 - [ ] 5.2 Run `scripts/check-shared.sh` and the CI shell parse loop (`bash -n` over `skills/*/scripts/*.sh`); verify both pass
 - [ ] 5.3 Run `openspec validate add-ep-front-door-skills --strict` and verify it passes
+- [ ] 5.4 Write each new or edited `SKILL.md` and reference with the `writing-for-agents` skill; verify descriptions list each trigger branch once and steps end on completion criteria
 
 ## Workflow follow-up
 
