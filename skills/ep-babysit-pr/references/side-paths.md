@@ -25,10 +25,9 @@ For one failing check:
      does not touch, passes on re-run.
    - `config`: workflow YAML errors, wrong tool version, missing paths or jobs.
    - `secret`: missing or invalid secret, `401`/`403`, missing token permissions.
-3. **Reproduce** the failing step's command locally (from `.github/workflows/`), only for
-   steps that build, lint, or test. Never run steps that publish, release, deploy, push,
-   apply infrastructure, or use credentials. If reproduction is not possible or not
-   allowed, note why; the fix is unverified locally.
+3. **Reproduce** the failing step's command locally (from `.github/workflows/`). Never run
+   steps that publish, release, deploy, push, apply infrastructure, or use credentials. If
+   reproduction is not possible or not allowed, note why; the fix is unverified locally.
 4. **Act:**
    - `code`: fix the code, re-run the command.
    - `test`: update the expected value to the documented behaviour; note where documented.

@@ -20,11 +20,11 @@ Find out why a check failed, from its logs, and fix the cause, not the symptom.
   host agent. Commit with `git commit -F <file>`.
 - **Push gate:** push only after the user confirms, or when the caller owns pushing.
   Push with plain `git push`, never force.
-- **Local runs stay side-effect free.** Reproduce only steps that build, lint, or test.
-  Steps that publish, release, deploy, push, apply infrastructure, send notifications, or
-  use credentials (for example `npm publish`, `docker push`, `gh release`,
-  `terraform apply`, `kubectl apply`, deploy scripts, steps reading `secrets.*`) are never
-  run locally; report them as unverified locally.
+- **Local runs stay side-effect free.** Steps that publish, release, deploy, push, apply
+  infrastructure, send notifications, or use credentials (for example `npm publish`,
+  `docker push`, `gh release`, `terraform apply`, `kubectl apply`, deploy scripts, steps
+  reading `secrets.*`) are never run locally; report them as unverified locally. Any
+  other failing step may be reproduced.
 
 ## Usage
 
