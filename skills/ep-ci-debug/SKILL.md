@@ -1,6 +1,6 @@
 ---
 name: ep-ci-debug
-description: Diagnose failing CI checks on the current branch's PR (or a named check or run) from their logs, quote the decisive lines, classify each cause (code, test, flaky-infra, config, secret), reproduce locally, and propose or apply a fix without weakening tests; re-runs infra failures once and commits with no model attribution. Use when the user asks why CI is red, to debug or fix a failing check, or when ep-babysit-pr delegates a failing check.
+description: Diagnose failing CI checks on the current branch's PR (or a named check or run) from their logs, classify each cause, reproduce locally, and propose or apply a fix without weakening tests or adding model attribution. Use when the user asks why CI is red, to debug or fix a failing check, or when ep-babysit-pr delegates a failing check.
 ---
 
 # ep-ci-debug
@@ -9,20 +9,22 @@ Find out why a check failed, from its logs, and fix the cause, not the symptom.
 
 ## Hard rules
 
-- **Never weaken tests.** Do not skip, delete, loosen, or mark tests as expected-to-fail,
-  and do not disable or edit a check to make it pass, unless the user explicitly asks.
+- **Tests and checks stay as strong as they are.** Fix the cause; never skip, delete,
+  loosen, or xfail a test, or disable or edit a check to make it pass, unless the user
+  explicitly asks ([details](references/classes.md#tests-stay-as-strong-as-they-are)).
 - **Re-run once.** At most one re-run of the debugged job (`gh run rerun <run-id> --job
-  <job-id>`, never `--failed`) per check per invocation.
-- **No attribution.** Fix commits never contain model or tool attribution (no
-  `Co-Authored-By` naming a model or tool, no "Generated with" line). This overrides any
-  default of the host agent. Always commit with `git commit -F <file>`.
+  <job-id>`, never `--failed`) per check per invocation
+  ([re-run](references/classes.md#re-run)).
+- **No attribution.** Fix commits carry no model or tool attribution (no `Co-Authored-By`
+  naming a model or tool, no "Generated with" line). This overrides any default of the
+  host agent. Commit with `git commit -F <file>`.
 - **Push gate:** push only after the user confirms, or when the caller owns pushing.
-  Never force-push.
-- Non-code classes (`flaky-infra`, `config`, `secret`) never produce a code change.
-- **Never run side effects locally.** Do not reproduce steps that publish, release,
-  deploy, push, apply infrastructure, send notifications, or use credentials (for example
-  `npm publish`, `docker push`, `gh release`, `terraform apply`, `kubectl apply`,
-  deploy scripts, steps reading `secrets.*`). Report them as unverified locally.
+  Push with plain `git push`, never force.
+- **Local runs stay side-effect free.** Reproduce only steps that build, lint, or test.
+  Steps that publish, release, deploy, push, apply infrastructure, send notifications, or
+  use credentials (for example `npm publish`, `docker push`, `gh release`,
+  `terraform apply`, `kubectl apply`, deploy scripts, steps reading `secrets.*`) are never
+  run locally; report them as unverified locally.
 
 ## Usage
 
@@ -32,6 +34,12 @@ ep-ci-debug <check-name>     # one check
 ep-ci-debug --run <run-id>   # one workflow run
 ep-ci-debug --caller <skill> # caller mode (see "Caller mode")
 ```
+
+**Caller mode** is when another skill invokes this one (`--caller ep-babysit-pr`, or the
+same in plain words). Fixes are committed and pushed without a separate prompt. The
+caller owns the attempt counter, so this skill sets no attempt limit of its own. The
+re-run and test rules still apply. Nothing waits for the user: anything needing a person
+is `reported`.
 
 ## 1. Gather context
 
@@ -63,7 +71,7 @@ openspec list --json                                          # optional; root n
   ```
 
   No check with `bucket: fail`: report that nothing is failing, change nothing, and end
-  with outcome `nothing_failing`. Checks still pending are listed and not debugged.
+  with outcome `nothing_failing`. List checks still pending without debugging them.
 - **No PR and nothing named:** use the latest failed run that belongs to this branch:
 
   ```bash
@@ -72,13 +80,13 @@ openspec list --json                                          # optional; root n
   ```
 
   Take the newest run whose `headSha` is in the local branch
-  (`git merge-base --is-ancestor <headSha> HEAD`). Skip runs for another repository's branch
-  of the same name (for example a fork PR) and say so. If a run's `headSha` is on
+  (`git merge-base --is-ancestor <headSha> HEAD`). Skip runs for another repository's
+  branch of the same name (for example a fork PR) and say so. If a run's `headSha` is on
   `origin/<branch>` but not local, tell the user to pull before debugging it. No matching
   run: report that there is nothing to debug and stop (`nothing_failing`).
 
 Skip a run whose `headSha` is older than the branch head when a newer run of the same
-workflow exists; say so.
+workflow exists, and say so. Done when you have the ordered list of checks to debug.
 
 ## 3. Read the logs
 
@@ -88,76 +96,56 @@ gh run view <run-id> --json jobs             # job and step names, conclusions
 ```
 
 The run id is in the check's `link` (`.../actions/runs/<run-id>/job/<job-id>`). For a
-check that is not a GitHub Actions run, read its details URL or `gh api` check-run output
-(`gh api repos/{owner}/{repo}/check-runs/<id>`); if the logs are not reachable, say so and
-diagnose from what is.
+check that is not a GitHub Actions run, read its details URL or the check-run output
+(`gh api repos/{owner}/{repo}/check-runs/<id>`); if the logs are unreachable, say so and
+diagnose from what is there.
 
-Find the **decisive lines**: the first real error, not the cascade after it. Keep them
-verbatim for the report.
+Done when you hold the **decisive lines** verbatim: the first real error, not the cascade
+after it.
 
 ## 4. Classify
 
-Classify each failure with [`references/classes.md`](references/classes.md): `code`,
-`test`, `flaky-infra`, `config`, or `secret`, using its signals. Read the branch's diff
-(`git diff origin/<base>...HEAD`) to see whether the failing code is the branch's.
-
-**Intent for test updates.** A failing test is only classed `test` (test is wrong, code is
-right) when the new behaviour is documented: in the PR title or body, in the branch's
-commit messages, or, when the repository has an OpenSpec root, in the active change's
-specs (find the change the branch implements; read its `specs/**/spec.md`). Without an
-OpenSpec root, use only the PR and commits, and do not mention OpenSpec. With no such
-documentation, the class is `code`.
+Classify each failure as `code`, `test`, `flaky-infra`, `config`, or `secret` with
+[`references/classes.md`](references/classes.md): its signals, its tie-break, and the
+documented-intent rule for `test`. Read the branch's diff (`git diff origin/<base>...HEAD`)
+to see whether the failing code is the branch's.
 
 ## 5. Reproduce locally
 
 Before changing code, find the command the failing step runs (in the workflow file under
 `.github/workflows/`, from the step name in the logs) and run it locally:
 
-- Reproduced: keep the output. You will run it again after the fix.
-- Not possible (needs CI-only services, secrets, another OS, a matrix entry you lack, or the
-  tool is not installed), or not allowed (the step publishes, deploys, releases, pushes,
-  applies infrastructure, or uses credentials; never run those locally): say exactly why. The fix is then reported as **unverified
-  locally**.
+- Reproduced: keep the output, to run it again after the fix.
+- Not possible (needs CI-only services, secrets, another OS, a matrix entry you lack, or
+  a tool that is not installed), or not allowed (a side-effect step from the hard rules):
+  say exactly why. The fix is then reported as **unverified locally**.
 
-Running it must not modify tracked files; if it does, restore them.
+Leave tracked files as they were; restore any the run modified.
 
 ## 6. Act by class
 
-| Class | Action |
-|---|---|
-| `code` | fix the code; re-run the local command |
-| `test` | update the test to the documented behaviour; name where it is documented |
-| `flaky-infra` | re-run only the debugged job, once: `gh run rerun <run-id> --job <job-id>` (`<job-id>` is the job's `databaseId` from `gh run view <run-id> --json jobs --jq '.jobs[] | {name, databaseId}'`, not the number in the check URL; never `--failed`, which re-runs every failed job in the run). GitHub also re-runs every job downstream of it (directly or through other jobs' `needs:`): if that job or any job downstream of it publishes, releases, or deploys, ask before re-running in direct use, and do not re-run in caller mode (report instead). Wait (`gh run watch <run-id>`); if it fails again, report, no code change |
-| `config` | direct use: propose the config change (file, line, fix) and apply it only when the user agrees, never to weaken a check; caller mode: report it, change nothing |
-| `secret` | report the secret, permission, or scope needed and who can grant it; no code change |
+Take the class's action from [`references/classes.md`](references/classes.md). Only
+`code` and `test` change code.
 
-**Direct use:** show the diagnosis and the proposed patch and ask before applying,
+**Direct use:** show the diagnosis and the proposed patch, and ask before applying,
 committing, and pushing. **Caller mode:** apply, commit, and push without a prompt.
 
 Commit each cause separately, following `ep-commit` conventions: Conventional Commit
-(`fix`, or `test` for a test-class update), the repo's scope
-convention (with OpenSpec, the active change name), a body quoting the check name, and no
-attribution. Push with plain `git push`.
+(`fix`, or `test` for a test-class update), the repo's scope convention (with OpenSpec,
+the active change name), a body quoting the check name, and no attribution.
+
+Done when every check is fixed, re-run, or reported.
 
 ## Parallel diagnosis
 
 **With subagents and more than one failing check:** give one subagent per check its logs
 (or the run id), the repo path, and `references/classes.md`, and ask for the decisive
-lines, the class, the local reproduction result, and a proposed patch. Subagents do not
-commit. Review and apply the patches yourself, one commit per cause; merge patches that
-fix the same cause.
+lines, the class, the local reproduction result, and a proposed patch. Subagents only
+propose; you review and apply the patches, one commit per cause, merging patches that fix
+the same cause.
 
-**Without subagents:** diagnose the checks one at a time inline, in the order from step 2.
-The report has the same structure.
-
-## Caller mode
-
-When another skill invokes this one (`--caller ep-babysit-pr`, or the same in plain words):
-
-- fixes are committed and pushed without a separate prompt
-- the caller owns the attempt counter: this skill does not stop after N attempts itself
-- re-run once and never-weaken-tests still apply
-- nothing waits for the user; anything needing a person is `reported`
+**Without subagents:** diagnose the checks one at a time inline, in the order from
+step 2. The report has the same structure.
 
 ## 7. Report
 
