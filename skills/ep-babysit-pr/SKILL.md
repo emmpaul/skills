@@ -72,7 +72,8 @@ write it after every action.
   "unknown_ticks": 0,
   "blocked_notified": false,
   "started_at": "<iso time>",
-  "last_review": { "head": null, "summary": null },
+  "last_review": { "head": null, "summary": null, "findings": null, "synced_after": null },
+  "human_ok": null,
   "last_score": null,
   "merge_async": null,
   "outcome": null
@@ -81,14 +82,21 @@ write it after every action.
 
 `last_review.head` is the commit the latest review round ran on and `last_review.summary`
 the raw `ep-review-summary` block, so a later run can score without re-reviewing.
+`last_review.findings` is the path of the findings file the latest round wrote,
+`.git/ep-babysit/<pr>.findings` (step 5d). `last_review.synced_after` is the head sha of a
+base sync pushed after `last_review.head` (step 5c), or `null` when none was; it tells the
+next round to review the full PR again. `human_ok` is `{ "head": "<sha>" }` after the user
+said yes to merging that exact head (step 7), or `null`; it is cleared to `null` whenever
+`headRefOid` changes.
 `merge_async` is the UUID of a requested async merge of a stacked PR (step 7), or
 `"queued"` when GitHub answered that the PR was already merged or queued, so later ticks
 read its result or check the PR instead of requesting another merge. It belongs to one
 run: a stop with `left merge queue` or `merge failed` clears it to `null`, so a re-run
 after the user fixes the cause can request the merge again.
 `outcome` is set on stop (`merged`, `closed`, `stopped: <reason>`). If you find an older
-state file missing fields, add them with defaults; when own post ids are unknown, treat
-posts that reference commits you pushed as your own.
+state file missing fields, add them with defaults (`last_review.findings`,
+`last_review.synced_after`, and `human_ok` default to `null`); when own post ids are
+unknown, treat posts that reference commits you pushed as your own.
 
 ## 3. Loop pacing
 
@@ -249,7 +257,8 @@ user once (`blocked_notified`); `UNKNOWN` → increment `unknown_ticks`, stop af
    inside it. Otherwise follow
    [`references/side-paths.md#sync`](references/side-paths.md#sync) inline.
 2. Read the `ep-sync-summary` block (or the side path's fields):
-   - `outcome: synced`: push with plain `git push`, wait for checks, re-evaluate. The
+   - `outcome: synced`: push with plain `git push`, set `last_review.synced_after` to the
+     pushed head sha when `last_review.head` is set, wait for checks, re-evaluate. The
      adaptation commits for needs-update items are this sync's **fix round**: they are
      separate from the merge commit and get the same checks as any fix.
    - `outcome: needs_decision`: do not push. Notify the user with the options from the
@@ -271,16 +280,38 @@ When checks are green, no new comments need action, and no review round has run 
 current head commit (compare `last_review.head` with `headRefOid`):
 
 1. If `round >= 3`: stop (see step 7).
-2. Run `ep-review <n>` on the PR. If `ep-review` is installed, invoke it (with subagents,
-   delegate the round to a subagent running that skill); otherwise perform its steps
-   inline: four dimensions (correctness, spec conformance, tests, security), verify each
-   finding, and produce the `ep-review-summary` block. Do not post the review unless the
-   user asked for `--comment`.
-3. Fix verified critical, major, and minor findings (commits per ep-commit conventions).
-   A minor finding may be waived instead, with a PR comment stating the reason.
-4. Push and wait for required checks to be green. That completes the round: increment
+2. Run the review on the PR:
+   - **Round 1** (`last_review.head` is `null`): `ep-review <n>`, the full PR.
+   - **Later rounds:** `ep-review <n> --since <last_review.head> --known <last_review.findings>`,
+     so only the commits since the last reviewed head are reviewed and the earlier
+     findings are re-checked instead of reported again. When `last_review.synced_after` is
+     set (a base sync was pushed after that head), drop `--since` and review the full PR,
+     still passing `--known <last_review.findings>`.
+
+   If `ep-review` is installed, invoke it (with subagents, delegate the round to a
+   subagent running that skill); otherwise perform its steps inline: four dimensions
+   (correctness, spec conformance, tests, security), verify each finding, apply `--since`
+   and the known findings the same way, and produce the `ep-review-summary` block. Do not
+   post the review unless the user asked for `--comment`.
+3. Record the round: set `last_review.head` to the reviewed head and `last_review.summary`
+   to the summary block, clear `last_review.synced_after` to `null`, and overwrite
+   `.git/ep-babysit/<pr>.findings` with one line per verified finding of this round
+   (introduced, still open, and pre-existing), then set `last_review.findings` to that path:
+
+   ```
+   finding: <id> <dimension> <severity> <file>:<line> | <summary> | <scenario> | class: <label> | instances: <file>:<line>,<file>:<line>
+   ```
+
+   `<id>` is `r<round>.<n>`. Drop the `| instances:` part when the finding has none.
+4. Fix verified critical, major, and minor **introduced** findings (commits per ep-commit
+   conventions). A fix covers the finding's location and every one of its `instances`, in
+   the same commit. A minor finding may be waived instead, with a PR comment stating the
+   reason. **Pre-existing** findings (the `### pre-existing` section, counted in
+   `pre_existing:`) are not fixed: list them in the next status report and in the final
+   report. They do not count in `verified:`, so they do not affect the score.
+5. Push and wait for required checks to be green. That completes the round: increment
    `round`.
-5. Compute the score (step 6) and decide (step 7).
+6. Compute the score (step 6) and decide (step 7).
 
 ## 6. Score
 
@@ -382,7 +413,8 @@ meeting the merge condition; `UNKNOWN` for 3 ticks; session cap reached (non-sch
 agents); or the user interrupts.
 
 On every stop, report to the user: PR URL, outcome, rounds run, fixes pushed (shas),
-comments replied to, scope changes flagged, the last score breakdown, and what (if
+comments replied to, scope changes flagged, pre-existing findings left unfixed (file,
+line, summary), the last score breakdown, and what (if
 anything) the user needs to do next.
 
 ## Without subagents, loops, or sibling skills
