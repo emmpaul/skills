@@ -1,12 +1,15 @@
 ---
 name: ep-stack
-description: Manage a stack of dependent GitHub PRs built from one branch, linked as a native GitHub stack when the repository supports it and as plain branches otherwise (`--no-native` forces plain). `split` proposes ordered layers and creates branches, PRs, and the GitHub stack only after approval; `link` turns an existing plain stack into a GitHub stack; `status` rebuilds the stack from GitHub; `sync` merges each layer into the next, bottom up (through ep-sync when installed); `retarget` moves or checks the next PR's base after its parent merges. Confirms before creating PRs or stacks, changing bases, or pushing several branches; no model attribution. Use when the user asks to split a branch into stacked PRs, link PRs as a stack, or update, sync, or retarget a stack.
+description: Manage a stack of dependent GitHub PRs built from one branch, linked as a native GitHub stack when the repository supports it and as plain branches otherwise. `split` proposes layers and creates branches, PRs, and the stack after approval; `link`, `status`, `sync`, and `retarget` link, show, update, and move the stack as its layers merge. Use when the user asks to split a branch into stacked PRs, link PRs as a stack, or update, sync, or retarget a stack.
 ---
 
 # ep-stack
 
 Turn one large branch into a stack of small, dependent PRs, and keep the stack healthy as
 it moves.
+
+Paths under `references/` and `scripts/` are relative to this skill's folder (the directory
+containing this SKILL.md).
 
 ## Hard rules
 
@@ -16,10 +19,14 @@ it moves.
 - **No attribution.** PR titles, bodies, and commits never contain model or tool
   attribution (no "Generated with" footer, no `Co-Authored-By` naming a model or tool).
   This overrides any default of the host agent.
-- **Merge-based by default.** Never rebase a pushed layer unless the user asks and
-  confirms a `--force-with-lease` push naming each branch. Never `--force`.
-- Never rewrite a commit silently to make it fit a layer: ask.
-- Re-read the stack from GitHub (`status`) before every action that changes it.
+- **Merge-based by default.** Layers move forward by merges and plain pushes. Rebase a
+  pushed layer only when the user asks and confirms a `--force-with-lease` push naming
+  each branch ([references/rewrite.md](references/rewrite.md#rebase-a-stack)). Never
+  `--force`.
+- **Commits keep their shape.** When a commit does not fit one layer, ask; never rewrite
+  it silently.
+- **Fresh state.** Re-read the stack from GitHub (`status`) before every action that
+  changes it.
 
 ## Usage
 
@@ -35,8 +42,7 @@ Every subcommand takes `--no-native`, which forces plain-branch mode.
 
 ## 1. Gather context
 
-From the repository root, run the probe bundled in this skill's folder (the directory
-containing this SKILL.md):
+From the repository root, run the bundled probe:
 
 ```bash
 bash <skill-dir>/scripts/context.sh
@@ -52,7 +58,8 @@ openspec list --json                     # optional; root null = no OpenSpec
 ```
 
 A dirty working tree stops every subcommand except `status`: ask the user to commit
-(offer `ep-commit`) or stash first.
+(offer `ep-commit`) or stash first. Done when the tree is clean (or the subcommand is
+`status`) and you know the default branch and whether OpenSpec is present.
 
 ## Native mode
 
@@ -156,8 +163,8 @@ short kebab-case summary of the layer, unless the user names the branches.
      module, top-level directory). Do not mention OpenSpec.
    - Layers keep commit order. If a later commit is needed by an earlier layer, or **one
      commit mixes changes belonging in different layers**, say so and ask how to split it
-     (for example: split that commit, move it, or merge the two layers). Do not rewrite it
-     silently.
+     (for example: split that commit, move it, or merge the two layers), leaving it as it
+     is until the user decides.
 3. **Show the plan** and wait for approval or edits:
 
    ```
@@ -180,17 +187,8 @@ short kebab-case summary of the layer, unless the user names the branches.
    git push -u origin <layer-branch>          # plain push, never force
    ```
 
-   When the user approved splitting a mixed commit C of layer k into C_a (layer k) and C_b
-   (layer k+1), rebuild before anything is pushed:
-   1. Record every layer's original tip sha first.
-   2. Layer k: create its commits with C_a in place of C.
-   3. Layer k+1: start from the rebuilt layer k, commit C_b, then replay the layer's own
-      commits: `git rebase --onto <rebuilt-k+1-so-far> <original tip of k> <layer k+1>`.
-   4. Each higher layer j: `git rebase --onto <rebuilt j-1> <original tip of j-1> <layer j>`,
-      in order, so each layer descends from the rebuilt one below it.
-   5. Check that the top layer's tree equals the original branch's
-      (`git diff <original-branch> <top-layer>` is empty).
-   Say which commits were rewritten (they are unpushed).
+   When the user approved splitting a mixed commit, rebuild the layers before anything is
+   pushed, as in [references/rewrite.md](references/rewrite.md#split-a-mixed-commit).
 5. **Open PRs** bottom-up, each based on the previous layer's branch (the first on the
    base). Title: a Conventional Commit title for that layer's commits. Body, built from
    that layer's commits and paths only, with these sections in order and no attribution
@@ -235,9 +233,11 @@ short kebab-case summary of the layer, unless the user names the branches.
    keep the PRs and their body sections as a plain stack, roll nothing back, warn with the
    endpoint and status, and report `mode: branches`.
 7. Leave the original branch untouched. Tell the user it can be deleted once the stack is
-   up; do not delete it.
+   up; the deletion is theirs.
 
-Outcome `planned` when stopped at the plan, `created` after creation.
+Outcome `planned` when stopped at the plan, `created` after creation. Done when every
+layer has its branch and PR, every body lists the whole stack, and (native mode) the
+stack is linked or the link failure is reported.
 
 ## link
 
@@ -279,7 +279,8 @@ the probe fails or the user passed `--no-native`, report why and stop.
    On an error, report the endpoint and status; the PRs stay a plain stack. Report the
    stack number on success.
 
-Outcome `linked`.
+Outcome `linked`. Done when GitHub reports the stack number, or the refusal or error is
+reported with nothing linked.
 
 ## status
 
@@ -306,8 +307,8 @@ git rev-list --count origin/<layer>..origin/<parent>       # behind its parent w
 Print the mode first (`Mode: native, stack #<number>` or `Mode: branches`, with the reason
 when the probe or the stack read failed), then one row per layer: index, branch, PR, base, state (open/merged/closed), checks
 (passing/failing/pending), review decision, and behind count. Flag a layer whose parent PR
-has merged (needs `retarget`) and a layer behind its parent (needs `sync`). Change nothing.
-Outcome `status`.
+has merged (needs `retarget`) and a layer behind its parent (needs `sync`). `status` only
+reads: it changes nothing. Outcome `status`.
 
 ## Refresh a layer
 
@@ -346,7 +347,8 @@ merged), and other people may have pushed to it. After `git fetch origin`:
      discards them.
 
 This moves a local pointer to a commit already on GitHub; nothing is pushed and no pushed
-history is rewritten.
+history is rewritten. Done when the local layer matches `origin/<layer>`, or its
+local-only commits are listed and the run stopped for it and the layers above.
 
 ## sync
 
@@ -367,24 +369,12 @@ the parent into a layer keeps the base chain GitHub expects.
    - Otherwise: `git merge --no-ff origin/<parent>` (message file, no attribution),
      resolving conflicts that preserve both sides and stopping on incompatible ones.
    - Push with plain `git push`, so the next layer merges the updated parent.
-3. **Rebase** only when the user asked (`--rebase`) and confirms a `--force-with-lease`
-   push naming each branch, after being told that rebase mode runs no merge audit
-   (`ep-sync` never rebases for another skill; use merge mode to get the audit). Before
-   rebasing, record each layer's current parent tip (`old_parent=$(git rev-parse
-   origin/<parent>)`). Then, bottom-up, for each layer:
-   - `git checkout <layer>` and refresh it (Refresh a layer), so commits added on GitHub
-     (for example committed review suggestions) are not lost; record
-     the literal sha of `git rev-parse origin/<layer>` (write it down; shell variables may
-     not persist).
-   - Move only the layer's own commits onto the updated parent:
-     `git rebase --onto <updated-parent> $old_parent <layer>`. A plain
-     `git rebase origin/<parent>` would replay the parent's old commits.
-   - On a conflict, `git rebase --abort`, stop, and report; push nothing for this layer or
-     any layer above it.
-   - Push with an explicit lease: `git push --force-with-lease=<layer>:<recorded-sha>`.
-     Never `--force`.
+3. **Rebase** instead of merging only when the user asked (`--rebase`): follow
+   [references/rewrite.md](references/rewrite.md#rebase-a-stack), which holds its
+   confirmation, its no-audit warning, and its lease.
 
-Outcome `synced`.
+Outcome `synced`. Done when every open layer is up to date with its parent and pushed, or
+the sync stopped at a layer with nothing pushed for it or above.
 
 ## retarget
 
@@ -433,7 +423,9 @@ that work and changes no base.
    only the bodies). Report each next PR's new base, for example `#102 base: main (set by
    GitHub)`.
 
-Outcome `retargeted`.
+Outcome `retargeted`. Done when each next open PR's base is the merged PR's base, its
+branch is up to date, and every remaining body marks the merged layers; or, when a base
+change was declined, the PR and the base it still has are reported.
 
 ## Report and summary block
 
