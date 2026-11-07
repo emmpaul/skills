@@ -1,7 +1,8 @@
 # History rewrites
 
-Read only when the user approved one of the two rewrites below. Every other path of
-`ep-stack` keeps each commit as it is and pushes without force.
+Read when the user approved splitting a mixed commit, or asked for `sync --rebase`
+(before its confirmation, which carries the warning the user hears first). Every other
+path of `ep-stack` keeps each commit as it is and pushes without force.
 
 ## Split a mixed commit
 
