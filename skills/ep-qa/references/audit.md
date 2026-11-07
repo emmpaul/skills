@@ -22,6 +22,8 @@ actual:    what happened: exit code, status, the message
 evidence:  the decisive output lines, quoted, secrets redacted
 notes:     optional: likely cause (file:line), or both runs for a flaky finding
 status:    new | still failing (first seen <sha>)
+regression test: proposed path, framework, code, and its failing output from the scratch
+           run; or "No test proposed: <reason>" (see "Regression test proposals")
 ```
 
 A finding comes only from something the audit observed (command output, an HTTP
@@ -81,6 +83,47 @@ Before keeping a candidate, try to disprove it: re-read the doc or spec line it 
 check the command was run from the right directory with the documented env, and check an
 earlier plan item did not cause it. Deduplicate: one root cause is one finding; mention
 the other symptoms in its evidence.
+
+## Regression test proposals
+
+For each reproduced finding (new or still failing, flaky ones included), draft one test
+that encodes the expected behavior, so the bug cannot quietly come back:
+
+- **Framework and conventions** come from the project: its test command, existing test
+  files (location, naming, imports, fixtures), and test config. Use no new framework or
+  dependency.
+- **Path:** where the test would go under those conventions (for example
+  `tests/test_cli.py` beside the existing `tests/test_*.py`). It must not exist in the
+  repository; pick a new file name when the natural one is taken.
+- **Scratch copy:** copy the target's tracked and untracked, non-ignored files
+  (`git ls-files -co --exclude-standard`) to a new directory under the system temp dir
+  (`mktemp -d`). Copy dependency directories (`node_modules`, `.venv`) when the test
+  command may write to them, otherwise symlink them. Write the test there and run only
+  that test with the project's test command, as the plan item "run proposed regression
+  tests in a scratch copy" (area `tests`, `references/plan.md`). Delete the scratch copy
+  in step 9.
+- **Fails for the right reason:** the test must fail on the asserted behavior, the
+  finding's own failure, not an import, syntax, or fixture error. When it fails for
+  another reason, fix the test and run again; after two attempts that do not fail for the
+  right reason, propose no test and say so (`No test proposed: could not write a test
+  that fails for the finding's reason`). Quote the decisive failing lines as
+  `Fails today:`.
+- **Never in the working tree.** The test is written only in the scratch copy and shown in
+  the audit file; it is never added to the repository. The after-snapshot in step 9
+  proves it.
+- **No secrets:** use `qa-placeholder` for any credential or env value the reproduction
+  needs, and apply "Secrets" below to the test code.
+- **Plan not confirmed:** draft the test anyway, run nothing, and mark it
+  `Not run: plan not confirmed`.
+- **Still failing finding:** reuse the proposed test from the run record and re-run it in
+  the scratch copy for fresh evidence.
+
+Propose no test, and write `No test proposed: <reason>`, when:
+
+- the cause is the environment or infrastructure (a service, a machine setting);
+- the finding is flaky by nature (timing, an external service);
+- it is visual only;
+- the project has no test command or test framework.
 
 ## Secrets
 

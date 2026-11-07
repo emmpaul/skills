@@ -11,9 +11,10 @@ what was not covered.
 
 ## Hard rules
 
-- **Read-only toward source.** Write only the audit file and its run record. Edit no source, test, config,
-  docs, or lock file. Files that confirmed commands create or change are listed in the
-  report and left in place, never reverted.
+- **Read-only toward source.** Write only the audit file and its run record. Edit no
+  source, test, config, docs, or lock file, and add no test: proposed regression tests
+  live in a scratch copy under the system temp dir. Files that confirmed commands create
+  or change are listed in the report and left in place, never reverted.
 - **Confirmation first.** Run project commands only from the plan the user confirmed, or
   the plan as built with `--yes`. Without either, run none.
 - **Never-run list.** Deploy, publish, release, push, non-local or destructive database
@@ -56,7 +57,7 @@ All in this skill's folder (the directory containing this SKILL.md):
 | File | What it holds | When to read |
 |---|---|---|
 | `references/plan.md` | discovery sources, plan item shape, showing the plan, lockfile installs, never-run list, running and server rules, probes per project type, edge inputs | step 2, always |
-| `references/audit.md` | finding shape, areas, severity, verification outcomes, secrets, coverage, wording, report template | step 8, always |
+| `references/audit.md` | finding shape, areas, severity, verification outcomes, regression test proposals, secrets, coverage, wording, report template | step 8, always |
 | `references/record.md` | run record path and format, fingerprints, skip and invalidation rules, checks never skipped, earlier findings, unusable records, atomic write | steps 1, 3, and 9, always |
 
 ## 1. Context
@@ -162,7 +163,11 @@ reproduced, flaky, environment, or refuted, as "Verification" there describes. K
 reproduced and flaky ones as findings in the finding shape, assign severity and area,
 rank and number them `QA-<n>`. Re-run each re-check item and mark the earlier finding
 still failing, fixed, or not re-checked (`record.md`, "Earlier findings"); new findings
-take ids after the highest in the record. Code suspicions no probe confirmed go to "Not covered" as
+take ids after the highest in the record. For each reproduced finding, draft a
+regression test and run it in a scratch copy under the system temp dir to show it fails
+today for the finding's reason, or record why no test is proposed ("Regression test
+proposals" in `audit.md`); never write it into the working tree. With the plan not
+confirmed, draft it and mark it not run. Code suspicions no probe confirmed go to "Not covered" as
 `worth testing`.
 
 **With subagents:** for a reproduced finding, a subagent may read code and return its
@@ -174,7 +179,8 @@ Done when every candidate has an outcome.
 ## 9. Report and clean up
 
 1. Stop every process this run started, with its process group; check its port is free.
-   Delete the scratch and large-input files under the system temp dir.
+   Delete the scratch copies (regression tests, library examples) and large-input files
+   under the system temp dir.
 2. Take the after-snapshot (`git status --porcelain --untracked-files=all`) and compare
    it with the before-snapshot: every created or modified path goes under "Files changed
    by the audit" (collapse a created directory to one line). The audit file and the run

@@ -69,6 +69,12 @@ listed under "Not covered".
 A plan item later blocked by a failed setup or build item becomes
 `not covered: blocked by P<n>`.
 
+When the project has a test command, add one item after the probes: area `tests`,
+command `run proposed regression tests in a scratch copy` (under the system temp dir,
+`references/audit.md`, "Regression test proposals"), source: the test command's source.
+It runs in step 8, never in the repository's working tree, and only with the confirmed
+plan.
+
 ## Showing the plan
 
 Print the plan as a numbered list: id, area, exact command, source, and decision. Put the
