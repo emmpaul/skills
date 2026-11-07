@@ -52,11 +52,10 @@ bash <skill-dir>/scripts/context.sh
 ```
 
 Entries in `warnings` are informational; this skill uses `openspec` (its `root` and
-`changes`) and the current branch. If bash is unavailable, or the probe exits non-zero or
-prints invalid JSON, run the equivalents inline:
+`changes`). If bash is unavailable, or the probe exits non-zero or prints invalid JSON,
+run the equivalent inline:
 
 ```bash
-git rev-parse --abbrev-ref HEAD
 openspec list --json        # "root": null, or exit 1, means no OpenSpec root
 ```
 
@@ -170,7 +169,7 @@ Draft the comment to a temp file (a file-writing tool, or a heredoc with a quote
 delimiter such as `<<'EOF'`):
 
 ```markdown
-OpenSpec change `<name>` tracks this issue: `openspec/changes/<name>/proposal.md` on branch `<branch>`.
+OpenSpec change `<name>` tracks this issue. Its proposal is drafted locally at `openspec/changes/<name>/proposal.md` and is not pushed yet.
 ```
 
 - **No `--comment`:** show the user the comment's full text and ask to **post** it,
