@@ -42,7 +42,7 @@
 
 ## 7. Integration
 
-- [ ] 7.1 Update `README.md`: skills table row for `ep-review-evals`, updated `ep-review` and `ep-open-pr` rows (screenshots), a note that the `ep-pr-assets` branch holds PR screenshots and can be deleted at any time, install commands listing twelve skills; verify every `skills/*/` folder appears in the table and in each install command
+- [x] 7.1 Update `README.md`: skills table row for `ep-review-evals`, updated `ep-review` and `ep-open-pr` rows (screenshots), a note that the `ep-pr-assets` branch holds PR screenshots and can be deleted at any time, install commands listing twelve skills; verify every `skills/*/` folder appears in the table and in each install command
 - [ ] 7.2 Run `scripts/check-shared.sh` and `openspec validate adopt-claude-code-review-practices --strict`; verify both pass
 
 ## Workflow follow-up

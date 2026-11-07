@@ -10,8 +10,8 @@ comments.
 | Skill | What it does |
 |---|---|
 | `ep-commit` | Splits working-tree changes into logical Conventional Commits that match the repo's style. |
-| `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door. |
-| `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, and verifies each finding before reporting it. |
+| `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door, with its risk tier, the tests actually run, and how to revert. When UI files change, screenshots the affected pages from the running app after confirmation and links them in the body (`--screenshots` pre-approves, `--no-screenshots` skips). |
+| `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, confirms each finding by a 3-verifier vote, tags bugs the change did not introduce as pre-existing, follows the repo's `REVIEW.md`, re-reviews only new commits with `--since` and `--known`, and reports the change's risk tier. |
 | `ep-babysit-pr` | Watches a PR: fixes CI failures, answers review comments, runs up to 3 review rounds (later ones only on new commits), and merges when gates pass and the confidence score is at least 85; medium-risk PRs wait for your yes and high-risk ones also for a human approval. |
 | `ep-sync` | Merges the base branch into the current branch (rebase only on request, gated), then audits semantic interactions with no textual conflict (renamed or re-signatured symbols, behaviour and contract changes, new base callers, base tests), adapts the branch in separate commits, and runs tests. |
 | `ep-fixup` | Attaches fixes to the branch commits they correct as `fixup!` commits, and autosquashes only on request: unpushed commits freely, pushed ones after confirmation with `--force-with-lease`. |
@@ -20,6 +20,7 @@ comments.
 | `ep-orchestrate` | Runs one OpenSpec change end to end: plans it, scores the plan and implements without asking only at 85 or more with nothing hard to undo, commits each task on its own, reviews each task group once and fixes its findings before the next group, removes dead code the branch added, and still runs up to 3 review and fix rounds, each phase in a fresh subagent with a resumable state file. Offers large changes as a stack of PRs landed with `ep-stack` and `ep-babysit-pr` after approval. |
 | `ep-a11y` | Audits UI changes (diff, branch, PR, or paths) against WCAG 2.2 at Level AA by default, cites each verified finding by exact success criterion from bundled W3C references, lists what needs a manual check, and never claims conformance. Fixes findings in the working tree with `--fix` and posts one PR comment with `--comment`. |
 | `ep-qa` | Audits an app or repository (whole checkout, one path, or a running app via `--url`) the way a senior QA engineer would: builds a test plan from manifests, scripts, CI, and docs, runs it after confirmation (`--yes` pre-approves) without deploying, publishing, or installing tools, probes the app with edge cases (routes that may change state, such as cron, send, or webhook routes, are not requested on local apps or `--url` and are listed under "Not covered"), checks docs against behavior, and writes an audit file (`qa-audit.md`, `--out` to change) of verified, reproducible problems plus what was not covered. Re-runs skip unchanged checks, track fixed and still-failing findings, and propose a regression test for each finding. |
+| `ep-review-evals` | Measures `ep-review` against the repository's own history: collects incident cases (merged PRs later reverted or fixed forward) and clean PRs you accept, runs `ep-review` on each in a temporary worktree, scores recall and noise into labelled run files, compares two runs to say keep or drop a reviewer change, and suggests `REVIEW.md` lines from how authors answered posted findings. Read-only on GitHub and never commits. |
 
 ## Install
 
@@ -29,17 +30,17 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 # Interactive: pick from the skills found in the repo
 npx skills add emmpaul/skills
 
-# All eleven ep-* skills
-npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa
+# All twelve ep-* skills
+npx skills add emmpaul/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # A single skill
 npx skills add emmpaul/skills --skill ep-commit
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa
+npx skills add ./path/to/skills --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa
+npx skills add emmpaul/skills -g --skill ep-commit ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
@@ -67,6 +68,14 @@ and never added to `.gitignore`.
   is never written to the working tree.
 - **`--full`:** ignore the record, run every check, number findings afresh, and replace
   the record. To start fresh for good, delete the `.state.json` file.
+
+## `ep-open-pr` screenshots
+
+`ep-open-pr` publishes PR screenshots on an `ep-pr-assets` branch of your remote, one
+folder per branch head, with a plain push only after you confirm. That branch holds only
+images, never touches your PR or default branch, and can be deleted at any time; the
+skill recreates it when needed and never deletes it itself. Deleting it breaks the image
+links in older PR bodies.
 
 ## Requirements
 
