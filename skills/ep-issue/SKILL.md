@@ -17,8 +17,9 @@ full draft.
   duplicate search found no match. A found duplicate always asks, `--yes` or not.
 - **Existing labels only.** Labels come from `gh label list`. Labels, milestones,
   projects, and assignees stay as the repo has them: create none.
-- **Text goes through files.** Every issue body and comment is written to a temp
-  file and passed with `--body-file`, so shell quoting cannot alter it.
+- **Text goes through files.** Every title, body, and comment is written to a temp
+  file, never typed into a shell argument: the body and comment pass with `--body-file`,
+  the title as `--title "$(cat "$title")"`, so shell quoting cannot alter it.
 - **Unknowns stay open.** A fact the user or the issue did not give (steps, versions,
   expected behavior, scope) goes under `## Open questions`, never into the body as if
   known.
@@ -179,15 +180,16 @@ Done when the user has picked one option, or `--yes` applies.
 
 ## 6. Write
 
-Write the text to a temp file, then run the one command the user picked:
+Write the text to temp files (with a file-writing tool, or a heredoc with a quoted
+delimiter such as `<<'EOF'`), then run the one command the user picked:
 
 ```bash
-body=$(mktemp)
-# write the body (or comment) to "$body"
-gh issue create --title "<title>" --body-file "$body" [--label "<a>,<b>"]   # create
-gh issue edit <n> --body-file "$body" [--add-label "<a>,<b>"]               # triage
-gh issue comment <m> --body-file "$body"                                    # duplicate
-rm -f "$body"
+title=$(mktemp); body=$(mktemp)
+# write the title to "$title" and the body (or comment) to "$body"
+gh issue create --title "$(cat "$title")" --body-file "$body" [--label "<a>,<b>"]  # create
+gh issue edit <n> --body-file "$body" [--add-label "<a>,<b>"]                    # triage
+gh issue comment <m> --body-file "$body"                                         # duplicate
+rm -f "$title" "$body"
 ```
 
 In triage, the body file holds the author's body unchanged followed by the additions. For
