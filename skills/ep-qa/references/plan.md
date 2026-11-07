@@ -200,10 +200,26 @@ docs or a spec scenario) is a candidate for step 8.
 
 **`--url` (an app already running elsewhere)**
 
-- `GET` and `HEAD` only, to that URL and paths under it: the root, each documented route,
-  and a missing route.
-- No forms, no sign-in, no other method, no request bodies. Flows that need writes go
-  under "Not covered".
+- `GET` and `HEAD` only, to that URL and paths under it: the root, a missing route, and
+  each documented route that is **clearly read-only**.
+- A `GET` can still change state (a cron trigger, a webhook, an unsubscribe or
+  email-confirmation link), and that app is not one this run started, so a documented
+  route is probed only when all hold; any doubt means it is not probed:
+  - the docs give it as `GET` or `HEAD` (or name no method for a page), never another
+    method;
+  - neither its path nor its doc text names an action: `send`, `run`, `trigger`, `cron`,
+    `job`, `task`, `queue`, `webhook`, `hook`, `callback`, `sync`, `import`, `refresh`,
+    `notify`, `email`, `mail`, `digest`, `invoke`, `execute`, `exec`, `create`, `new`,
+    `add`, `update`, `edit`, `delete`, `remove`, `reset`, `purge`, `clear`, `flush`,
+    `approve`, `cancel`, `confirm`, `verify`, `unsubscribe`, `subscribe`, `login`,
+    `logout`, `auth`, `token`, `deploy`, `publish`, `restart`, `shutdown`, `migrate`,
+    `seed`, `admin`, and the like;
+  - the docs do not say it changes, sends, or schedules anything, and it needs no token,
+    signature, or id parameter.
+  A documented route left out goes under "Not covered" as
+  `not probed on --url: may change state (<METHOD> <route>)`.
+- No forms, no sign-in, no other method, no request bodies, and no query strings beyond
+  the ones a probed route's docs show. Flows that need writes go under "Not covered".
 
 ## Edge inputs
 

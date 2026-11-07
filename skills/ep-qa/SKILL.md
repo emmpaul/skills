@@ -23,8 +23,10 @@ what was not covered.
 - **Install nothing on the machine.** Dependency installs only with the project's
   lockfile-respecting command, as confirmed plan items; never a global or system install
   or a tool the project does not declare.
-- **`--url` is read-only:** `GET` and `HEAD` only. State-changing requests go only to an
-  app this run started locally.
+- **`--url` is read-only:** `GET` and `HEAD` only, to the root, a missing route, and
+  documented routes that are clearly read-only. State-changing requests, including a
+  `GET` that may change state (a cron or webhook route), go only to an app this run
+  started locally.
 - **No git or GitHub writes:** no commit, push, merge, issue, PR, or comment. The audit
   file and the run record stay uncommitted and out of `.gitignore`.
 - **No all-clear.** The report says what was exercised and found; it never says the
@@ -114,8 +116,9 @@ is for never-run commands, missing tools (`command -v`), and services the audit 
 locally. Add one re-check item per open
 finding in a usable record (`record.md`, "Earlier findings"). Probes come from
 the project type and the edge inputs in `plan.md`; with `--url`, add `GET`/`HEAD` probes of
-that URL. When the project defines no runnable command, say so; the audit continues with
-docs checks only.
+that URL's root, a missing route, and only the documented routes that are clearly
+read-only (`plan.md`, "`--url`"); the others are not covered. When the project defines
+no runnable command, say so; the audit continues with docs checks only.
 
 Done when every documented or scripted command has a plan item, every one with a source
 and a decision.
