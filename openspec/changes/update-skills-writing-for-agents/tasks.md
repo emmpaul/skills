@@ -29,7 +29,7 @@ Every rewrite task loads the `writing-for-agents` skill (`.agents/skills/writing
 
 ## 5. Shepherding skills
 
-- [ ] 5.1 Rewrite `skills/ep-babysit-pr/SKILL.md` and `references/score.md` and `side-paths.md`, keeping the hard gates, the 85 threshold, the risk gate, the attempt and round caps, the state-file format, and the `#ci-debug`, `#fixup`, `#sync`, and `#risk-gate` anchors. Verify the interface checks for `ep-babysit-pr` pass. Also verify each `side-paths.md` section still states the same rules as the rewritten `ep-ci-debug`, `ep-fixup`, and `ep-sync` (group 2).
+- [x] 5.1 Rewrite `skills/ep-babysit-pr/SKILL.md` and `references/score.md` and `side-paths.md`, keeping the hard gates, the 85 threshold, the risk gate, the attempt and round caps, the state-file format, and the `#ci-debug`, `#fixup`, `#sync`, and `#risk-gate` anchors. Verify the interface checks for `ep-babysit-pr` pass. Also verify each `side-paths.md` section still states the same rules as the rewritten `ep-ci-debug`, `ep-fixup`, and `ep-sync` (group 2).
 - [ ] 5.2 Rewrite `skills/ep-stack/SKILL.md`, keeping the `split`, `link`, `status`, `sync`, and `retarget` modes, `--no-native`, every confirmation point, and the plain-branch fallback. Verify the interface checks for `ep-stack` pass.
 
 ## 6. Orchestrator and integration
