@@ -6,15 +6,20 @@ Each dimension reviews the same diff and returns candidate findings in the shape
 
 A defect is in scope when it sits in a **changed function** (a function, method, or
 top-level block with an added, changed, or removed line) or in a **direct caller or
-callee** of one. Defects anywhere else are out of scope: do not report them, even when the
-diff touches the same file.
+callee** of one. One exception: a line in the repository's `CLAUDE.md` or `AGENTS.md`
+that the diff makes stale (it names a path, command, or symbol the diff renames, removes,
+or changes) is in scope even when that file is unchanged. Defects anywhere else are out of
+scope: do not report them, even when the diff touches the same file.
 
 Each in-scope finding has an origin:
 
-- **introduced**: the diff adds or changes the defect's lines, or the defect exists only
-  because of the diff (a changed caller now reaches an old bug it never reached before
-  counts as introduced at the caller).
-- **pre-existing**: the defect's lines are not among the diff's added lines and
+- **introduced**: the diff adds or changes the defect's lines, or the diff causes the
+  defect even though its lines are unchanged (a changed callee can now return null and an
+  unchanged caller dereferences it; a renamed script leaves an unchanged `CLAUDE.md` line
+  stale; a changed caller now reaches an old bug it never reached before counts as
+  introduced at the caller).
+- **pre-existing**: the defect would occur at the target's base too, so the diff did not
+  cause it, **and** its lines are not among the diff's added lines and
   `git blame -M -C <base>..<head> -L <start>,<end> -- <file>` (line numbers of the head
   version) marks every one of them as a boundary line (`^` before the sha), meaning
   they were already present at the target's base. `-M -C` follows moved and copied
