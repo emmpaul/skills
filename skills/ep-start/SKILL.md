@@ -213,8 +213,9 @@ git config --get "branch.<name>.ep-issue"
 This lives in `.git/config`: never committed or pushed, and read by `ep-open-pr` for the
 PR body's issue reference. `ep-open-pr` treats any set key as final and parses the branch
 name only when the key is unset, so `none` keeps a description branch such as
-`fix/404-page-shows-stack-trace` from linking issue #404. A description run still reports
-`issue: null`.
+`fix/404-page-shows-stack-trace` from linking issue #404. The summary's `issue` reports
+the value the branch now holds: the number when it is digits (including one kept from an
+existing branch), `null` for `none`, so it names the issue `ep-open-pr` will link.
 
 Done when the read-back prints `<value>`, or the existing value that was kept.
 
@@ -253,7 +254,9 @@ stash: <stash ref> | null
   stop (bad argument, no remote or base, issue not found, user aborted).
 - `branch`: the branch name; on `aborted` before a name existed, the current branch.
 - `base`: the base sha from step 5; on `aborted`, the current `HEAD` sha.
-- `issue`: the linked issue number, `null` for a description or an invalid argument.
+- `issue`: the number step 7 left in `branch.<name>.ep-issue` (the issue run's number,
+  or the digits kept on an existing branch), `null` when it holds `none`, and `null` on
+  `aborted`.
 - `change`: the OpenSpec change created or chosen, `null` otherwise.
 - `stash`: the ref recorded in step 4, `null` when nothing was stashed.
 
