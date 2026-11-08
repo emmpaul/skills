@@ -74,7 +74,10 @@ directory name is an existing change:
 
 ```bash
 grep -rlF --include=proposal.md --include=README.md --exclude-dir=archive \
-  "From #<n>:" "<root>/openspec/changes"
+  "<marker>" "<root>/openspec/changes"
 ```
 
-`<n>` is digits only, so the marker is safe inside double quotes.
+`<marker>` is the issue's own marker: `From #<n>:` for an issue in this repository, and
+`From <owner>/<repo>#<n>:` for an issue in another, so a change for #17 here never
+matches `acme/other#17`. `<n>` is digits only and `<owner>/<repo>` is letters, digits,
+`-`, `_`, `.` and one `/`, so the marker is safe inside double quotes.
