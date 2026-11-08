@@ -57,7 +57,7 @@ user for a name.
 
 - #17 "Login fails with SSO", label `bug` → `fix-login-fails-with-sso`
 - "add CSV export" → `add-csv-export`
-- #30 "Login hangs with SSO", no label → `add-login-hangs-sso`
+- #30 "Login hangs with SSO", no label → `add-login-hangs-with-sso`
 
 A name the user supplies instead is accepted only when it matches
 `^[a-z0-9][a-z0-9-]*$`.
