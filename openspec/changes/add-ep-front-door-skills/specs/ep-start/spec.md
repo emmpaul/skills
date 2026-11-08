@@ -53,6 +53,10 @@ When the user passes `--change` or confirms the offer, the skill SHALL create an
 - **WHEN** the user runs `ep-start 17 --change` in an OpenSpec repo
 - **THEN** a change is created with the CLI and its name is reported
 
+#### Scenario: Change marked with its issue
+- **WHEN** the user runs `ep-start 17 --change` in an OpenSpec repo
+- **THEN** the change is named by the same rules `ep-issue-to-change` uses, and its `README.md` carries the marker `From #17:`, so `ep-issue-to-change 17` finds it
+
 ### Requirement: Issue link recorded
 When started from an issue, the skill SHALL record the issue number locally in a way `ep-open-pr` can read, so the PR can reference the issue.
 

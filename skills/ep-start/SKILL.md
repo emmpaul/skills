@@ -92,21 +92,10 @@ description), and the issue number or none are known.
 
 ## 3. Name the branch
 
-**Type**, first match wins:
-
-1. Labels: `bug` → `fix`; `enhancement` or `feature` → `feat`; `documentation` → `docs`.
-2. The title's verb or symptom: fails, crashes, broken, error, wrong, fix → `fix`;
-   document, docs, readme → `docs`; refactor, rename, extract, simplify → `refactor`;
-   test → `test`; add, support, implement, allow → `feat`.
-3. Otherwise `feat`.
-
-**Slug:** from the title, drop a leading bracketed tag (`[...]`) and code marks, lowercase
-it, and transliterate or drop non-ASCII. Split it into words at every run of characters
-outside `[a-z0-9]`, drop empty words and stop words (a, an, the, to, of, for, in, on, is,
-are, be, please, should), and join the rest with single `-`, keeping whole words up to
-about 40 characters. The slug starts and ends with a letter or digit and has no `--`.
-"Login fails with SSO" gives `login-fails-with-sso`; "Crash on save (Windows)" gives
-`crash-save-windows`.
+**Type and slug:** apply the Type and Slug rules in
+[`references/naming.md`](references/naming.md) to the title and labels, every rule in
+order. "Login fails with SSO" labelled `bug` gives type `fix` and slug
+`login-fails-with-sso`.
 
 **Name:** `<type>/<n>-<slug>` with an issue, `<type>/<slug>` without. An empty slug gives
 `<type>/<n>` with an issue; without one, ask the user for a short name. A name the user
@@ -176,23 +165,20 @@ says only "`--change` was ignored; no change was created."
 With `--change`, create the change. Without it, ask once: **create a change** `<change>`
 or **skip**.
 
-Name the change by step 3's slug rule, starting with a verb (`fix-` for type `fix`,
-`add-` for `feat`, otherwise the title's own verb such as `update-`) that appears once
-("add CSV export" gives `add-csv-export`), at most about 40 characters in all.
-`ep-issue-to-change` names its changes by this same rule, so one issue gives one name.
-The change exists when the name is in the probe's `changes`, or, with an issue, when
-a proposal cites it the way `ep-issue-to-change` writes it; the listed file's directory
-name is the existing change:
-
-```bash
-grep -rlF --include=proposal.md --exclude-dir=archive "From #<n>:" "<root>/openspec/changes"
-```
+Name the change by the Change name rule in [`references/naming.md`](references/naming.md)
+("add CSV export" gives `add-csv-export`); `ep-issue-to-change` uses the same rule, so one
+issue gives one name. Check whether the change exists by that file's "An issue's existing
+change" rule (by name only for a description).
 
 When it exists, ask: **use the existing change** or **pick a new name**. Then:
 
 ```bash
-openspec new change "<change>" --json
+openspec new change "<change>" --description "From #<n>: started by ep-start." --json  # issue
+openspec new change "<change>" --json                                                  # description
 ```
+
+The description writes the issue marker to the change's `README.md`, so
+`ep-issue-to-change` finds this change for the issue.
 
 The result's `change.path` must hold `.openspec.yaml`. Its files stay uncommitted on the
 new branch.

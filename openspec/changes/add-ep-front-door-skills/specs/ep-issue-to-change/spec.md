@@ -27,6 +27,10 @@ The skill SHALL derive a kebab-case change name from the issue, create the chang
 - **WHEN** a change with the derived name already exists
 - **THEN** the skill asks whether to continue that change or pick a new name
 
+#### Scenario: Change already started for the issue
+- **WHEN** `ep-start 30 --change` created a change for unlabelled issue #30 "Login hangs with SSO", and the user then runs `ep-issue-to-change 30`
+- **THEN** the skill derives the same name, `add-login-hangs-sso`, by the shared naming rules, finds that change (by its name or its `From #30:` marker), and asks whether to continue it or pick a new name
+
 ### Requirement: Proposal grounded in the issue
 The skill SHALL write the change's proposal from the issue, referencing the issue number, mapping the issue's problem to Why and its asks to What Changes, and listing unresolved questions instead of inventing scope.
 
