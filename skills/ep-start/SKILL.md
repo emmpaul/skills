@@ -202,17 +202,21 @@ user chose the existing change.
 
 ## 7. Record the issue link
 
-With an issue only:
+Record `<value>`: the issue number `<n>`, or `none` for a description. A description run
+on an existing branch whose key is already set keeps that value and skips the write.
 
 ```bash
-git config "branch.<name>.ep-issue" <n>
+git config "branch.<name>.ep-issue" <value>
 git config --get "branch.<name>.ep-issue"
 ```
 
 This lives in `.git/config`: never committed or pushed, and read by `ep-open-pr` for the
-PR body's issue reference.
+PR body's issue reference. `ep-open-pr` treats any set key as final and parses the branch
+name only when the key is unset, so `none` keeps a description branch such as
+`fix/404-page-shows-stack-trace` from linking issue #404. A description run still reports
+`issue: null`.
 
-Done when the read-back prints `<n>`, or the work has no issue.
+Done when the read-back prints `<value>`, or the existing value that was kept.
 
 ## 8. Push (only with `--push`)
 

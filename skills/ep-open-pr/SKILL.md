@@ -177,9 +177,12 @@ git config --get "branch.$branch.ep-issue"
 The name stays in `$branch`, never typed into the command: git ref names may contain
 `$`, `(`, `)`, and `;`, which the shell would run inside double quotes.
 
-`ep-start` records the issue number there. When the key is unset, parse the branch name:
-a name matching `<type>/<digits>-<slug>` (regex `^[a-z]+/([0-9]+)-`) links issue
-`<digits>`; any other name links none. The config value wins over the name.
+`ep-start` records the issue number there, or `none` for a branch started from a
+description. A set key is final, `none` included: digits link that issue, `none` links
+none, and the branch name is never read. Only when the key is unset, parse the name: one
+matching `<type>/<digits>-<slug>`, where `<type>` is a Conventional Commit type (regex
+`^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)/([0-9]+)-`), links issue
+`<digits>`; any other name, such as `release/2024-notes`, links none.
 
 With a linked issue `<n>`, end `## Summary` with one line: `Closes #<n>` when the title
 type is `feat` or `fix`, else `Refs #<n>`. With none, drop that line and leave the rest of
