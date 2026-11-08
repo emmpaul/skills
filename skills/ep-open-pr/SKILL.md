@@ -281,16 +281,20 @@ dropped because no UI file changed.
 
 ## 6. Create the PR
 
-Write the body to a temp file and create the PR (for an existing PR from step 2, run
-`gh pr edit <n> --body-file "$body"` instead):
+Write the title and body to temp files (with a file-writing tool, or a heredoc with a
+quoted delimiter such as `<<'EOF'`) and create the PR (for an existing PR from step 2,
+run `gh pr edit <n> --body-file "$body"` instead):
 
 ```bash
-body=$(mktemp)
-# write the body to "$body"
+title=$(mktemp); body=$(mktemp)
+# write the title to "$title" and the body to "$body"
 branch=$(git symbolic-ref --quiet --short HEAD)   # kept in a variable, as in Linked issue
-gh pr create --base <base> --head "$branch" --title "<title>" --body-file "$body" [--draft]
-rm -f "$body"
+gh pr create --base <base> --head "$branch" --title "$(cat "$title")" --body-file "$body" [--draft]
+rm -f "$title" "$body"
 ```
+
+The title comes from commit subjects, which may hold backticks, `$`, or quotes, so it
+reaches `gh` only through `"$(cat "$title")"`, never typed inside the command.
 
 Read it back with `gh pr view --json url,title,body,isDraft`. Done when the title and body contain no "Generated with" or model attribution line. If
 one does, remove it with `gh pr edit <n> --body-file <file>` and read it back again.
