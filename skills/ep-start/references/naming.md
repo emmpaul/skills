@@ -52,12 +52,14 @@ punctuation gives an empty word, and empty words are dropped. Examples:
 The verb comes from the type: `fix` → `fix`, `feat` → `add`, `docs` → `document`,
 `refactor` → `refactor`, `test` → `test`. The name is `<verb>-<slug>`, or the slug alone
 when its first word is already the verb, keeping whole slug words while the name is at
-most 40 characters. An empty slug gives `<verb>-<n>` with an issue; without one, ask the
+most 40 characters. When even the first slug word does not fit, cut that word so the
+name is exactly 40 characters. An empty slug gives `<verb>-<n>` with an issue; without one, ask the
 user for a name.
 
 - #17 "Login fails with SSO", label `bug` → `fix-login-fails-with-sso`
 - "add CSV export" → `add-csv-export`
 - #30 "Login hangs with SSO", no label → `add-login-hangs-with-sso`
+- "getUserPreferencesFromLocalStorageAsync throws" → `add-getuserpreferencesfromlocalstorageas`
 
 A name the user supplies instead is accepted only when it matches
 `^[a-z0-9][a-z0-9-]*$`.
