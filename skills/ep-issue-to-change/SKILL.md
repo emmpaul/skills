@@ -39,8 +39,11 @@ ep-issue-to-change ... --comment    # post the link comment without asking
 
 Plain-language requests work the same ("make an OpenSpec change from #17").
 
-Accept the argument only in those two forms (digits, or that URL shape). Anything else
-stops with `outcome: aborted`, since the reference is passed to `gh` as is.
+Accept the argument only in those forms: digits, `#<digits>`, or that URL shape
+(`^https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/issues/[0-9]+$`). Anything else
+stops with `outcome: aborted`. The issue reference `<ref>` is the digits (with any `#`
+dropped) or the URL; it is passed to `gh` in double quotes, since an unquoted `#17` is a
+shell comment.
 
 ## 1. Gather context
 
@@ -73,7 +76,7 @@ stopped with the outcome above and nothing on disk changed.
 ## 2. Read the issue
 
 ```bash
-gh issue view <ref> --json number,title,body,labels,comments,state,url
+gh issue view "<ref>" --json number,title,body,labels,comments,state,url
 ```
 
 A missing or unreadable issue stops with `outcome: aborted` and the `gh` error, before
@@ -181,14 +184,14 @@ OpenSpec change `<name>` tracks this issue. Its proposal is drafted locally at `
 Post the confirmed file, then read the comments back:
 
 ```bash
-gh issue comment <ref> --body-file "$comment"
-gh issue view <ref> --json comments
+gh issue comment "<ref>" --body-file "$comment"
+gh issue view "<ref>" --json comments
 rm -f "$comment"
 ```
 
 Done when the user skipped (`commented: false`), or the last comment read back matches
 the file and has no "Generated with" or model attribution line (`commented: true`). If it
-has one, fix it with `gh issue comment <ref> --edit-last --body-file <file>` and read it
+has one, fix it with `gh issue comment "<ref>" --edit-last --body-file <file>` and read it
 back again.
 
 ## 6. Report
