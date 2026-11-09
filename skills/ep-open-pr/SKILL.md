@@ -1,6 +1,6 @@
 ---
 name: ep-open-pr
-description: Push the current branch and open a GitHub pull request whose title and body come from its commits and the active OpenSpec change, with risk tier, testing evidence, how to revert, UI screenshots, and no model attribution. Use when the user asks to open, create, or raise a PR.
+description: Push the current branch and open a GitHub pull request whose title and body come from its commits and the active OpenSpec change, with risk tier, testing evidence, how to revert, UI screenshots, and no model attribution. Use when the user asks to open a PR.
 ---
 
 # ep-open-pr
@@ -112,6 +112,8 @@ take `tasks_done` / `tasks_total` from the probe (or count `- [x]` / `- [ ]` lin
 
 <2-4 sentences: what the branch does and why.>
 
+<only when the branch has a linked issue: `Closes #<n>` or `Refs #<n>`>
+
 ## Changes
 
 - <notable change, grouped by area; reference commit subjects>
@@ -162,6 +164,29 @@ the `## OpenSpec` section and every mention of OpenSpec. The body ends at `## Te
 with no footer.
 
 Done when the title and every section are filled from the subsections below.
+
+### Linked issue
+
+Find the issue this branch was started from:
+
+```bash
+branch=$(git symbolic-ref --quiet --short HEAD)
+git config --get "branch.$branch.ep-issue"
+```
+
+The name stays in `$branch`, never typed into the command: git ref names may contain
+`$`, `(`, `)`, and `;`, which the shell would run inside double quotes.
+
+`ep-start` records the issue number there, or `none` for a branch started from a
+description. A set key is final, `none` included: digits link that issue, `none` links
+none, and the branch name is never read. Only when the key is unset, parse the name: one
+matching `<type>/<digits>-<slug>`, where `<type>` is a Conventional Commit type (regex
+`^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)/([0-9]+)-`), links issue
+`<digits>`; any other name, such as `release/2024-notes`, links none.
+
+With a linked issue `<n>`, end `## Summary` with one line: `Closes #<n>` when the title
+type is `feat` or `fix`, else `Refs #<n>`. With none, drop that line and leave the rest of
+the body as the template gives it.
 
 ### Classifying the door
 
@@ -256,15 +281,20 @@ dropped because no UI file changed.
 
 ## 6. Create the PR
 
-Write the body to a temp file and create the PR (for an existing PR from step 2, run
-`gh pr edit <n> --body-file "$body"` instead):
+Write the title and body to temp files (with a file-writing tool, or a heredoc with a
+quoted delimiter such as `<<'EOF'`) and create the PR (for an existing PR from step 2,
+run `gh pr edit <n> --body-file "$body"` instead):
 
 ```bash
-body=$(mktemp)
-# write the body to "$body"
-gh pr create --base <base> --head <branch> --title "<title>" --body-file "$body" [--draft]
-rm -f "$body"
+title=$(mktemp); body=$(mktemp)
+# write the title to "$title" and the body to "$body"
+branch=$(git symbolic-ref --quiet --short HEAD)   # kept in a variable, as in Linked issue
+gh pr create --base <base> --head "$branch" --title "$(cat "$title")" --body-file "$body" [--draft]
+rm -f "$title" "$body"
 ```
+
+The title comes from commit subjects, which may hold backticks, `$`, or quotes, so it
+reaches `gh` only through `"$(cat "$title")"`, never typed inside the command.
 
 Read it back with `gh pr view --json url,title,body,isDraft`. Done when the title and body contain no "Generated with" or model attribution line. If
 one does, remove it with `gh pr edit <n> --body-file <file>` and read it back again.

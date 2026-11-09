@@ -53,12 +53,24 @@ When the user passes `--change` or confirms the offer, the skill SHALL create an
 - **WHEN** the user runs `ep-start 17 --change` in an OpenSpec repo
 - **THEN** a change is created with the CLI and its name is reported
 
+#### Scenario: Change marked with its issue
+- **WHEN** the user runs `ep-start 17 --change` in an OpenSpec repo
+- **THEN** the change is named by the same rules `ep-issue-to-change` uses, and its `README.md` carries the marker `From #17:`, so `ep-issue-to-change 17` finds it
+
 ### Requirement: Issue link recorded
-When started from an issue, the skill SHALL record the issue number locally in a way `ep-open-pr` can read, so the PR can reference the issue.
+The skill SHALL record the branch's issue link locally in `branch.<name>.ep-issue`, which `ep-open-pr` reads: the issue number when started from an issue, and `none` when started from a description, so `ep-open-pr` never reads an issue number out of a description branch's name. A description run that switches to an existing branch whose key is already set SHALL keep that value.
 
 #### Scenario: PR after start
 - **WHEN** work started with `ep-start 17` reaches `ep-open-pr`
 - **THEN** the issue number is available to the PR body
+
+#### Scenario: Description run
+- **WHEN** the user runs `ep-start "add CSV export"`
+- **THEN** the skill writes `branch.feat/add-csv-export.ep-issue=none` to `.git/config`, and nothing is committed or pushed
+
+#### Scenario: Description run on a branch with a key
+- **WHEN** a description run switches to an existing branch whose `ep-issue` key is `17`
+- **THEN** the key stays `17`, and the summary reports `issue: 17`
 
 ### Requirement: No push by default
 The skill SHALL NOT push or write to GitHub unless the user passes `--push` or confirms; when pushing it SHALL use a plain push that sets upstream.

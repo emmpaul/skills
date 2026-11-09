@@ -9,6 +9,9 @@ comments.
 
 | Skill | What it does |
 |---|---|
+| `ep-issue` | Drafts a new GitHub issue from a description, or triages an existing one by number: a structured body with open questions for unknowns, labels from the repo's existing set only, a one-way or two-way door call, and a duplicate search first. Creates or edits the issue only after you confirm the draft (`--yes` pre-approves unless duplicates were found). |
+| `ep-issue-to-change` | Turns a GitHub issue into an OpenSpec change created with `openspec new change`, writes a proposal grounded in the issue (its number, asks, existing capability paths, and open questions), and stops for the propose workflow. Comments a link on the issue only after confirmation (`--comment` pre-approves). Stops in a repo without OpenSpec and never runs `openspec init`. |
+| `ep-start` | Starts work from an issue number or a description: fetches the default branch, cuts a `<type>/<issue>-<slug>` branch from it (or from `--base`), asks before stashing a dirty tree, can create an OpenSpec change (`--change`), and records the issue link so `ep-open-pr` adds `Closes #<n>` or `Refs #<n>`. Pushes nothing unless you pass `--push`. |
 | `ep-commit-and-push` | Splits working-tree changes into logical Conventional Commits that match the repo's style, then pushes the branch with a plain push (`--no-push` commits only; pushing the default branch asks first). |
 | `ep-open-pr` | Pushes the branch and opens a GitHub PR with a title and body built from the commits and the active OpenSpec change, labelled as a one-way or two-way door, with its risk tier, the tests actually run, and how to revert. When UI files change, screenshots the affected pages from the running app after confirmation and links them in the body (`--screenshots` pre-approves, `--no-screenshots` skips). |
 | `ep-review` | Reviews a diff, branch, or PR for correctness, spec conformance, tests, and security, confirms each finding by a 3-verifier vote, tags bugs the change did not introduce as pre-existing, follows the repo's `REVIEW.md`, re-reviews only new commits with `--since` and `--known`, and reports the change's risk tier. |
@@ -30,17 +33,17 @@ Uses the [skills CLI](https://github.com/vercel-labs/skills).
 # Interactive: pick from the skills found in the repo
 npx skills add emmpaul/skills
 
-# All twelve ep-* skills
-npx skills add emmpaul/skills --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+# All fifteen ep-* skills
+npx skills add emmpaul/skills --skill ep-issue ep-issue-to-change ep-start ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # A single skill
 npx skills add emmpaul/skills --skill ep-commit-and-push
 
 # From a local clone
-npx skills add ./path/to/skills --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+npx skills add ./path/to/skills --skill ep-issue ep-issue-to-change ep-start ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 
 # User-level (global) instead of project-level
-npx skills add emmpaul/skills -g --skill ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
+npx skills add emmpaul/skills -g --skill ep-issue ep-issue-to-change ep-start ep-commit-and-push ep-open-pr ep-review ep-babysit-pr ep-sync ep-fixup ep-ci-debug ep-stack ep-orchestrate ep-a11y ep-qa ep-review-evals
 ```
 
 The repo also contains OpenSpec's own skills under `.claude/skills/` (used to develop this
